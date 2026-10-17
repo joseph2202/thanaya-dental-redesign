@@ -71,8 +71,8 @@ function ConfirmationContent() {
                 </div>
                 <p className="text-xs text-neutral-500">الدفع عند الاستلام. أجور التوصيل يتم تحديدها لاحقاً.</p>
                 <div className="flex flex-wrap gap-3">
-                  <Link href="/account" className="flex-1 rounded-xl bg-brand px-6 py-3 text-center font-bold text-white">عرض طلباتي</Link>
-                  <Link href="/products" className="flex-1 rounded-xl border border-[#d4eaf2] px-6 py-3 text-center font-bold text-ink">متابعة التسوق</Link>
+                  <Link href="/account" className="site-btn site-btn-primary flex-1">عرض طلباتي</Link>
+                  <Link href="/products" className="site-btn site-btn-outline flex-1">متابعة التسوق</Link>
                 </div>
               </div>
             </div>
