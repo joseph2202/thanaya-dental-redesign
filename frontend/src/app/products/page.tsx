@@ -1,4 +1,4 @@
-import { productsAPI, categoriesAPI } from '@/lib/api';
+import { productsAPI } from '@/lib/api';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import ProductMedia from '@/components/ui/ProductMedia';
@@ -8,7 +8,6 @@ import { ArrowUpLeft, SlidersHorizontal } from 'lucide-react';
 export const instant = false;
 
 type CatalogProduct = { id: string; name: string; price: number; brand: string; category: string; icon?: string; image?: string | null; badge?: string };
-type CatalogCategory = { id: string; name: string };
 
 type SearchParams = { category?: string; brand?: string; sort?: string; minPrice?: string; maxPrice?: string; search?: string };
 
@@ -20,11 +19,15 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
   if (params.sort) apiParams.sort = params.sort;
   if (params.search) apiParams.search = params.search;
 
-  const [products, categories, allProducts] = await Promise.all([
+  const [products, allProducts] = await Promise.all([
     productsAPI.getAll(apiParams) as Promise<CatalogProduct[]>,
-    categoriesAPI.getAll().catch(() => []) as Promise<CatalogCategory[]>,
     productsAPI.getAll() as Promise<CatalogProduct[]>,
   ]);
+  const categoryCounts = new Map<string, number>();
+  for (const product of allProducts) {
+    if (product.category?.trim()) categoryCounts.set(product.category, (categoryCounts.get(product.category) || 0) + 1);
+  }
+  const categories = [...categoryCounts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'ar'));
   const brands = [...new Set(allProducts.map(p => p.brand).filter(Boolean))].sort();
 
   const queryFor = (key: string, value: string) => {
@@ -39,7 +42,7 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
     <div className="grid lg:grid-cols-[240px_1fr] gap-7">
       <aside aria-label="تصفية المنتجات" className="site-surface p-5 h-fit lg:sticky lg:top-40">
         <div className="flex items-center gap-2 font-bold mb-6"><SlidersHorizontal size={18} className="text-brand" /> تصفية المنتجات</div>
-        <div><h2 className="text-xs font-bold text-[#8797aa] mb-3">التصنيف</h2><div className="grid gap-1.5 text-sm"><Link href={queryFor('category', '')} className={`rounded-lg px-3 py-2 ${!params.category ? 'bg-[#edf3ff] text-brand font-bold' : 'hover:bg-paper2'}`}>الكل</Link>{categories.map(c => <Link key={c.id} href={queryFor('category', c.name)} className={`rounded-lg px-3 py-2 ${params.category === c.name ? 'bg-[#edf3ff] text-brand font-bold' : 'hover:bg-paper2'}`}>{c.name}</Link>)}</div></div>
+        <div><h2 className="text-xs font-bold text-[#8797aa] mb-3">التصنيف</h2><div className="grid gap-1.5 text-sm"><Link href={queryFor('category', '')} className={`rounded-lg px-3 py-2 ${!params.category ? 'bg-[#edf3ff] text-brand font-bold' : 'hover:bg-paper2'}`}>الكل</Link>{categories.map(([name, count]) => <Link key={name} href={queryFor('category', name)} className={`rounded-lg px-3 py-2 flex justify-between gap-2 ${params.category === name ? 'bg-[#edf3ff] text-brand font-bold' : 'hover:bg-paper2'}`}><span>{name}</span><span className="text-xs opacity-70">{count}</span></Link>)}</div></div>
         <div className="border-t border-[#e6edf5] mt-5 pt-5"><h2 className="text-xs font-bold text-[#8797aa] mb-3">الماركة</h2><div className="grid gap-1.5 text-sm"><Link href={queryFor('brand', '')} className={`rounded-lg px-3 py-2 ${!params.brand ? 'bg-[#edf3ff] text-brand font-bold' : 'hover:bg-paper2'}`}>الكل</Link>{brands.map(b => <Link key={b} href={queryFor('brand', b)} className={`rounded-lg px-3 py-2 ${params.brand === b ? 'bg-[#edf3ff] text-brand font-bold' : 'hover:bg-paper2'}`}>{b}</Link>)}</div></div>
         <Link href="/products" className="block text-brand text-xs font-bold mt-5 hover:underline">إعادة تعيين الفلاتر</Link>
       </aside>
