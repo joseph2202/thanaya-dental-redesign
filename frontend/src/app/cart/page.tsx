@@ -16,7 +16,7 @@ export default function CartPage() {
           <div className="text-8xl mb-6">🛒</div>
           <h1 className="text-4xl font-black mb-4 text-ink">سلتك فارغة</h1>
           <p className="text-neutral-600 mb-8">لم تضف أي منتج بعد. تسوق الآن!</p>
-          <Link href="/products" className="bg-brand text-white rounded-xl px-8 py-3 font-bold inline-block shadow-[0_10px_24px_#183f881a]">
+          <Link href="/products" className="site-btn site-btn-primary">
             تصفح المنتجات
           </Link>
         </main>
@@ -74,10 +74,10 @@ export default function CartPage() {
             <span className="text-3xl font-black text-brand">{totalPrice.toLocaleString()} د.ع</span>
           </div>
           <div className="flex gap-3">
-            <Link href="/checkout" className="flex-1 bg-brand text-white rounded-xl py-3 font-bold text-center shadow-[0_10px_24px_#183f881a] hover:bg-brand-dark transition">
+            <Link href="/checkout" className="site-btn site-btn-primary flex-1">
               إتمام الطلب
             </Link>
-            <button onClick={clearCart} className="bg-white border border-[#cbd8e8] rounded-xl px-6 py-3 font-bold hover:bg-paper2 transition">
+            <button onClick={clearCart} className="site-btn site-btn-outline">
               إفراغ السلة
             </button>
           </div>
