@@ -42,6 +42,8 @@ export const productsAPI = {
   update: (id: string, data: any) => apiRequest(`/products/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   
   delete: (id: string) => apiRequest(`/products/${id}`, { method: 'DELETE' }),
+  getInventory: (id: string) => apiRequest(`/products/${id}/inventory`),
+  adjustStock: (id: string, delta: number, reason: string) => apiRequest(`/products/${id}/stock-adjustment`, { method: 'POST', body: JSON.stringify({ delta, reason }) }),
 };
 
 // Orders API
