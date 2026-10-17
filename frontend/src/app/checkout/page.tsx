@@ -26,6 +26,7 @@ export default function CheckoutPage() {
     city: 'بغداد',
   });
   const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
 
   // حماية الصفحة - redirect للـ login إذا ما كان مسجل
   useEffect(() => {
@@ -70,15 +71,19 @@ export default function CheckoutPage() {
     e.preventDefault();
     setSubmitting(true);
 
-    const order = await ordersAPI.create({
-      items,
-      total: totalPrice,
-      customer: form,
-      userId: user?.id || null,
-    });
-
-    clearCart();
-    router.push('/order/confirmation?id=' + order.id);
+    setSubmitError('');
+    try {
+      const order = await ordersAPI.create({
+        items: items.map((item) => ({ productId: item.product.id, quantity: item.quantity })),
+        customer: form,
+      });
+      clearCart();
+      router.push('/order/confirmation?id=' + encodeURIComponent(order.id));
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : 'تعذر تأكيد الطلب، حاول مجدداً');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -156,9 +161,10 @@ export default function CheckoutPage() {
               </div>
             </div>
 
+            {submitError && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-bold text-red-700">{submitError}</p>}
             <button
               type="submit"
-              disabled={submitting}
+              disabled={submitting || items.length === 0}
               className="w-full bg-brand text-white rounded-xl py-4 font-black text-lg shadow-[0_10px_24px_#183f881a] hover:bg-brand-dark transition disabled:opacity-50"
             >
               {submitting ? 'جاري تأكيد الطلب...' : 'تأكيد الطلب'}
