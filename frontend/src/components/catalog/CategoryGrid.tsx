@@ -43,10 +43,10 @@ export default function CategoryGrid({ variant = 'home' }: { variant?: 'home' | 
     {categories.map(category => <Link
       key={category.name}
       href={`/products?category=${encodeURIComponent(category.name)}`}
-      className="site-card group flex flex-col sm:flex-row min-h-[190px]"
+      className="site-card group flex flex-col sm:flex-row min-h-[170px] border-[#c6e8f4] hover:border-brand"
       aria-label={`${category.name}، ${category.count} منتج`}
     >
-      <ProductMedia name={category.product.name} image={category.product.image} icon={category.product.icon} size={54} className="h-36 sm:h-auto sm:w-2/5 shrink-0 m-3 rounded-xl" />
+      <ProductMedia name={category.product.name} image={category.product.image} icon={category.product.icon} size={54} className="h-32 sm:h-auto sm:w-2/5 shrink-0 m-3 rounded-xl" />
       <span className="flex flex-1 flex-col justify-between gap-5 p-5 sm:pr-2">
         <span className="text-[11px] font-bold tracking-widest text-brand" dir="ltr">THANAYA / CATEGORY</span>
         <span className="flex items-end justify-between gap-3">
