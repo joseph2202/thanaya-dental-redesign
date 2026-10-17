@@ -13,7 +13,9 @@ export async function apiRequest(endpoint: string, options: RequestInit = {}) {
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.error || 'خطأ في الطلب');
+    const apiError = new Error(error.error || 'خطأ في الطلب') as Error & { status: number };
+    apiError.status = response.status;
+    throw apiError;
   }
 
   return response.json();
