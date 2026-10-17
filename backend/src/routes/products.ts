@@ -30,7 +30,7 @@ function parseProduct(data: unknown, partial: boolean): Partial<Editable> {
   if (partial && Object.keys(raw).length === 0) throw new InputError(400, 'لا توجد بيانات للتعديل');
   const result: Partial<Editable> = {};
   for (const key of fields) {
-    if (partial && !Object.hasOwn(raw, key)) continue;
+    if (partial && !Object.prototype.hasOwnProperty.call(raw, key)) continue;
     const val = raw[key];
     switch (key) {
       case 'price':
@@ -106,8 +106,9 @@ router.get('/:id/inventory', requireAdmin, async (req, res) => {
 
 router.post('/', requireAdmin, async (req, res) => {
   try {
-    const data = parseProduct(req.body, false);
-    const stock = req.body?.stock;
+    const { stock: initialStock, ...fieldsOnly } = req.body || {};
+    const data = parseProduct(fieldsOnly, false);
+    const stock = initialStock;
     // Stock is allowed ONLY during initial creation, then every change is audited.
     if (!Number.isSafeInteger(stock) || stock < 0 || stock > 1000000) {
       throw new InputError(400, 'كمية البداية غير صالحة');
