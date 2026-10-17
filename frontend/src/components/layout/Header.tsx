@@ -3,7 +3,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Search, ShoppingBag, UserRound, LogOut, LayoutDashboard, MapPin } from "lucide-react";
+import { Search, ShoppingBag, UserRound, LogOut, LayoutDashboard } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 
@@ -37,18 +37,12 @@ export default function Header() {
   );
 
   return (
-    <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-xl border-b border-[#e3eaf4]">
-      <div className="bg-ink text-white/80 text-[11px] hidden sm:block">
-        <div className="site-container h-8 flex justify-between items-center">
-          <span className="flex items-center gap-1.5"><MapPin size={12} aria-hidden="true" /> البصرة، العراق</span>
-          <span>ثنايا لمستلزمات طب الأسنان والأجهزة الطبية</span>
-        </div>
-      </div>
+    <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-xl border-b border-[#d9eaf3]">
       <div className="site-container">
-        <div className="min-h-[76px] flex items-center justify-between gap-5">
+        <div className="min-h-[74px] flex items-center justify-between gap-3 lg:gap-5">
           <Link href="/" aria-label="ثنايا، الرئيسية" className="flex items-center gap-2.5 shrink-0">
             <Image src="/brand-mark.svg" alt="" width={42} height={42} priority className="w-10 h-10 object-contain" />
-            <span className="leading-tight"><strong className="block text-[25px] font-extrabold">ثنايا</strong><small className="block text-[9px] tracking-[.15em] text-brand font-bold" dir="ltr">THANAYA MEDICAL</small></span>
+            <span className="leading-tight"><strong className="block text-[24px] font-extrabold">ثنايا</strong><small className="block text-[9px] tracking-[.15em] text-brand font-bold" dir="ltr">THANAYA MEDICAL</small></span>
           </Link>
           {search()}
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
@@ -66,7 +60,7 @@ export default function Header() {
           </div>
         </div>
         {search(true)}
-        <nav aria-label="التنقل الرئيسي" className="flex items-center gap-7 overflow-x-auto whitespace-nowrap text-xs sm:text-sm font-bold text-[#61738a] pb-3 sm:pb-4">
+        <nav aria-label="التنقل الرئيسي" className="flex items-center gap-7 overflow-x-auto whitespace-nowrap text-xs sm:text-sm font-bold text-[#375065] pb-3 sm:pb-4">
           <Link href="/" className="hover:text-brand">الرئيسية</Link>
           <Link href="/products" className="hover:text-brand">المنتجات</Link>
           <Link href="/categories" className="hover:text-brand">التصنيفات</Link>
