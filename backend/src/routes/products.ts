@@ -8,7 +8,7 @@ class InputError extends Error {
   constructor(public status: number, message: string) { super(message); }
 }
 const fields = ['name','description','price','usdPrice','category','brand','icon','image','badge'] as const;
-type Editable = Record<(typeof fields)[number], string | number | null>;
+type Editable = { name:string; description:string; price:number; usdPrice:number; category:string; brand:string; icon:string; image:string|null; badge:string|null };
 const textField = (v: unknown, name: string, limit: number, required = true) => {
   if (typeof v !== 'string') throw new InputError(400, name + ' غير صالح');
   const cleaned = v.trim();
