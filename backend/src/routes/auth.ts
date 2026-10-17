@@ -53,4 +53,31 @@ router.post('/login', async (req, res) => {
   }
 });
 
+
+// Refresh the session from the database instead of trusting cached browser role.
+router.get('/me', async (req, res) => {
+  const authorization = req.headers.authorization;
+  if (!authorization?.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'يجب تسجيل الدخول' });
+  }
+  try {
+    const payload = jwt.verify(authorization.slice(7), getJwtSecret());
+    if (typeof payload === 'string' || typeof payload.userId !== 'string') {
+      return res.status(401).json({ error: 'جلسة غير صالحة' });
+    }
+    const user = await prisma.user.findUnique({
+      where: { id: payload.userId },
+      select: { id: true, name: true, email: true, phone: true, role: true, createdAt: true }
+    });
+    if (!user) return res.status(401).json({ error: 'الحساب غير موجود' });
+    return res.json(user);
+  } catch (error) {
+    if (error instanceof jwt.JsonWebTokenError) {
+      return res.status(401).json({ error: 'انتهت الجلسة، سجل الدخول مجدداً' });
+    }
+    console.error('auth /me', error);
+    return res.status(500).json({ error: 'تعذر التحقق من الحساب' });
+  }
+});
+
 export default router;
