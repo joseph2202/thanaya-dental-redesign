@@ -31,7 +31,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!mounted) return;
       // Unavailable server should not erase the session; the API still enforces permissions.
       // If rejected, clear only after an explicit authentication failure.
-      if (error instanceof Error && /401|جلسة|الدخول|الحساب غير موجود/.test(error.message)) {
+      if (error instanceof Error && (error as Error & { status?: number }).status === 401) {
         logoutUser(); setUser(null);
       } else setUser(cached);
     }).finally(() => { if (mounted) setIsLoading(false); });
