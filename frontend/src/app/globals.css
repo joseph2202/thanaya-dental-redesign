@@ -2,12 +2,12 @@
 
 @theme {
   --color-ink: #142b43;
-  --color-paper: #f8fafc;
-  --color-paper2: #edf3f9;
-  --color-brand: #1855d9;
-  --color-brand-dark: #1043b5;
-  --color-brand-light: #9bbcff;
-  --color-brand-lighter: #dfe9ff;
+  --color-paper: #f7fcfe;
+  --color-paper2: #eaf6fb;
+  --color-brand: #049fce;
+  --color-brand-dark: #007fa9;
+  --color-brand-light: #9fe1f4;
+  --color-brand-lighter: #dcf4fd;
   --color-accent: #26afa5;
   --color-success: #14836c;
   --color-warning: #b86f15;
@@ -17,6 +17,7 @@
 :root { color-scheme: light; }
 html { scroll-behavior: smooth; }
 body { background: var(--color-paper); color: var(--color-ink); }
+body::before { content: ''; position: fixed; inset: 0; z-index: -1; pointer-events: none; background-image: linear-gradient(#079bca0a 1px, transparent 1px), linear-gradient(90deg, #079bca0a 1px, transparent 1px); background-size: 30px 30px; }
 button, input, select, textarea { font: inherit; }
 button, a { -webkit-tap-highlight-color: transparent; }
 :focus-visible { outline: 3px solid #83aaff; outline-offset: 3px; }
@@ -29,16 +30,16 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .site-muted { color: #64758a; line-height: 1.9; }
 .site-btn { display: inline-flex; align-items: center; justify-content: center; gap: .65rem; min-height: 48px; padding: .65rem 1.45rem; border-radius: 12px; font-weight: 700; transition: background-color .2s, transform .2s, box-shadow .2s; }
 .site-btn:hover { transform: translateY(-2px); }
-.site-btn-primary { background: var(--color-brand); color: white; box-shadow: 0 10px 24px rgba(24,85,217,.16); }
-.site-btn-primary:hover { background: var(--color-brand-dark); box-shadow: 0 15px 28px rgba(24,85,217,.19); }
+.site-btn-primary { background: var(--color-brand); color: white; box-shadow: 0 10px 24px rgba(4,159,206,.16); }
+.site-btn-primary:hover { background: var(--color-brand-dark); box-shadow: 0 15px 28px rgba(4,159,206,.19); }
 .site-btn-outline { background: white; border: 1px solid #cbd8e8; color: var(--color-ink); }
 .site-btn-outline:hover { background: #f3f7ff; }
-.site-surface { background: #fff; border: 1px solid #e0e8f2; border-radius: 20px; box-shadow: 0 12px 32px rgba(17,51,87,.035); }
-.site-input { background: #fff; border: 1px solid #d4e0ed; border-radius: 12px; min-height: 46px; }
+.site-surface { background: #fff; border: 1px solid #d8eaf2; border-radius: 20px; box-shadow: 0 12px 32px rgba(17,51,87,.035); }
+.site-input { background: #fff; border: 1px solid #b8e0ee; border-radius: 12px; min-height: 46px; }
 .site-input:focus { outline: 2px solid #9dbaff; border-color: var(--color-brand); }
 .site-product-visual { display: grid; place-items: center; background: radial-gradient(circle at 50% 36%, #fff 0, #edf4fe 61%, #e7effa 100%); color: #688fc4; overflow: hidden; }
 .site-product-visual img { width: 100%; height: 100%; object-fit: contain; padding: 1rem; }
-.site-card { background: #fff; border: 1px solid #dfe8f2; border-radius: 18px; overflow: hidden; transition: transform .22s, box-shadow .22s, border-color .22s; }
+.site-card { background: #fff; border: 1px solid #d4eaf4; border-radius: 18px; overflow: hidden; transition: transform .22s, box-shadow .22s, border-color .22s; }
 .site-card:hover { transform: translateY(-4px); border-color: #b5ccee; box-shadow: 0 18px 36px rgba(20,53,91,.09); }
 .site-page-title { font-size: clamp(2rem, 4vw, 3.5rem); font-weight: 800; letter-spacing: -.035em; }
 .site-section { padding-block: clamp(3.5rem, 6vw, 6rem); }
