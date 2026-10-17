@@ -29,9 +29,9 @@ export default function Products() {
 
   const reload = () => { setLoading(true); setError(false); productsAPI.getAll().then((data: CatalogProduct[]) => setProducts(data.slice(0, 8))).catch(() => setError(true)).finally(() => setLoading(false)); };
 
-  return <section className="site-container site-section !pt-0" aria-labelledby="products-title">
+  return <section className="site-container site-section" aria-labelledby="products-title">
     <div className="flex flex-wrap items-end justify-between gap-4 mb-8">
-      <div><span className="site-eyebrow">FROM THE CATALOG</span><h2 id="products-title" className="site-heading mt-2">منتجات تستحق الاكتشاف</h2><p className="site-muted text-sm mt-1">تصفّح أحدث ما أُضيف إلى المتجر، واختر مستلزمات عيادتك بكل سهولة.</p></div>
+      <div><span className="site-eyebrow">FROM THE CATALOG</span><h2 id="products-title" className="site-heading mt-2">منتجات مختارة لعيادتك</h2><p className="site-muted text-sm mt-1">تصفّح أحدث ما أُضيف إلى المتجر، واختر مستلزمات عيادتك بكل سهولة.</p></div>
       <Link href="/products" className="text-brand text-sm font-bold inline-flex items-center gap-2 hover:underline">عرض كل المنتجات <ArrowUpLeft size={16} /></Link>
     </div>
     {loading ? <p className="site-muted py-14 text-center" role="status">جاري تحميل المنتجات...</p> : error ? <div className="site-surface flex flex-col items-center gap-4 p-10 text-center site-muted" role="status"><PackageX size={32} /> تعذّر تحميل المنتجات. تأكد من تشغيل خادم المتجر. <button type="button" onClick={reload} className="site-btn site-btn-outline"><RefreshCw size={15} /> إعادة المحاولة</button></div> : products.length === 0 ? <div className="site-surface p-10 text-center site-muted">ما انضافت منتجات للمتجر بعد. المنتجات الجديدة راح تظهر هنا تلقائياً.</div> :
