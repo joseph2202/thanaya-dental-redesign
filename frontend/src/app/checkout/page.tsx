@@ -73,10 +73,18 @@ export default function CheckoutPage() {
 
     setSubmitError('');
     try {
-      const order = await ordersAPI.create({
-        items: items.map((item) => ({ productId: item.product.id, quantity: item.quantity })),
-        customer: form,
-      });
+      const lines = items.map((item) => ({ productId: item.product.id, quantity: item.quantity }));
+      // Reuse one identifier after network failures, but not for a changed basket/address.
+      const fingerprint = JSON.stringify({ lines: [...lines].sort((a, b) => a.productId.localeCompare(b.productId)), customer: form });
+      const saved = sessionStorage.getItem('thanaya-checkout-attempt');
+      let attempt: { fingerprint: string; requestId: string } | null = null;
+      try { attempt = saved ? JSON.parse(saved) : null; } catch { /* replace corrupt data */ }
+      if (!attempt || attempt.fingerprint !== fingerprint) {
+        attempt = { fingerprint, requestId: crypto.randomUUID() };
+        sessionStorage.setItem('thanaya-checkout-attempt', JSON.stringify(attempt));
+      }
+      const order = await ordersAPI.create({ items: lines, customer: form, requestId: attempt.requestId });
+      sessionStorage.removeItem('thanaya-checkout-attempt');
       clearCart();
       router.push('/order/confirmation?id=' + encodeURIComponent(order.id));
     } catch (error) {
