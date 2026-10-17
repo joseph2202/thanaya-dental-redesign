@@ -1,6 +1,7 @@
 "use client";
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User, getCurrentUser, logoutUser } from '@/lib/auth';
+import { authAPI } from '@/lib/api';
 
 type AuthContextType = {
   user: User | null;
@@ -17,8 +18,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    try { setUser(getCurrentUser()); }
-    finally { setIsLoading(false); }
+    let mounted = true;
+    const cached = getCurrentUser();
+    if (!cached || !localStorage.getItem('thanaya-token')) {
+      setUser(null); setIsLoading(false); return;
+    }
+    authAPI.me().then((current: User) => {
+      if (!mounted) return;
+      localStorage.setItem('thanaya-current-user', JSON.stringify(current));
+      setUser(current);
+    }).catch((error: unknown) => {
+      if (!mounted) return;
+      // Unavailable server should not erase the session; the API still enforces permissions.
+      // If rejected, clear only after an explicit authentication failure.
+      if (error instanceof Error && /401|جلسة|الدخول|الحساب غير موجود/.test(error.message)) {
+        logoutUser(); setUser(null);
+      } else setUser(cached);
+    }).finally(() => { if (mounted) setIsLoading(false); });
+    return () => { mounted = false; };
   }, []);
 
   const logout = () => {
