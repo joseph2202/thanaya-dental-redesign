@@ -1,6 +1,7 @@
 import { Router, Request } from 'express';
 import { Prisma, PrismaClient } from '@prisma/client';
 import jwt from 'jsonwebtoken';
+import { createHash } from 'node:crypto';
 import { getJwtSecret } from '../config/auth';
 import { requireAdmin } from '../middleware/requireAdmin';
 
@@ -12,6 +13,20 @@ const MAX_QUANTITY = 100;
 type BasketLine = { productId: string; quantity: number };
 type Customer = { name: string; phone: string; address: string; city: string };
 type Principal = { id: string; role: string };
+type StoredOrder = Prisma.OrderGetPayload<{ include: { items: true } }>;
+
+// The same checkout intent has a stable, unique order ID even after a lost response.
+function requestOrderId(userId: string, requestId: string): string {
+  return 'ord_' + createHash('sha256').update(userId + ':' + requestId).digest('hex').slice(0,32);
+}
+
+function matchesCheckout(order: StoredOrder, userId: string, lines: BasketLine[], customer: Customer): boolean {
+  if (order.userId !== userId || order.customerName !== customer.name ||
+      order.customerPhone !== customer.phone || order.customerAddress !== customer.address ||
+      order.customerCity !== customer.city || order.items.length !== lines.length) return false;
+  const saved = new Map(order.items.map(item => [item.productId, item.quantity]));
+  return lines.every(item => saved.get(item.productId) === item.quantity);
+}
 
 class OrderError extends Error {
   constructor(public status: number, message: string) { super(message); }
@@ -76,7 +91,7 @@ function reportError(res: import('express').Response, error: unknown, context: s
     return;
   }
   if (error instanceof Prisma.PrismaClientKnownRequestError &&
-      ['P2034', 'P1008', 'P2028'].includes(error.code)) {
+      ['P2034', 'P1008', 'P2028', 'P2010'].includes(error.code)) {
     res.status(409).json({ error: 'تغير المخزون أو يوجد طلب متزامن، يرجى المحاولة مجدداً' });
     return;
   }
@@ -129,11 +144,28 @@ router.get('/:id', async (req, res) => {
 // Server-owned prices and conditional stock decrements in ONE database transaction.
 // Client-supplied total, item prices, and userId are intentionally ignored.
 router.post('/', async (req, res) => {
+  let submission: { id: string; userId: string; lines: BasketLine[]; customer: Customer } | null = null;
   try {
     const principal = await principalFromRequest(req);
     if (!principal) return res.status(401).json({ error: 'سجل الدخول حتى تؤكد طلبك' });
     const lines = parseLines(req.body?.items);
     const customer = parseCustomer(req.body?.customer);
+    const requestId = req.body?.requestId;
+    if (typeof requestId !== 'string' ||
+        !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(requestId)) {
+      throw new OrderError(400, 'معرّف عملية الشراء مفقود أو غير صالح، حدّث الصفحة وحاول مجدداً');
+    }
+    const id = requestOrderId(principal.id, requestId);
+    submission = { id, userId: principal.id, lines, customer };
+
+    // Replays return the original order, not a second purchase.
+    const previous = await prisma.order.findUnique({ where: { id }, include: { items: true } });
+    if (previous) {
+      if (!matchesCheckout(previous, principal.id, lines, customer)) {
+        throw new OrderError(409, 'تم استخدام معرّف الشراء لطلب مختلف');
+      }
+      return res.status(200).json(previous);
+    }
 
     const order = await prisma.$transaction(async (tx) => {
       const products = await tx.product.findMany({
@@ -161,6 +193,7 @@ router.post('/', async (req, res) => {
 
       return tx.order.create({
         data: {
+          id,
           userId: principal.id,
           customerName: customer.name,
           customerPhone: customer.phone,
@@ -180,7 +213,26 @@ router.post('/', async (req, res) => {
     }, { maxWait: 5000, timeout: 10000 });
 
     res.status(201).json(order);
-  } catch (error) { reportError(res, error, 'create order'); }
+  } catch (error) {
+    // When a concurrent retry committed first, the unique order ID wins;
+    // report that *same* order after checking its ownership and contents.
+    if (submission) {
+      try {
+        const previous = await prisma.order.findUnique({
+          where: { id: submission.id }, include: { items: true }
+        });
+        if (previous) {
+          if (matchesCheckout(previous, submission.userId, submission.lines, submission.customer)) {
+            return res.status(200).json(previous);
+          }
+          return res.status(409).json({ error: 'تم استخدام معرّف الشراء لطلب مختلف' });
+        }
+      } catch (lookupError) {
+        console.error('idempotency lookup failed', lookupError);
+      }
+    }
+    reportError(res, error, 'create order');
+  }
 });
 
 const transitions: Record<string, string[]> = {
