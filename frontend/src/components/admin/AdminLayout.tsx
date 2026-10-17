@@ -31,7 +31,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   return <div className="min-h-screen bg-paper lg:flex">
     <aside className="bg-ink text-white lg:w-64 lg:min-h-screen lg:sticky lg:top-0 lg:h-screen lg:flex lg:flex-col">
-      <div className="px-5 py-6 border-b border-white/10 flex items-center gap-3"><Image src="/brand-mark.svg" alt="" width={37} height={37} className="w-9 h-9" /><span><strong className="block text-lg">ثنايا</strong><small className="text-white/55 text-[10px]">لوحة الإدارة</small></span></div>
+      <div className="px-5 py-6 border-b border-white/10 flex items-center gap-3"><Image src="/logo-icon.png" alt="" width={37} height={37} className="w-9 h-9" /><span><strong className="block text-lg">ثنايا</strong><small className="text-white/55 text-[10px]">لوحة الإدارة</small></span></div>
       <nav aria-label="إدارة المتجر" className="p-3 flex lg:block gap-1 overflow-x-auto lg:overflow-visible whitespace-nowrap lg:space-y-1">
         {navItems.map(({ href, label, icon: Icon }) => <Link key={href} href={href} className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition ${pathname === href ? 'bg-brand text-white' : 'text-white/65 hover:bg-white/10 hover:text-white'}`}><Icon size={18} aria-hidden="true" />{label}</Link>)}
       </nav>
