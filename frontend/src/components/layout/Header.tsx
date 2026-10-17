@@ -48,7 +48,7 @@ export default function Header() {
           aria-label="ابحث في ثنايا"
           className="h-[44px] w-full min-w-0 rounded-full border border-[#b8dfed] bg-[#f9fdff] pr-10 pl-[78px] text-xs text-ink outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/15 sm:text-sm"
         />
-        <button type="submit" className="absolute left-1 top-1/2 -translate-y-1/2 rounded-full bg-[#079dca] px-4 py-2 text-xs font-bold text-white transition hover:bg-[#007ba6]">
+        <button type="submit" className="absolute left-1 top-1/2 -translate-y-1/2 rounded-full bg-[#059BD0] px-4 py-2 text-xs font-bold text-white transition hover:bg-[#047BA8]">
           بحث
         </button>
       </div>
@@ -56,14 +56,14 @@ export default function Header() {
   );
 
   return (
-    <header className="sticky top-0 z-50 border-b border-[#dceaf1] border-t-[3px] border-t-[#05a2d0] bg-white/95 shadow-[0_4px_22px_rgba(5,64,102,.035)] backdrop-blur-xl">
+    <header className="sticky top-0 z-50 border-b border-[#dceaf1] border-t-[3px] border-t-[#059BD0] bg-white/95 shadow-[0_4px_22px_rgba(5,64,102,.035)] backdrop-blur-xl">
       <div className="site-container">
         <div className="flex min-h-[72px] items-center gap-4 py-2 xl:gap-6">
           <Link href="/" aria-label="ثنايا — الصفحة الرئيسية" className="flex shrink-0 items-center gap-2">
             <Image src="/logo-icon.png" width={42} height={42} priority alt="" className="h-11 w-11 object-contain" />
             <span className="leading-tight">
-              <strong className="block text-[25px] font-black text-[#192a37]">ثنايا</strong>
-              <small className="block text-[8px] font-black tracking-[.15em] text-[#069bca]" dir="ltr">THANAYA MEDICAL</small>
+              <strong className="block text-[25px] font-black text-[#2E2E2D]">ثنايا</strong>
+              <small className="block text-[8px] font-black tracking-[.15em] text-[#059BD0]" dir="ltr">THANAYA MEDICAL</small>
             </span>
           </Link>
 
@@ -74,7 +74,7 @@ export default function Header() {
               const active = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
               return (
                 <Link key={item.href} href={item.href} aria-current={active ? "page" : undefined}
-                  className={`whitespace-nowrap text-[13px] font-bold transition hover:text-brand ${active ? "text-[#048dbb]" : "text-[#34495c]"}`}>
+                  className={`whitespace-nowrap text-[13px] font-bold transition hover:text-brand ${active ? "text-[#047BA8]" : "text-[#34495c]"}`}>
                   {item.label}
                 </Link>
               );
@@ -89,7 +89,7 @@ export default function Header() {
                     <LayoutDashboard size={16} /> الإدارة
                   </Link>
                 )}
-                <Link href="/account" aria-label="حسابي" className="inline-flex h-10 items-center gap-1.5 rounded-full border border-[#d5e8ef] px-3 text-xs font-bold text-ink transition hover:bg-[#eaf7fc]">
+                <Link href="/account" aria-label="حسابي" className="inline-flex h-10 items-center gap-1.5 rounded-full border border-[#d5e8ef] px-3 text-xs font-bold text-ink transition hover:bg-[#E8EEF1]">
                   <UserRound size={17} /> <span className="hidden sm:inline">حسابي</span>
                 </Link>
                 <button type="button" onClick={logout} className="hidden items-center gap-1 text-xs font-semibold text-[#5b7385] hover:text-brand lg:inline-flex">
@@ -102,7 +102,7 @@ export default function Header() {
               </Link>
             )}
 
-            <Link href="/cart" className="relative inline-flex h-10 items-center gap-1.5 rounded-full bg-[#079dca] px-3.5 text-xs font-bold text-white shadow-[0_8px_22px_rgba(4,159,206,.2)] transition hover:bg-brand-dark" aria-label={`السلة، ${totalItems} منتجات`}>
+            <Link href="/cart" className="relative inline-flex h-10 items-center gap-1.5 rounded-full bg-[#059BD0] px-3.5 text-xs font-bold text-white shadow-[0_8px_22px_rgba(4,159,206,.2)] transition hover:bg-brand-dark" aria-label={`السلة، ${totalItems} منتجات`}>
               <ShoppingBag size={17} /> <span className="hidden sm:inline">السلة</span>
               {totalItems > 0 && <span className="absolute -left-2 -top-2 grid h-5 min-w-5 place-items-center rounded-full bg-[#18364d] px-1 text-[10px] text-white">{totalItems}</span>}
             </Link>
@@ -127,7 +127,7 @@ export default function Header() {
           <div className="mx-auto grid max-w-[1220px] grid-cols-2 gap-2 sm:grid-cols-4">
             {navigation.map((item) => (
               <Link key={item.href} href={item.href} onClick={() => setMenuOpen(false)}
-                className={`rounded-xl px-4 py-3 text-center text-sm font-bold ${pathname === item.href ? "bg-[#e7f7fc] text-brand" : "bg-[#f6fbfe] text-[#24445a]"}`}>
+                className={`rounded-xl px-4 py-3 text-center text-sm font-bold ${pathname === item.href ? "bg-[#E8EEF1] text-brand" : "bg-[#f6fbfe] text-[#24445a]"}`}>
                 {item.label}
               </Link>
             ))}
