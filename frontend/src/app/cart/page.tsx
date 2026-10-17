@@ -28,12 +28,12 @@ export default function CartPage() {
   return (
     <>
       <Header />
-      <main className="max-w-4xl mx-auto px-4 py-12">
-        <h1 className="text-4xl font-black mb-8 text-ink">سلة التسوق</h1>
+      <main className="site-container site-main py-9 md:py-12">
+        <div className="mb-8 rounded-[24px] border border-[#cce7f1] bg-[linear-gradient(100deg,#e6f7fd,#fff)] px-7 py-8"><span className="site-eyebrow">THANAYA / CART</span><h1 className="mt-2 text-3xl font-black text-ink md:text-4xl">سلة التسوق</h1><p className="site-muted mt-2 text-sm">راجع منتجاتك وكمياتها قبل تأكيد الطلب.</p></div>
 
         <div className="space-y-4 mb-8">
           {items.map((item) => (
-            <div key={item.product.id} className="bg-white border border-[#dfe8f2] rounded-2xl p-5 flex flex-wrap sm:flex-nowrap items-center gap-4">
+            <div key={item.product.id} className="bg-white border border-[#dfe8f2] rounded-2xl p-5 shadow-sm flex flex-wrap sm:flex-nowrap items-center gap-4">
               <ProductMedia name={item.product.name} image={item.product.image} icon={item.product.icon} size={40} className="rounded-xl w-20 h-20 flex-shrink-0" />
               <div className="flex-1">
                 <h3 className="font-bold text-lg text-ink">{item.product.name}</h3>
@@ -68,7 +68,7 @@ export default function CartPage() {
           ))}
         </div>
 
-        <div className="site-surface !bg-paper2 p-6">
+        <div className="site-surface !bg-[#e9f8fd] p-6">
           <div className="flex justify-between items-center mb-4">
             <span className="font-bold text-lg text-ink">المجموع:</span>
             <span className="text-3xl font-black text-brand">{totalPrice.toLocaleString()} د.ع</span>
