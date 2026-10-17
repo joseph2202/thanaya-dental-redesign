@@ -13,8 +13,11 @@ import userRoutes from './routes/users';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+import { getJwtSecret } from './config/auth';
+import { requireAdmin } from './middleware/requireAdmin';
 
 dotenv.config();
+getJwtSecret();
 
 const app = express();
 const prisma = new PrismaClient();
@@ -47,7 +50,7 @@ const upload = multer({ storage: storage });
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // نقطة نهاية (Endpoint) لرفع الصورة
-app.post('/api/upload', upload.single('image'), (req, res) => {
+app.post('/api/upload', requireAdmin, upload.single('image'), (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: 'لم يتم رفع أي صورة' });
   }
