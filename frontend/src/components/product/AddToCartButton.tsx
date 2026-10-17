@@ -20,7 +20,7 @@ export default function AddToCartButton({ product }: { product: Product }) {
       <button
         onClick={handleAdd}
         disabled={product.stock <= 0}
-        className={`site-btn site-btn-primary px-8 py-3 transition disabled:opacity-50 disabled:cursor-not-allowed ${
+        className={`site-btn site-btn-primary disabled:opacity-50 disabled:cursor-not-allowed ${
           message && !isError ? 'bg-success' : 'hover:bg-brand-dark'
         }`}
       >
