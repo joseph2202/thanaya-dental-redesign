@@ -7,15 +7,18 @@ type AuthContextType = {
   logout: () => void;
   refreshUser: () => void;
   isAdmin: boolean;
+  isLoading: boolean;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    setUser(getCurrentUser());
+    try { setUser(getCurrentUser()); }
+    finally { setIsLoading(false); }
   }, []);
 
   const logout = () => {
@@ -30,7 +33,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isAdmin = user?.role === 'admin';
 
   return (
-    <AuthContext.Provider value={{ user, logout, refreshUser, isAdmin }}>
+    <AuthContext.Provider value={{ user, logout, refreshUser, isAdmin, isLoading }}>
       {children}
     </AuthContext.Provider>
   );
