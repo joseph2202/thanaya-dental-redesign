@@ -34,7 +34,7 @@ export default function BuyNowButton({ product }: { product: Product }) {
       <button
         onClick={handleBuyNow}
         disabled={product.stock <= 0}
-        className="site-btn site-btn-outline px-8 py-3 hover:bg-paper2 transition disabled:opacity-50 disabled:cursor-not-allowed"
+        className="site-btn site-btn-outline disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {product.stock <= 0 ? 'نفد المخزون' : 'اشتري الآن'}
       </button>
