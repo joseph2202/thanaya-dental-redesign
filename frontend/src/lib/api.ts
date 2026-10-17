@@ -1,10 +1,12 @@
 const API_BASE = 'http://localhost:4000/api';
 
 export async function apiRequest(endpoint: string, options: RequestInit = {}) {
+  const token = typeof window !== 'undefined' ? localStorage.getItem('thanaya-token') : null;
   const response = await fetch(`${API_BASE}${endpoint}`, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...options.headers,
     },
   });
@@ -77,10 +79,12 @@ export const uploadAPI = {
   uploadImage: async (file: File): Promise<{ url: string }> => {
     const formData = new FormData();
     formData.append('image', file);
+    const token = localStorage.getItem('thanaya-token');
     
     const response = await fetch('http://localhost:4000/api/upload', {
       method: 'POST',
       body: formData,
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
     });
 
     if (!response.ok) {
