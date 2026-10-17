@@ -19,7 +19,8 @@ export default function AdminDashboard() {
           products: products.length,
           orders: orders.length,
           users: users.length,
-          revenue: orders.reduce((sum: number, o: any) => sum + o.total, 0),
+          // Recognize revenue only for delivered orders; pending/cancelled are not sales.
+          revenue: orders.filter((o: any) => o.status === 'delivered').reduce((sum: number, o: any) => sum + o.total, 0),
         });
       } catch (error) {
         console.error('Error loading admin data:', error);
@@ -45,7 +46,7 @@ export default function AdminDashboard() {
           <p className="text-4xl font-black text-brand">{stats.users}</p>
         </div>
         <div className="bg-white border-2 border-brand/20 rounded-2xl p-6">
-          <p className="text-neutral-500 text-sm mb-2">الإيرادات</p>
+          <p className="text-neutral-500 text-sm mb-2">قيمة الطلبات المسلّمة</p>
           <p className="text-2xl font-black text-brand">{stats.revenue.toLocaleString()} د.ع</p>
         </div>
       </div>
