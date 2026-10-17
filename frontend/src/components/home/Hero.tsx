@@ -9,11 +9,11 @@ export default function Hero() {
       <div aria-hidden="true" className="pointer-events-none absolute -right-14 top-20 h-48 w-48 rounded-full border-[26px] border-[#d8f1fc]/45" />
       <div aria-hidden="true" className="pointer-events-none absolute -left-20 bottom-4 h-56 w-56 rounded-full border-[26px] border-[#d8f1fc]/45" />
 
-      <div className="site-container relative flex min-h-[550px] flex-col items-center justify-center px-1 py-20 text-center sm:min-h-[590px] sm:py-24">
+      <div className="site-container relative flex min-h-[450px] flex-col items-center justify-center px-1 py-14 text-center sm:min-h-[490px] sm:py-16">
         <div className="inline-flex items-center gap-2 rounded-full border border-[#b7e5f7] bg-white/90 px-5 py-2 text-[11px] font-extrabold text-[#0879a5] shadow-[0_8px_30px_rgba(4,142,188,.07)] sm:text-xs">
           <Sparkles size={15} aria-hidden="true" /> ثنايا لمستلزمات طب الأسنان والأجهزة الطبية
         </div>
-        <h1 id="hero-title" className="mt-8 max-w-[1000px] text-[clamp(2.55rem,6.2vw,5.7rem)] font-black leading-[1.37] tracking-[-.035em] text-[#202b36]">
+        <h1 id="hero-title" className="mt-7 max-w-[950px] text-[clamp(2.4rem,4.7vw,4.7rem)] font-black leading-[1.32] tracking-[-.035em] text-[#202b36]">
           كل ما تحتاجه عيادتك،<br />
           <span className="text-[#039fd0]">من أصغر أداة إلى أكبر جهاز.</span>
         </h1>
