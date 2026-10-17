@@ -39,6 +39,8 @@ export default function AdminOrders() {
       case 'confirmed': return 'bg-blue-100 text-blue-700';
       case 'shipped': return 'bg-purple-100 text-purple-700';
       case 'delivered': return 'bg-green-100 text-green-700';
+      case 'cancelled': return 'bg-red-100 text-red-700';
+      case 'returned': return 'bg-gray-200 text-gray-700';
       default: return 'bg-gray-100 text-gray-700';
     }
   };
@@ -49,6 +51,8 @@ export default function AdminOrders() {
       case 'confirmed': return 'مؤكد';
       case 'shipped': return 'تم الشحن';
       case 'delivered': return 'تم التوصيل';
+      case 'cancelled': return 'ملغي';
+      case 'returned': return 'مرتجع';
       default: return status;
     }
   };
@@ -113,10 +117,10 @@ export default function AdminOrders() {
 
               <div className="border-t border-brand/10 pt-4 mt-4 flex gap-2 flex-wrap">
                 <span className="text-sm font-bold text-ink">تغيير الحالة:</span>
-                {['pending', 'confirmed', 'shipped', 'delivered'].map((status) => (
+                {({ pending: ['confirmed', 'cancelled'], confirmed: ['shipped', 'cancelled'], shipped: ['delivered'], delivered: ['returned'], cancelled: [], returned: [] } as Record<string, string[]>)[order.status]?.map((status) => (
                   <button
                     key={status}
-                    onClick={() => updateStatus(order.id, status)}
+                    onClick={() => { if ((status === 'cancelled' || status === 'returned') && !window.confirm('هل تأكدت من الإلغاء أو استلام البضاعة المرتجعة؟ سيتم إعادة الكمية للمخزون.')) return; updateStatus(order.id, status); }}
                     disabled={order.status === status}
                     className={`text-xs px-3 py-1 rounded-full font-bold transition ${
                       order.status === status
