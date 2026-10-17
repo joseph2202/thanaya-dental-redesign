@@ -59,7 +59,7 @@ export default function RegisterPage() {
                 minLength={3}
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
-                className="w-full border border-[#d4e0ed] rounded-xl px-4 py-3 font-bold focus:outline-none focus:border-brand"
+                className="w-full border border-[#bbdeea] rounded-xl px-4 py-3 font-bold focus:outline-none focus:border-brand"
                 placeholder="أحمد محمد"
               />
             </div>
@@ -71,7 +71,7 @@ export default function RegisterPage() {
                 required
                 value={form.email}
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
-                className="w-full border border-[#d4e0ed] rounded-xl px-4 py-3 font-bold focus:outline-none focus:border-brand"
+                className="w-full border border-[#bbdeea] rounded-xl px-4 py-3 font-bold focus:outline-none focus:border-brand"
                 placeholder="example@email.com"
               />
             </div>
@@ -84,7 +84,7 @@ export default function RegisterPage() {
                 pattern="07[0-9]{9}"
                 value={form.phone}
                 onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                className="w-full border border-[#d4e0ed] rounded-xl px-4 py-3 font-bold focus:outline-none focus:border-brand"
+                className="w-full border border-[#bbdeea] rounded-xl px-4 py-3 font-bold focus:outline-none focus:border-brand"
                 placeholder="07822088894"
               />
               <p className="text-xs text-neutral-500 mt-1">يجب أن يبدأ بـ 07 ويتكون من 10 أرقام</p>
@@ -98,7 +98,7 @@ export default function RegisterPage() {
                 minLength={6}
                 value={form.password}
                 onChange={(e) => setForm({ ...form, password: e.target.value })}
-                className="w-full border border-[#d4e0ed] rounded-xl px-4 py-3 font-bold focus:outline-none focus:border-brand"
+                className="w-full border border-[#bbdeea] rounded-xl px-4 py-3 font-bold focus:outline-none focus:border-brand"
                 placeholder="6 أحرف على الأقل"
               />
             </div>
@@ -111,7 +111,7 @@ export default function RegisterPage() {
                 minLength={6}
                 value={form.confirmPassword}
                 onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })}
-                className="w-full border border-[#d4e0ed] rounded-xl px-4 py-3 font-bold focus:outline-none focus:border-brand"
+                className="w-full border border-[#bbdeea] rounded-xl px-4 py-3 font-bold focus:outline-none focus:border-brand"
                 placeholder="أعد كتابة كلمة المرور"
               />
             </div>
@@ -119,7 +119,7 @@ export default function RegisterPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-brand text-white rounded-xl py-3 font-bold shadow-[0_10px_24px_#183f881a] hover:bg-brand-dark transition disabled:opacity-50"
+              className="w-full bg-brand text-white rounded-xl py-3 font-bold shadow-[0_10px_24px_#079dca1a] hover:bg-brand-dark transition disabled:opacity-50"
             >
               {loading ? 'جاري إنشاء الحساب...' : 'إنشاء حساب'}
             </button>
