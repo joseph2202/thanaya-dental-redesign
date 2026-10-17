@@ -31,6 +31,9 @@ export const requireAdmin: RequestHandler = async (req, res, next) => {
       res.status(403).json({ error: 'غير مصرح لك بهذه العملية' });
       return;
     }
+    // Signed-in administrator identifier is sourced from verified JWT + current DB role.
+    // Never trust actorId from request bodies.
+    res.locals.adminUserId = payload.userId;
     next();
   } catch (error) {
     if (error instanceof jwt.JsonWebTokenError) {
