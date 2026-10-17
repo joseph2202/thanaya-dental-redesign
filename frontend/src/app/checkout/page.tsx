@@ -58,7 +58,7 @@ export default function CheckoutPage() {
         <main className="max-w-4xl mx-auto px-4 py-20 text-center">
           <h1 className="text-4xl font-black mb-4 text-ink">السلة فارغة</h1>
           <p className="text-neutral-600 mb-8">أضف منتجات قبل إتمام الطلب.</p>
-          <Link href="/products" className="bg-brand text-white rounded-xl px-8 py-3 font-bold inline-block shadow-[0_10px_24px_#183f881a]">
+          <Link href="/products" className="bg-brand text-white rounded-xl px-8 py-3 font-bold inline-block shadow-[0_10px_24px_#079dca1a]">
             تصفح المنتجات
           </Link>
         </main>
@@ -101,7 +101,7 @@ export default function CheckoutPage() {
         <h1 className="text-4xl font-black mb-8 text-ink">إتمام الطلب</h1>
 
         <div className="grid md:grid-cols-2 gap-8">
-          <form onSubmit={handleSubmit} className="bg-white border border-[#dfe8f2] rounded-2xl p-6 space-y-5 h-fit">
+          <form onSubmit={handleSubmit} className="bg-white border border-[#d4eaf2] rounded-2xl p-6 space-y-5 h-fit">
             <h2 className="text-2xl font-black mb-4 text-ink">بيانات التوصيل</h2>
 
             <div>
@@ -111,7 +111,7 @@ export default function CheckoutPage() {
                 type="text"
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
-                className="w-full border border-[#d4e0ed] rounded-xl px-4 py-3 font-bold focus:outline-none focus:border-brand"
+                className="w-full border border-[#bbdeea] rounded-xl px-4 py-3 font-bold focus:outline-none focus:border-brand"
                 placeholder="مثال: أحمد محمد"
               />
             </div>
@@ -119,14 +119,14 @@ export default function CheckoutPage() {
             <div>
               <label className="block font-bold mb-2 text-sm text-ink">رقم الهاتف</label>
               <div className="flex gap-2">
-                <span className="bg-paper2 border border-[#d4e0ed] rounded-xl px-4 py-3 font-bold text-ink">+964</span>
+                <span className="bg-paper2 border border-[#bbdeea] rounded-xl px-4 py-3 font-bold text-ink">+964</span>
                 <input
                   required
                   type="tel"
                   pattern="07[0-9]{9}"
                   value={form.phone}
                   onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                  className="flex-1 border border-[#d4e0ed] rounded-xl px-4 py-3 font-bold focus:outline-none focus:border-brand"
+                  className="flex-1 border border-[#bbdeea] rounded-xl px-4 py-3 font-bold focus:outline-none focus:border-brand"
                   placeholder="7822088894"
                 />
               </div>
@@ -138,7 +138,7 @@ export default function CheckoutPage() {
               <select
                 value={form.city}
                 onChange={(e) => setForm({ ...form, city: e.target.value })}
-                className="w-full border border-[#d4e0ed] rounded-xl px-4 py-3 font-bold focus:outline-none focus:border-brand bg-white"
+                className="w-full border border-[#bbdeea] rounded-xl px-4 py-3 font-bold focus:outline-none focus:border-brand bg-white"
               >
                 {cities.map((c) => (
                   <option key={c} value={c}>{c}</option>
@@ -153,12 +153,12 @@ export default function CheckoutPage() {
                 value={form.address}
                 onChange={(e) => setForm({ ...form, address: e.target.value })}
                 rows={3}
-                className="w-full border border-[#d4e0ed] rounded-xl px-4 py-3 font-bold focus:outline-none focus:border-brand resize-none"
+                className="w-full border border-[#bbdeea] rounded-xl px-4 py-3 font-bold focus:outline-none focus:border-brand resize-none"
                 placeholder="المنطقة، الشارع، أقرب نقطة دالة..."
               />
             </div>
 
-            <div className="bg-paper2 border border-[#d4e0ed] rounded-xl p-4">
+            <div className="bg-paper2 border border-[#bbdeea] rounded-xl p-4">
               <h3 className="font-black mb-2 text-ink">طريقة الدفع</h3>
               <div className="flex items-center gap-3">
                 <span className="text-2xl">💵</span>
@@ -173,7 +173,7 @@ export default function CheckoutPage() {
             <button
               type="submit"
               disabled={submitting || items.length === 0}
-              className="w-full bg-brand text-white rounded-xl py-4 font-black text-lg shadow-[0_10px_24px_#183f881a] hover:bg-brand-dark transition disabled:opacity-50"
+              className="w-full bg-brand text-white rounded-xl py-4 font-black text-lg shadow-[0_10px_24px_#079dca1a] hover:bg-brand-dark transition disabled:opacity-50"
             >
               {submitting ? 'جاري تأكيد الطلب...' : 'تأكيد الطلب'}
             </button>
