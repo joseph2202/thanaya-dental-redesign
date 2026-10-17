@@ -10,6 +10,12 @@ export default function AdminProducts() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const [stockProduct, setStockProduct] = useState<any>(null);
+  const [stockDelta, setStockDelta] = useState('');
+  const [stockReason, setStockReason] = useState('');
+  const [stockError, setStockError] = useState('');
+  const [stockBusy, setStockBusy] = useState(false);
+  const [stockHistory, setStockHistory] = useState<any[]>([]);
 
   useEffect(() => {
     loadProducts();
@@ -22,6 +28,31 @@ export default function AdminProducts() {
     } catch (error) {
       console.error('Failed to load products', error);
     }
+  };
+
+  const openInventory = async (product: any) => {
+    setStockProduct(product);
+    setStockDelta(''); setStockReason(''); setStockError(''); setStockHistory([]);
+    try { const data = await productsAPI.getInventory(product.id); setStockHistory(data.movements || []); }
+    catch (error) { setStockError(error instanceof Error ? error.message : 'تعذر جلب السجل'); }
+  };
+
+  const saveStock = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const delta = Number(stockDelta);
+    if (!stockProduct || !Number.isSafeInteger(delta) || delta === 0 || !stockReason.trim()) {
+      setStockError('أدخل فرق كمية صحيح وسبب التعديل'); return;
+    }
+    setStockBusy(true); setStockError('');
+    try {
+      const updated = await productsAPI.adjustStock(stockProduct.id, delta, stockReason.trim());
+      setStockProduct(updated);
+      await loadProducts();
+      const data = await productsAPI.getInventory(updated.id);
+      setStockHistory(data.movements || []);
+      setStockDelta(''); setStockReason('');
+    } catch (error) { setStockError(error instanceof Error ? error.message : 'فشل تعديل المخزون'); }
+    finally { setStockBusy(false); }
   };
 
   const handleDelete = async (productId: string) => {
@@ -44,6 +75,14 @@ export default function AdminProducts() {
     setLoading(true);
     try {
       const data = { ...product, category: product.category.trim() };
+      if (editingProduct) {
+        // Metadata updates cannot silently overwrite available stock.
+        delete data.stock;
+        delete data.id;
+        delete data.createdAt;
+        delete data.orderItems;
+        delete data.inventoryMovements;
+      }
       if (editingProduct) {
         await productsAPI.update(product.id, data);
       } else {
@@ -74,6 +113,19 @@ export default function AdminProducts() {
           + إضافة منتج
         </button>
       </div>
+
+      {stockProduct && <section className="site-surface mb-7 p-6" aria-label="إدارة المخزون">
+        <div className="flex items-center justify-between gap-3 mb-4"><h3 className="text-xl font-black">مخزون {stockProduct.name}</h3><button type="button" className="site-btn site-btn-outline site-btn-sm" onClick={() => setStockProduct(null)}>إغلاق</button></div>
+        <p className="mb-4 text-sm">الكمية الحالية: <strong className="text-brand">{stockProduct.stock}</strong> قطعة. للإضافة اكتب رقماً موجباً، وللتصحيح بالنقصان اكتب رقماً سالباً.</p>
+        <form onSubmit={saveStock} className="grid gap-3 sm:grid-cols-[130px_1fr_auto] items-end">
+          <label className="text-sm font-bold">فرق الكمية<input type="number" step="1" required value={stockDelta} onChange={e=>setStockDelta(e.target.value)} className="mt-1 block w-full rounded-xl border border-brand/30 p-3" placeholder="+5 أو -2" /></label>
+          <label className="text-sm font-bold">سبب التعديل<input required maxLength={250} value={stockReason} onChange={e=>setStockReason(e.target.value)} className="mt-1 block w-full rounded-xl border border-brand/30 p-3" placeholder="توريد، جرد، تلف..." /></label>
+          <button type="submit" disabled={stockBusy} className="site-btn site-btn-primary">{stockBusy ? 'جاري الحفظ...' : 'تسجيل الحركة'}</button>
+        </form>
+        {stockError && <p role="alert" className="mt-3 font-bold text-red-700">{stockError}</p>}
+        <h4 className="font-black mt-6 mb-3">آخر حركات المخزون</h4>
+        <div className="max-h-64 overflow-auto space-y-2 text-sm">{stockHistory.length === 0 ? <p className="text-neutral-500">ماكو حركات مخزون مسجلة بعد.</p> : stockHistory.map((entry: any)=><div key={entry.id} className="rounded-xl border border-brand/15 px-4 py-3 flex flex-wrap justify-between gap-3"><span>{entry.reason} — {entry.delta > 0 ? '+' : ''}{entry.delta}</span><span>{entry.before} ← {entry.after}</span><time>{new Date(entry.createdAt).toLocaleString('ar-IQ')}</time></div>)}</div>
+      </section>}
 
       {showAddForm && (
         <ProductForm product={editingProduct} existingCategories={existingCategories} onSave={handleSave} onCancel={() => { setShowAddForm(false); setEditingProduct(null); }} loading={loading} />
@@ -117,6 +169,7 @@ export default function AdminProducts() {
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex gap-2">
+                    <button onClick={() => openInventory(p)} className="site-btn site-btn-outline site-btn-sm">المخزون</button>
                     <button onClick={() => handleEdit(p)} className="text-xs bg-brand/10 text-brand rounded-lg px-3 py-1 font-bold hover:bg-brand/20">تعديل</button>
                     <button onClick={() => handleDelete(p.id)} className="text-xs bg-red-50 text-red-600 rounded-lg px-3 py-1 font-bold hover:bg-red-100">حذف</button>
                   </div>
@@ -281,15 +334,18 @@ function ProductForm({ product, existingCategories, onSave, onCancel, loading }:
 
         {/* المخزون */}
         <div>
-          <label className="block font-bold mb-2 text-sm text-ink">الكمية المتوفرة (المخزون) *</label>
+          <label className="block font-bold mb-2 text-sm text-ink">{product ? 'المخزون (للعرض فقط)' : 'الكمية الابتدائية (المخزون) *'}</label>
           <input 
             type="number" 
             placeholder="مثال: 50"
-            value={form.stock || ''} 
+            value={form.stock ?? ''} 
             onChange={(e) => setForm({ ...form, stock: Number(e.target.value) })} 
             className="w-full border-2 border-brand/30 rounded-xl px-4 py-3 focus:outline-none focus:border-brand" 
-            required 
+            required
+            readOnly={Boolean(product)}
+            min={0}
           />
+          {product && <p className="text-xs text-neutral-500 mt-1">لتغيير الكمية استخدم زر المخزون بجانب المنتج حتى تُسجَّل الحركة.</p>}
         </div>
 
         {/* الأيقونة */}
