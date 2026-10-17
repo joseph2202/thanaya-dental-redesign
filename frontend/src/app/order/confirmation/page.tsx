@@ -1,105 +1,87 @@
 "use client";
+import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Suspense } from 'react';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
-import { getOrder } from '@/lib/orders';
 import Link from 'next/link';
-import Image from 'next/image';
+import { ordersAPI } from '@/lib/api';
+
+type Order = {
+  id: string; total: number; status: string; createdAt: string;
+  customerName: string; customerPhone: string; customerAddress: string; customerCity: string;
+  items: { id: string; quantity: number; price: number; product: { name: string } }[];
+};
 
 function ConfirmationContent() {
-  const searchParams = useSearchParams();
-  const orderId = searchParams.get('id') || '';
-  const order = getOrder(orderId);
+  const id = useSearchParams().get('id') || '';
+  const [order, setOrder] = useState<Order | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  if (!order) {
-    return (
-      <>
-        <Header />
-        <main className="max-w-4xl mx-auto px-4 py-20 text-center">
-          <h1 className="text-4xl font-black mb-4 text-ink">الطلب غير موجود</h1>
-          <Link href="/products" className="bg-brand text-white rounded-xl px-8 py-3 font-bold inline-block">
-            تصفح المنتجات
-          </Link>
-        </main>
-        <Footer />
-      </>
-    );
-  }
+  useEffect(() => {
+    if (!id) { setError('رقم الطلب مفقود'); setLoading(false); return; }
+    ordersAPI.getById(id)
+      .then((data: Order) => setOrder(data))
+      .catch((reason: unknown) => setError(reason instanceof Error ? reason.message : 'تعذر تحميل الطلب'))
+      .finally(() => setLoading(false));
+  }, [id]);
 
   return (
     <>
       <Header />
-      <main className="max-w-4xl mx-auto px-4 py-16 text-center">
-        <div className="text-8xl mb-6">✅</div>
-        <h1 className="text-4xl md:text-5xl font-black mb-4 text-ink">تم تأكيد طلبك!</h1>
-        <p className="text-neutral-600 mb-8">شكراً لك، راح نتواصل معك قريباً لتأكيد التفاصيل.</p>
-
-        <div className="bg-white border-2 border-brand/30 rounded-2xl p-8 text-right max-w-2xl mx-auto mb-8">
-          <div className="flex justify-center mb-6">
-            <Image
-              src="/logo.png"
-              alt="Thanaya"
-              width={120}
-              height={40}
-              className="h-10 w-auto"
-            />
-          </div>
-          <div className="flex justify-between items-center mb-4 pb-4 border-b-2 border-brand/30">
-            <span className="font-bold text-ink">رقم الطلب:</span>
-            <span className="font-black text-xl text-brand">{order.id}</span>
-          </div>
-
-          <div className="space-y-2 mb-4">
-            <p className="font-bold text-ink">الاسم: <span className="font-normal">{order.customer.name}</span></p>
-            <p className="font-bold text-ink">الهاتف: <span className="font-normal">{order.customer.phone}</span></p>
-            <p className="font-bold text-ink">العنوان: <span className="font-normal">{order.customer.address}، {order.customer.city}</span></p>
-          </div>
-
-          <div className="border-t-2 border-brand/30 pt-4">
-            <p className="font-bold mb-2 text-ink">المنتجات ({order.items.length}):</p>
-            <ul className="space-y-1 text-sm">
-              {order.items.map((item) => (
-                <li key={item.product.id} className="flex justify-between">
-                  <span className="text-ink">{item.product.name} × {item.quantity}</span>
-                  <span className="font-bold text-ink">{(item.product.price * item.quantity).toLocaleString()} د.ع</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div className="border-t-2 border-brand/30 mt-4 pt-4 flex justify-between items-center">
-            <span className="font-black text-lg text-ink">الإجمالي:</span>
-            <span className="font-black text-2xl text-brand">{order.total.toLocaleString()} د.ع</span>
-          </div>
-        </div>
-
-        <div className="flex gap-3 justify-center flex-wrap">
-          <Link href="/products" className="bg-brand text-white rounded-xl px-8 py-3 font-bold shadow-[0_10px_24px_#183f881a]">
-            تسوق المزيد
-          </Link>
-          <Link href="/" className="bg-white border border-[#cbd8e8] rounded-xl px-8 py-3 font-bold hover:bg-paper2 transition">
-            الرئيسية
-          </Link>
-        </div>
+      <main className="mx-auto max-w-3xl px-4 py-16" dir="rtl">
+        {loading ? <p className="text-center font-bold text-ink">جاري تحميل تفاصيل الطلب...</p> :
+          error || !order ? (
+            <div className="rounded-3xl bg-white border border-red-100 p-10 text-center">
+              <h1 className="text-2xl font-black text-ink">تعذر عرض الطلب</h1>
+              <p role="alert" className="my-5 text-red-700">{error || 'الطلب غير موجود'}</p>
+              <Link href="/account" className="text-brand font-bold underline">الرجوع إلى حسابي</Link>
+            </div>
+          ) : (
+            <div className="overflow-hidden rounded-3xl border border-[#dfe8f2] bg-white shadow-[0_18px_50px_#183f8810]">
+              <div className="bg-[#edf7fc] px-7 py-10 text-center">
+                <div className="mx-auto mb-4 grid h-16 w-16 place-items-center rounded-full bg-white text-3xl shadow-sm">✓</div>
+                <h1 className="mb-3 text-3xl font-black text-ink">تم استلام طلبك بنجاح!</h1>
+                <p className="text-neutral-600">طلبك قيد المعالجة، وراح نتواصل وياك لتأكيد التوصيل.</p>
+              </div>
+              <div className="space-y-6 p-7">
+                <div className="flex flex-wrap justify-between gap-4 border-b border-[#dfe8f2] pb-5">
+                  <div><p className="text-xs text-neutral-500">رقم الطلب</p><p className="font-black text-brand break-all">{order.id}</p></div>
+                  <div><p className="text-xs text-neutral-500">التاريخ</p><p className="font-bold text-ink">{new Date(order.createdAt).toLocaleDateString('ar-IQ')}</p></div>
+                  <div><p className="text-xs text-neutral-500">الحالة</p><p className="font-bold text-ink">{order.status === 'pending' ? 'قيد المعالجة' : order.status}</p></div>
+                </div>
+                <section>
+                  <h2 className="mb-3 text-xl font-black text-ink">عنوان التوصيل</h2>
+                  <p className="text-neutral-700">{order.customerName} — {order.customerPhone}</p>
+                  <p className="text-neutral-700">{order.customerAddress}، {order.customerCity}</p>
+                </section>
+                <section>
+                  <h2 className="mb-3 text-xl font-black text-ink">تفاصيل المنتجات</h2>
+                  <div className="space-y-3">
+                    {order.items.map((item) => (
+                      <div key={item.id} className="flex justify-between gap-4 border-b border-[#edf0f4] pb-3 text-sm">
+                        <span className="text-ink">{item.product.name} × {item.quantity}</span>
+                        <span className="font-black text-ink whitespace-nowrap">{(item.price * item.quantity).toLocaleString('ar-IQ')} د.ع</span>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+                <div className="flex justify-between rounded-xl bg-[#edf7fc] p-4 text-xl font-black text-ink">
+                  <span>مجموع المنتجات</span><span>{order.total.toLocaleString('ar-IQ')} د.ع</span>
+                </div>
+                <p className="text-xs text-neutral-500">الدفع عند الاستلام. أجور التوصيل يتم تحديدها لاحقاً.</p>
+                <div className="flex flex-wrap gap-3">
+                  <Link href="/account" className="flex-1 rounded-xl bg-brand px-6 py-3 text-center font-bold text-white">عرض طلباتي</Link>
+                  <Link href="/products" className="flex-1 rounded-xl border border-[#dfe8f2] px-6 py-3 text-center font-bold text-ink">متابعة التسوق</Link>
+                </div>
+              </div>
+            </div>
+          )}
       </main>
       <Footer />
     </>
   );
 }
-
 export default function ConfirmationPage() {
-  return (
-    <Suspense fallback={
-      <>
-        <Header />
-        <main className="max-w-4xl mx-auto px-4 py-20 text-center">
-          <p>جاري التحميل...</p>
-        </main>
-        <Footer />
-      </>
-    }>
-      <ConfirmationContent />
-    </Suspense>
-  );
+  return <Suspense fallback={<p className="p-12 text-center">جاري التحميل...</p>}><ConfirmationContent /></Suspense>;
 }
