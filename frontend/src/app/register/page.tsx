@@ -119,7 +119,7 @@ export default function RegisterPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-brand text-white rounded-xl py-3 font-bold shadow-[0_10px_24px_#079dca1a] hover:bg-brand-dark transition disabled:opacity-50"
+              className="site-btn site-btn-primary w-full"
             >
               {loading ? 'جاري إنشاء الحساب...' : 'إنشاء حساب'}
             </button>
