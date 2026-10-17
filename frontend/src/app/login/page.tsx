@@ -52,7 +52,7 @@ export default function LoginPage() {
                 required
                 value={form.email}
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
-                className="w-full border border-[#d4e0ed] rounded-xl px-4 py-3 font-bold focus:outline-none focus:border-brand"
+                className="w-full border border-[#bbdeea] rounded-xl px-4 py-3 font-bold focus:outline-none focus:border-brand"
                 placeholder="example@email.com"
               />
             </div>
@@ -65,7 +65,7 @@ export default function LoginPage() {
                 minLength={6}
                 value={form.password}
                 onChange={(e) => setForm({ ...form, password: e.target.value })}
-                className="w-full border border-[#d4e0ed] rounded-xl px-4 py-3 font-bold focus:outline-none focus:border-brand"
+                className="w-full border border-[#bbdeea] rounded-xl px-4 py-3 font-bold focus:outline-none focus:border-brand"
                 placeholder="6 أحرف على الأقل"
               />
             </div>
@@ -73,7 +73,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-brand text-white rounded-xl py-3 font-bold shadow-[0_10px_24px_#183f881a] hover:bg-brand-dark transition disabled:opacity-50"
+              className="w-full bg-brand text-white rounded-xl py-3 font-bold shadow-[0_10px_24px_#079dca1a] hover:bg-brand-dark transition disabled:opacity-50"
             >
               {loading ? 'جاري الدخول...' : 'دخول'}
             </button>
