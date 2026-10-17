@@ -58,7 +58,7 @@ export default function CheckoutPage() {
         <main className="max-w-4xl mx-auto px-4 py-20 text-center">
           <h1 className="text-4xl font-black mb-4 text-ink">السلة فارغة</h1>
           <p className="text-neutral-600 mb-8">أضف منتجات قبل إتمام الطلب.</p>
-          <Link href="/products" className="bg-brand text-white rounded-xl px-8 py-3 font-bold inline-block shadow-[0_10px_24px_#079dca1a]">
+          <Link href="/products" className="site-btn site-btn-primary">
             تصفح المنتجات
           </Link>
         </main>
@@ -173,7 +173,7 @@ export default function CheckoutPage() {
             <button
               type="submit"
               disabled={submitting || items.length === 0}
-              className="w-full bg-brand text-white rounded-xl py-4 font-black text-lg shadow-[0_10px_24px_#079dca1a] hover:bg-brand-dark transition disabled:opacity-50"
+              className="site-btn site-btn-primary site-btn-lg w-full"
             >
               {submitting ? 'جاري تأكيد الطلب...' : 'تأكيد الطلب'}
             </button>
