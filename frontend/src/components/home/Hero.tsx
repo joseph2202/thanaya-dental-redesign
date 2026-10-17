@@ -21,11 +21,11 @@ export default function Hero() {
           تسوّق مستلزمات طب الأسنان والأجهزة والمواد الطبية بمكان واحد.
           اطّلع على الأسعار والتفاصيل، واختَر احتياجات عيادتك بسهولة.
         </p>
-        <div className="mt-9 flex flex-wrap items-center justify-center gap-3 sm:gap-4">
-          <Link href="/products" className="site-btn site-btn-primary min-w-[180px]">
+        <div className="mt-9 flex flex-wrap items-center justify-center gap-x-4 gap-y-6 pb-2">
+          <Link href="/products" className="site-btn site-btn-primary site-btn-lg min-w-[205px]">
             تسوّق الآن <ArrowUpLeft size={18} aria-hidden="true" />
           </Link>
-          <Link href="/categories" className="site-btn site-btn-outline min-w-[180px]">
+          <Link href="/categories" className="site-btn site-btn-outline site-btn-lg min-w-[205px]">
             تصفّح الأقسام <ArrowLeft size={17} aria-hidden="true" />
           </Link>
         </div>
