@@ -22,10 +22,10 @@ export default function Hero() {
           اطّلع على الأسعار والتفاصيل، واختَر احتياجات عيادتك بسهولة.
         </p>
         <div className="mt-9 flex flex-wrap items-center justify-center gap-3 sm:gap-4">
-          <Link href="/products" className="site-btn site-btn-primary min-w-[150px] rounded-full !bg-[#059BD0] hover:!bg-[#047BA8]">
+          <Link href="/products" className="site-btn site-btn-primary min-w-[180px]">
             تسوّق الآن <ArrowUpLeft size={18} aria-hidden="true" />
           </Link>
-          <Link href="/categories" className="site-btn site-btn-outline min-w-[158px] rounded-full !border-[#92cbe3] hover:!border-brand">
+          <Link href="/categories" className="site-btn site-btn-outline min-w-[180px]">
             تصفّح الأقسام <ArrowLeft size={17} aria-hidden="true" />
           </Link>
         </div>
