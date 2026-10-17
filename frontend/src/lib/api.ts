@@ -47,6 +47,8 @@ export const productsAPI = {
 // Orders API
 export const ordersAPI = {
   getAll: () => apiRequest('/orders'),
+  getMine: () => apiRequest('/orders/mine'),
+  getById: (id: string) => apiRequest(`/orders/${encodeURIComponent(id)}`),
   
   create: (data: any) => apiRequest('/orders', { method: 'POST', body: JSON.stringify(data) }),
   

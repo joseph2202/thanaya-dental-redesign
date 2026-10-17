@@ -5,19 +5,21 @@ import Link from 'next/link';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import { useAuth } from '@/context/AuthContext';
-import { getOrders } from '@/lib/orders';
+import { ordersAPI } from '@/lib/api';
 
 export default function AccountPage() {
   const router = useRouter();
   const { user } = useAuth();
   const [orders, setOrders] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
 
   useEffect(() => {
     if (!user) {
       router.push('/login');
       return;
     }
-    setOrders(getOrders());
+    ordersAPI.getMine().then(setOrders).catch((error: unknown) => setLoadError(error instanceof Error ? error.message : 'تعذر جلب الطلبات')).finally(() => setLoading(false));
   }, [user, router]);
 
   if (!user) return null;
@@ -55,7 +57,7 @@ export default function AccountPage() {
             <div className="site-surface p-6">
               <h2 className="font-black text-lg mb-4 text-ink">طلباتي ({orders.length})</h2>
               
-              {orders.length === 0 ? (
+              {loading ? <p className="py-12 text-center text-neutral-600">جاري جلب طلباتك...</p> : loadError ? <p role="alert" className="py-12 text-center text-red-600">{loadError}</p> : orders.length === 0 ? (
                 <div className="text-center py-12">
                   <div className="text-6xl mb-4"></div>
                   <p className="text-neutral-600 mb-4">ما عندك طلبات بعد</p>
