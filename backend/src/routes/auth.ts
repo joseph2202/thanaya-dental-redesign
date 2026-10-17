@@ -2,10 +2,10 @@ import { Router } from 'express';
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import { getJwtSecret } from '../config/auth';
 
 const router = Router();
 const prisma = new PrismaClient();
-const JWT_SECRET = process.env.JWT_SECRET || 'secret';
 
 // Register
 router.post('/register', async (req, res) => {
@@ -22,7 +22,7 @@ router.post('/register', async (req, res) => {
       data: { name, email, phone, password: hashedPassword }
     });
 
-    const token = jwt.sign({ userId: user.id, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
+    const token = jwt.sign({ userId: user.id, role: user.role }, getJwtSecret(), { expiresIn: '7d' });
 
     res.json({ user: { id: user.id, name: user.name, email: user.email, phone: user.phone, role: user.role }, token });
   } catch (error) {
@@ -45,7 +45,7 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'البريد أو كلمة المرور غير صحيحة' });
     }
 
-    const token = jwt.sign({ userId: user.id, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
+    const token = jwt.sign({ userId: user.id, role: user.role }, getJwtSecret(), { expiresIn: '7d' });
 
     res.json({ user: { id: user.id, name: user.name, email: user.email, phone: user.phone, role: user.role }, token });
   } catch (error) {

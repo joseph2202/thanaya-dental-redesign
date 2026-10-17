@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { PrismaClient } from '@prisma/client';
+import { requireAdmin } from '../middleware/requireAdmin';
 
 const router = Router();
 const prisma = new PrismaClient();
@@ -46,7 +47,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // Create product (admin)
-router.post('/', async (req, res) => {
+router.post('/', requireAdmin, async (req, res) => {
   try {
     const product = await prisma.product.create({ data: req.body });
     res.json(product);
@@ -56,10 +57,10 @@ router.post('/', async (req, res) => {
 });
 
 // Update product (admin)
-router.put('/:id', async (req, res) => {
+router.put('/:id', requireAdmin, async (req, res) => {
   try {
     const product = await prisma.product.update({
-      where: { id: req.params.id },
+      where: { id: String(req.params.id) },
       data: req.body
     });
     res.json(product);
@@ -69,9 +70,9 @@ router.put('/:id', async (req, res) => {
 });
 
 // Delete product (admin)
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', requireAdmin, async (req, res) => {
   try {
-    await prisma.product.delete({ where: { id: req.params.id } });
+    await prisma.product.delete({ where: { id: String(req.params.id) } });
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: 'خطأ في حذف المنتج' });

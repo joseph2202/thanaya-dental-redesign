@@ -40,22 +40,27 @@ export default function AdminProducts() {
     setShowAddForm(true);
   };
 
-  const handleSave = async (product: any) => {
+  const handleSave = async (product: any): Promise<boolean> => {
     setLoading(true);
     try {
+      const data = { ...product, category: product.category.trim() };
       if (editingProduct) {
-        await productsAPI.update(product.id, product);
+        await productsAPI.update(product.id, data);
       } else {
-        await productsAPI.create(product);
+        await productsAPI.create(data);
       }
       await loadProducts();
       setShowAddForm(false);
       setEditingProduct(null);
-    } catch (error) {
-      alert('حدث خطأ أثناء الحفظ');
+      return true;
+    } catch {
+      return false;
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
+
+  const existingCategories = [...new Set(productsList.map(p => p.category?.trim()).filter(Boolean))] as string[];
 
   const filteredProducts = productsList.filter((p) =>
     p.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -71,7 +76,7 @@ export default function AdminProducts() {
       </div>
 
       {showAddForm && (
-        <ProductForm product={editingProduct} onSave={handleSave} onCancel={() => { setShowAddForm(false); setEditingProduct(null); }} loading={loading} />
+        <ProductForm product={editingProduct} existingCategories={existingCategories} onSave={handleSave} onCancel={() => { setShowAddForm(false); setEditingProduct(null); }} loading={loading} />
       )}
 
       <div className="mb-6">
@@ -125,9 +130,10 @@ export default function AdminProducts() {
   );
 }
 
-function ProductForm({ product, onSave, onCancel, loading }: { product: any; onSave: (p: any) => void; onCancel: () => void; loading: boolean }) {
+function ProductForm({ product, existingCategories, onSave, onCancel, loading }: { product: any; existingCategories: string[]; onSave: (p: any) => Promise<boolean>; onCancel: () => void; loading: boolean }) {
   const [form, setForm] = useState(product || { name: '', description: '', price: 0, usdPrice: 0, category: '', brand: '', icon: 'Package', stock: 0, badge: '', image: '' });
   const [success, setSuccess] = useState('');
+  const [saveError, setSaveError] = useState('');
   const [imagePreview, setImagePreview] = useState(product?.image || '');
   const [uploading, setUploading] = useState(false);
 
@@ -150,17 +156,17 @@ function ProductForm({ product, onSave, onCancel, loading }: { product: any; onS
       setSuccess('تم رفع الصورة بنجاح');
       setTimeout(() => setSuccess(''), 3000);
     } catch (error: any) {
+      setImagePreview(form.image || '');
       alert(error.message || 'فشل رفع الصورة');
     } finally {
       setUploading(false);
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => { 
-    e.preventDefault(); 
-    onSave(form);
-    setSuccess(product ? 'تم تحديث المنتج بنجاح' : 'تم إضافة المنتج بنجاح');
-    setTimeout(() => setSuccess(''), 3000);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaveError('');
+    if (!await onSave(form)) setSaveError('ما انحفظ المنتج. تأكد من اتصال خادم المتجر وحاول مرة ثانية.');
   };
 
   return (
@@ -172,6 +178,8 @@ function ProductForm({ product, onSave, onCancel, loading }: { product: any; onS
           ✅ {success}
         </div>
       )}
+
+      {saveError && <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6 text-red-700 font-bold" role="alert">{saveError}</div>}
 
       <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-5">
         {/* رفع الصورة */}
@@ -221,12 +229,15 @@ function ProductForm({ product, onSave, onCancel, loading }: { product: any; onS
           <label className="block font-bold mb-2 text-sm text-ink">التصنيف *</label>
           <input 
             type="text" 
-            placeholder="مثال: طب الأسنان"
+            placeholder="اختَر قسمًا موجودًا أو اكتب قسمًا جديدًا"
             value={form.category} 
             onChange={(e) => setForm({ ...form, category: e.target.value })} 
+            list="thanaya-product-categories"
             className="w-full border-2 border-brand/30 rounded-xl px-4 py-3 focus:outline-none focus:border-brand" 
             required 
           />
+          <datalist id="thanaya-product-categories">{existingCategories.map(name => <option key={name} value={name} />)}</datalist>
+          <p className="text-xs text-neutral-500 mt-1">اختَر الاسم الموجود إذا المنتج من نفس القسم؛ اختلاف الكتابة ينشئ قسمًا ثانيًا بالمتجر.</p>
         </div>
 
         {/* السعر بالدينار */}
