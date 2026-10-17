@@ -48,7 +48,7 @@ export default function Header() {
           aria-label="ابحث في ثنايا"
           className="h-[44px] w-full min-w-0 rounded-full border border-[#b8dfed] bg-[#f9fdff] pr-10 pl-[78px] text-xs text-ink outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/15 sm:text-sm"
         />
-        <button type="submit" className="site-btn site-btn-primary site-btn-sm absolute left-1 top-1/2 -translate-y-1/2 !min-h-[36px] !px-4">
+        <button type="submit" className="site-btn site-btn-primary site-btn-sm site-btn-search absolute left-1 top-1/2 !min-h-[36px] !px-4">
           بحث
         </button>
       </div>
