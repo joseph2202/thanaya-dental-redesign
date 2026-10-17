@@ -191,6 +191,15 @@ router.post('/', async (req, res) => {
         }
       }
 
+      const updatedStock = await tx.product.findMany({where:{id:{in:lines.map(item=>item.productId)}},select:{id:true,stock:true}});
+      const stockMap = new Map(updatedStock.map(p=>[p.id,p.stock]));
+      const createdId = id;
+      for (const item of lines) {
+        const after = stockMap.get(item.productId);
+        if (after === undefined) throw new OrderError(409,'تغير المخزون');
+        await tx.inventoryMovement.create({data:{productId:item.productId,delta:-item.quantity,before:after+item.quantity,after,reason:'order_placed',referenceId:createdId,actorId:principal.id}});
+      }
+
       return tx.order.create({
         data: {
           id,
@@ -268,10 +277,12 @@ router.patch('/:id/status', requireAdmin, async (req, res) => {
       if (changed.count !== 1) throw new OrderError(409, 'حالة الطلب تغيرت، حدّث الصفحة');
       if (status === 'cancelled' || status === 'returned') {
         for (const item of current.items) {
-          await tx.product.update({
+          const restored = await tx.product.update({
             where: { id: item.productId },
-            data: { stock: { increment: item.quantity } }
+            data: { stock: { increment: item.quantity } },
+            select: { stock:true }
           });
+          await tx.inventoryMovement.create({data:{productId:item.productId,delta:item.quantity,before:restored.stock-item.quantity,after:restored.stock,reason:status === 'cancelled' ? 'order_cancelled' : 'order_returned',referenceId:current.id,actorId:res.locals.adminUserId as string}});
         }
       }
       return tx.order.findUniqueOrThrow({ where: { id: current.id } });
