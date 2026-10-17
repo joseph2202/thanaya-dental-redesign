@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" role="img" aria-label="ثنايا">
+  <rect width="64" height="64" rx="18" fill="#1855D9"/>
+  <path d="M20 30c-2-8 2-13 9-13 3 0 5 2 7 2s4-2 7-2c7 0 11 5 9 13-1 5-4 8-5 15-1 6-3 9-6 9-4 0-3-13-5-13s-1 13-5 13c-3 0-5-3-6-9-1-7-4-10-5-15Z" fill="white" opacity=".95"/>
+  <path d="M29 24h6v6h-6zM38 24h6v6h-6z" fill="#1855D9" transform="rotate(45 32 27)"/>
+</svg>

@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ثنايا | معاينة v3</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@dawod/thmanyah-font-web@1.2.0/index.min.css">
+<style>
+:root{--ink:#0A0A0A;--paper:#FAF9F6;--paper2:#F1EFE9;--mark:#FDE047;--brand:#0F766E;--radius:18px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"Thmanyah Sans",sans-serif;font-weight:400;background:var(--paper);color:var(--ink);overflow-x:hidden}
+.container{max-width:1150px;margin:0 auto;padding:0 20px}
+.note{background:var(--mark);text-align:center;font-size:12px;padding:6px;font-weight:500}
+.topbar{background:var(--ink);color:var(--paper);font-size:12px;padding:8px 0}
+.topbar .container{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+header{padding:18px 0;border-bottom:2px solid var(--ink)}
+.head-row{display:flex;align-items:center;gap:14px}
+.logo{font-size:34px;font-weight:900;line-height:1}
+.logo small{display:block;font-size:10px;font-weight:500;color:var(--brand)}
+.search{flex:1;border:2px solid var(--ink);border-radius:999px;padding:11px 18px;font-size:13px;background:#fff;color:#777}
+.pill{border:2px solid var(--ink);border-radius:999px;padding:10px 18px;font-size:13px;font-weight:700;background:#fff;cursor:pointer;font-family:inherit}
+.pill.dark{background:var(--ink);color:var(--paper)}
+.hero{padding:60px 0 50px}
+.hero-grid{display:grid;grid-template-columns:1.1fr .9fr;gap:40px;align-items:center}
+@media(max-width:900px){.hero-grid{grid-template-columns:1fr}}
+.badge{display:inline-block;background:var(--mark);border-radius:999px;padding:8px 16px;font-size:12px;font-weight:700;margin-bottom:18px}
+h1{font-size:clamp(36px,6vw,68px);font-weight:900;line-height:1.2;margin-bottom:18px}
+.mark{background:var(--mark);padding:0 .12em}
+.hero p{font-size:15px;color:#444;max-width:520px;margin-bottom:26px;line-height:1.9}
+.btn{border:2px solid var(--ink);border-radius:999px;padding:13px 26px;font-size:14px;font-weight:700;cursor:pointer;background:#fff;font-family:inherit}
+.btn.dark{background:var(--ink);color:var(--paper);box-shadow:4px 4px 0 var(--mark)}
+.chips{display:flex;gap:18px;flex-wrap:wrap;margin-top:22px;font-size:12px;color:#333}
+.chips span::before{content:"◆ ";color:var(--brand)}
+.stack{position:relative;height:330px}
+.stack::before{content:"";position:absolute;inset:8% 16%;background:var(--mark);border-radius:50%;transform:rotate(-8deg)}
+.mini{position:absolute;border:2px solid var(--ink);border-radius:14px;background:#fff;box-shadow:6px 6px 0 var(--ink);padding:12px;width:155px;text-align:center}
+.mini .e{font-size:40px;display:block}
+.mini .n{font-size:11px;font-weight:700;display:block;margin-top:4px}
+.mini .p{font-size:11px;color:var(--brand);font-weight:900}
+.m1{top:6px;right:10%;transform:rotate(-6deg)}
+.m2{top:96px;right:36%;transform:rotate(4deg);z-index:2}
+.m3{top:186px;right:14%;transform:rotate(-3deg)}
+.marquee{background:var(--ink);color:var(--mark);border-top:2px solid var(--ink);border-bottom:2px solid var(--ink);overflow:hidden;padding:12px 0}
+.marquee div{display:inline-flex;gap:44px;white-space:nowrap;animation:slide 22s linear infinite;font-weight:700;font-size:14px}
+@keyframes slide{to{transform:translateX(-50%)}}
+.stats{background:var(--ink);color:var(--paper);padding:36px 0}
+.stats .container{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;text-align:center}
+@media(max-width:860px){.stats .container{grid-template-columns:repeat(2,1fr)}}
+.stat b{display:block;font-size:clamp(34px,5vw,56px);font-weight:900;color:var(--mark)}
+.stat span{font-size:13px;font-weight:700}
+.stat i{display:block;font-style:normal;font-size:11px;opacity:.6}
+section{padding:40px 0}
+.kicker{color:var(--brand);font-size:12px;font-weight:700;letter-spacing:2px;margin-bottom:8px}
+h2{font-size:clamp(26px,4vw,42px);font-weight:900;margin-bottom:10px}
+.sub{color:#555;font-size:14px;margin-bottom:26px}
+.cat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+@media(max-width:860px){.cat-grid{grid-template-columns:1fr}}
+.cat{border:2px solid var(--ink);border-radius:14px;background:#fff;padding:18px 20px;display:flex;justify-content:space-between;align-items:center;font-weight:700;cursor:pointer}
+.cat small{color:#888;font-weight:400}
+.cat.hot{background:var(--mark)}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
+@media(max-width:960px){.grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:560px){.grid{grid-template-columns:1fr}}
+.card{border:2px solid var(--ink);border-radius:var(--radius);background:#fff;overflow:hidden;box-shadow:6px 6px 0 var(--ink);transition:.15s}
+.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--ink)}
+.card .img{height:130px;background:var(--paper2);display:flex;align-items:center;justify-content:center;font-size:46px;border-bottom:2px solid var(--ink)}
+.card .body{padding:14px}
+.card .name{font-size:14px;font-weight:700;line-height:1.6;height:44px;overflow:hidden}
+.card .brand{font-size:11px;color:#888;margin:2px 0 8px}
+.card .price{font-size:19px;font-weight:900}
+.card .usd{font-size:11px;color:#888;font-weight:400}
+.card .row{display:flex;justify-content:space-between;align-items:center;margin-top:12px}
+.badge2{font-size:10px;font-weight:700;border:1.5px solid var(--ink);border-radius:999px;padding:3px 10px;background:var(--paper)}
+.badge2.ok{background:#DCFCE7}
+.badge2.hot{background:var(--mark)}
+.add{background:var(--ink);color:var(--paper);border:none;border-radius:999px;padding:9px 16px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit}
+.offer{background:var(--mark);border-top:3px solid var(--ink);border-bottom:3px solid var(--ink);padding:44px 0}
+.offer-grid{display:grid;grid-template-columns:1.2fr .8fr;gap:30px;align-items:center}
+@media(max-width:900px){.offer-grid{grid-template-columns:1fr}}
+.offer .kicker{color:var(--ink)}
+.cd{display:flex;gap:10px;margin-top:18px}
+.cd div{border:2px solid var(--ink);background:#fff;border-radius:12px;padding:10px 16px;text-align:center}
+.cd b{display:block;font-size:22px;font-weight:900}
+.cd small{font-size:10px}
+.offer-card{border:2px solid var(--ink);border-radius:var(--radius);background:#fff;box-shadow:8px 8px 0 var(--ink);padding:18px;text-align:center;transform:rotate(2deg)}
+.offer-card .e{font-size:56px}
+.brands{display:flex;gap:12px;flex-wrap:wrap}
+.brands span{border:2px solid var(--ink);border-radius:999px;background:#fff;padding:10px 22px;font-weight:700;font-size:13px}
+.why{background:var(--brand);color:#fff;padding:64px 0}
+.why .kicker{color:var(--mark)}
+.why h2{color:#fff}
+.why .mark{color:var(--ink)}
+.why p{max-width:560px;line-height:2;font-size:14px;opacity:.95;margin:14px 0 24px}
+.why-chips{display:flex;gap:12px;flex-wrap:wrap}
+.why-chips span{border:1.5px solid rgba(255,255,255,.6);border-radius:999px;padding:8px 16px;font-size:12px;background:rgba(255,255,255,.08)}
+.steps2{position:relative;display:grid;grid-template-columns:repeat(6,1fr);gap:8px}
+.steps2::before{content:"";position:absolute;top:24px;right:8%;left:8%;border-top:3px solid var(--ink)}
+@media(max-width:900px){.steps2{grid-template-columns:repeat(3,1fr)}.steps2::before{display:none}}
+@media(max-width:560px){.steps2{grid-template-columns:repeat(2,1fr)}}
+.tstep{text-align:center;padding:0 6px}
+.tstep b{display:inline-flex;width:48px;height:48px;border:3px solid var(--ink);border-radius:50%;background:var(--paper);align-items:center;justify-content:center;font-weight:900;position:relative;z-index:1}
+.tstep.first b{background:var(--ink);color:var(--mark)}
+.tstep span{display:block;margin-top:10px;font-weight:700;font-size:13px}
+footer{background:var(--ink);color:var(--paper);padding:50px 0 30px;margin-top:60px}
+.foot-logo{font-size:clamp(70px,14vw,160px);font-weight:900;line-height:1;color:transparent;-webkit-text-stroke:2px var(--paper);opacity:.95;text-align:center}
+.foot{display:flex;justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap;margin-top:26px;border-top:1px solid rgba(255,255,255,.25);padding-top:22px}
+.foot a{color:var(--paper);text-decoration:none;font-size:13px;opacity:.85;cursor:pointer}
+.foot .links{display:flex;gap:18px;flex-wrap:wrap}
+</style>
+</head>
+<body>
+<div class="note">معاينة تصميم v3 — غير تفاعلية، للعرض والموافقة فقط</div>
+<div class="topbar"><div class="container"><span>شحن داخل العراق — الدفع عند الاستلام متوفر</span><span>عربي | EN&nbsp;&nbsp;·&nbsp;&nbsp;د.ع | $</span></div></div>
+<header><div class="container head-row"><div class="logo">ثنايا<small>THANAYA MEDICAL</small></div><div class="search">ابحث عن مستلزم أو جهاز طبي…</div><button class="pill">حسابي</button><button class="pill dark">السلة</button></div></header>
+
+<div class="container hero"><div class="hero-grid">
+<div>
+<span class="badge">◆ متجر طبي عراقي — مستلزمات وأجهزة</span>
+<h1>كل ما تحتاجه عيادتك،<br><span class="mark">من أصغر أداة إلى أكبر جهاز.</span></h1>
+<p>ثنايا متجر عراقي للمستلزمات الطبية وطب الأسنان والأجهزة: منتجات موثقة، أسعار بالدينار والدولار، وتوصيل لكل المحافظات.</p>
+<button class="btn dark">تسوق الآن</button> <button class="btn">تصفح الأجهزة</button>
+<div class="chips"><span>منتجات وأجهزة موثقة</span><span>تجهيز خلال 24 ساعة</span><span>دفع عند الاستلام</span></div>
+</div>
+<div class="stack">
+<div class="mini m1"><span class="e">🦷</span><span class="n">طقم فحص أسنان</span><span class="p">25,000 د.ع</span></div>
+<div class="mini m2"><span class="e">🩺</span><span class="n">جهاز قياس ضغط رقمي</span><span class="p">89,000 د.ع</span></div>
+<div class="mini m3"><span class="e">🧴</span><span class="n">محلول تعقيم 1 لتر</span><span class="p">12,000 د.ع</span></div>
+</div>
+</div></div>
+
+<div class="marquee"><div>
+<span>أدوات طب الأسنان ◆</span><span>أجهزة طبية ◆</span><span>مواد تعقيم ◆</span><span>مستلزمات وقاية ◆</span><span>أدوات جراحية ◆</span><span>عروض كل أسبوع ◆</span><span>دفع عند الاستلام ◆</span>
+<span>أدوات طب الأسنان ◆</span><span>أجهزة طبية ◆</span><span>مواد تعقيم ◆</span><span>مستلزمات وقاية ◆</span><span>أدوات جراحية ◆</span><span>عروض كل أسبوع ◆</span><span>دفع عند الاستلام ◆</span>
+</div></div>
+
+<div class="stats"><div class="container">
+<div class="stat"><b>+500</b><span>منتج وجهاز موثق</span><i>Verified Products</i></div>
+<div class="stat"><b>18</b><span>محافظة نوصلها</span><i>Governorates Covered</i></div>
+<div class="stat"><b>24</b><span>ساعة تجهيز الطلب</span><i>Hours Processing</i></div>
+<div class="stat"><b>100%</b><span>ضمان الأصالة</span><i>Authenticity Guarantee</i></div>
+</div></div>
+
+<section><div class="container">
+<div class="kicker">THE CATALOG</div>
+<h2>شنو تحتاج اليوم؟</h2>
+<div class="sub">مستلزمات وأجهزة، اضغط على أي تصنيف وتصفح مباشرة.</div>
+<div class="cat-grid">
+<div class="cat">أدوات طب الأسنان<small>Dental</small></div>
+<div class="cat hot">أجهزة طبية<small>Devices</small></div>
+<div class="cat">مواد تعقيم<small>Sterilization</small></div>
+<div class="cat">مستلزمات وقاية<small>Protection</small></div>
+<div class="cat">أدوات جراحية<small>Surgical</small></div>
+<div class="cat">عروض الشهر<small>Offers</small></div>
+</div>
+</div></section>
+
+<section><div class="container">
+<div class="kicker">HAND PICKED</div>
+<h2>منتجات وأجهزة مختارة بعناية</h2>
+<div class="sub">أسعار واضحة بالدينار والدولار، بدون مفاجآت.</div>
+<div class="grid">
+<div class="card"><div class="img">🦷</div><div class="body"><div class="name">طقم أدوات فحص أسنان 3 قطع</div><div class="brand">ماركة مثال</div><div class="price">25,000 د.ع <span class="usd">≈ 19 دولار</span></div><div class="row"><span class="badge2 ok">متوفر</span><button class="add">+ للسلة</button></div></div></div>
+<div class="card"><div class="img">🩺</div><div class="body"><div class="name">جهاز قياس ضغط دم رقمي</div><div class="brand">ماركة مثال</div><div class="price">89,000 د.ع <span class="usd">≈ 68 دولار</span></div><div class="row"><span class="badge2 ok">متوفر</span><button class="add">+ للسلة</button></div></div></div>
+<div class="card"><div class="img">🧴</div><div class="body"><div class="name">محلول تعقيم أدوات طبية 1 لتر</div><div class="brand">ماركة مثال</div><div class="price">12,000 د.ع <span class="usd">≈ 9 دولار</span></div><div class="row"><span class="badge2 hot">خصم</span><button class="add">+ للسلة</button></div></div></div>
+<div class="card"><div class="img">🧤</div><div class="body"><div class="name">قفوف طبية نتريل علبة 100 حبة</div><div class="brand">ماركة مثال</div><div class="price">18,500 د.ع <span class="usd">≈ 14 دولار</span></div><div class="row"><span class="badge2">جديد</span><button class="add">+ للسلة</button></div></div></div>
+</div>
+</div></section>
+
+<div class="offer"><div class="container offer-grid">
+<div>
+<div class="kicker">OFFER OF THE WEEK</div>
+<h2>خصم 15% على أجهزة التعقيم هذا الأسبوع</h2>
+<div class="cd"><div><b>03</b><small>يوم</small></div><div><b>12</b><small>ساعة</small></div><div><b>45</b><small>دقيقة</small></div></div>
+</div>
+<div class="offer-card"><span class="e">🩺</span><div class="name" style="font-weight:700;margin:6px 0">جهاز تعقيم بخار مكتبي</div><div class="price" style="font-weight:900">340,000 د.ع <span class="usd" style="font-size:11px;color:#888">≈ 260 دولار</span></div><button class="btn dark" style="margin-top:10px">اطلبه الآن</button></div>
+</div></div>
+
+<section><div class="container">
+<div class="kicker">TRUSTED PARTNERS</div>
+<h2>شركاء موثوقون</h2>
+<div class="sub">نتعامل مع موردين وماركات موثقة فقط.</div>
+<div class="brands"><span>BRAND A</span><span>BRAND B</span><span>BRAND C</span><span>BRAND D</span><span>BRAND E</span><span>وأخرى…</span></div>
+</div></section>
+
+<div class="why"><div class="container">
+<div class="kicker">WHY THANAYA</div>
+<h2>ما نبيعك منتج،<br><span class="mark">نسلّمك ضمان.</span></h2>
+<p>كل منتج وجهاز ننشره يمر بتحقق من المصدر وتوثيق للتفاصيل الطبية، حتى تستلم طلبك وأنت مرتاح البال — سواء كنت عيادة أو طبيبًا أو مستهلكًا.</p>
+<div class="why-chips"><span>تحقق من المصدر</span><span>توثيق طبي</span><span>فاتورة رسمية</span><span>دعم بعد البيع</span></div>
+</div></div>
+
+<section><div class="container">
+<div class="kicker">HOW TO ORDER</div>
+<h2>طلبك يمشي بهاي الخطوات</h2>
+<div class="sub">ست مراحل واضحة من الاختيار إلى الاستلام.</div>
+<div class="steps2">
+<div class="tstep first"><b>01</b><span>اختر</span></div>
+<div class="tstep"><b>02</b><span>أضف للسلة</span></div>
+<div class="tstep"><b>03</b><span>أكد العنوان</span></div>
+<div class="tstep"><b>04</b><span>ادفع عند الاستلام</span></div>
+<div class="tstep"><b>05</b><span>استلم طلبك</span></div>
+<div class="tstep"><b>06</b><span>قيّم تجربتك</span></div>
+</div>
+</div></section>
+
+<footer>
+<div class="container">
+<div class="foot-logo">ثنايا</div>
+<div class="foot">
+<div class="links"><a>من نحن</a><a>تواصل معنا</a><a>سياسة الإرجاع</a><a>الشحن</a></div>
+<span style="font-size:12px;opacity:.7">© ثنايا — جميع الحقوق محفوظة</span>
+</div>
+</div>
+</footer>
+</body>
+</html>

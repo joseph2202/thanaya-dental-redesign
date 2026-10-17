@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ثنايا | نموذج تصميمي أولي</title>
+<style>
+:root{
+  --primary:#0E7490; --primary-dark:#155E75; --secondary:#16A34A;
+  --bg:#F8FAFC; --surface:#FFFFFF; --text:#0F172A; --muted:#64748B;
+  --border:#E2E8F0; --radius:14px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"ThmanyahSans","IBM Plex Sans Arabic","Cairo","Segoe UI",Tahoma,sans-serif;background:var(--bg);color:var(--text)}
+.container{max-width:1100px;margin:0 auto;padding:0 16px}
+.mock-note{background:#FEF9C3;color:#854D0E;text-align:center;font-size:12px;padding:6px}
+.topbar{background:var(--primary-dark);color:#fff;font-size:12px;padding:6px 0}
+.topbar .container{display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px}
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:14px 0}
+.header-row{display:flex;align-items:center;gap:14px}
+.logo{font-size:26px;font-weight:900;color:var(--primary)}
+.search{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:999px;padding:10px 16px;color:var(--muted);font-size:14px}
+.icon-btn{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:8px 12px;font-size:13px;white-space:nowrap}
+.cats{background:var(--surface);border-bottom:1px solid var(--border);padding:10px 0;font-size:13px}
+.cats .container{display:flex;gap:18px;color:var(--muted);flex-wrap:wrap}
+.hero{background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:#fff;border-radius:var(--radius);margin:20px 0;padding:40px 28px;display:flex;justify-content:space-between;align-items:center;gap:20px}
+.hero h1{font-size:28px;margin-bottom:10px}
+.hero p{opacity:.9;margin-bottom:18px;font-size:14px}
+.btn{background:#fff;color:var(--primary-dark);border:none;border-radius:10px;padding:12px 22px;font-weight:700;font-size:14px;cursor:pointer}
+.hero-emoji{font-size:64px}
+.section-title{font-size:20px;font-weight:800;margin:28px 0 14px}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+@media(max-width:800px){.grid{grid-template-columns:repeat(2,1fr)}}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;padding-bottom:12px}
+.card .img{height:120px;background:linear-gradient(180deg,#ECFEFF,#F0F9FF);display:flex;align-items:center;justify-content:center;font-size:44px}
+.card .name{font-size:13px;font-weight:700;padding:10px 12px 2px;line-height:1.5;height:52px;overflow:hidden}
+.card .brand{font-size:11px;color:var(--muted);padding:0 12px}
+.card .price{padding:8px 12px 0;font-weight:800;color:var(--primary-dark)}
+.card .usd{font-size:11px;color:var(--muted);font-weight:400}
+.card .row{display:flex;justify-content:space-between;align-items:center;padding:10px 12px 0}
+.badge{font-size:10px;background:#DCFCE7;color:#15803D;border-radius:999px;padding:3px 8px}
+.add{background:var(--primary);color:#fff;border:none;border-radius:8px;padding:8px 12px;font-size:12px;cursor:pointer}
+.trust{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:26px 0}
+@media(max-width:800px){.trust{grid-template-columns:repeat(2,1fr)}}
+.trust div{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;text-align:center;font-size:13px}
+.trust span{display:block;font-size:22px;margin-bottom:6px}
+footer{background:var(--primary-dark);color:#E0F2FE;margin-top:36px;padding:26px 0;font-size:13px}
+footer .container{display:flex;justify-content:space-between;flex-wrap:wrap;gap:14px}
+</style>
+</head>
+<body>
+<div class="mock-note">نموذج تصميمي أولي غير تفاعلي — للعرض والموافقة فقط</div>
+<div class="topbar"><div class="container"><span>الشحن داخل العراق — الدفع عند الاستلام متوفر</span><span>عربي | EN &nbsp;&nbsp; د.ع | $</span></div></div>
+<header><div class="container header-row"><div class="logo">ثنايا</div><div class="search">ابحث عن منتج طبي أو أداة أسنان…</div><div class="icon-btn">حسابي</div><div class="icon-btn">السلة</div></div></header>
+<div class="cats"><div class="container"><span>أدوات طب الأسنان</span><span>مواد تعقيم</span><span>أجهزة</span><span>مستلزمات وقاية</span><span>أدوات جراحية</span><span>عروض</span></div></div>
+<div class="container">
+  <div class="hero"><div><h1>مستلزمات طب الأسنان الأصلية</h1><p>منتجات موثوقة للعيادات والأطباء، بأسعار واضحة بالدينار والدولار.</p><button class="btn">تسوق الآن</button></div><div class="hero-emoji">🦷</div></div>
+  <div class="section-title">منتجات مميزة</div>
+  <div class="grid">
+    <div class="card"><div class="img">🦷</div><div class="name">طقم أدوات فحص أسنان 3 قطع</div><div class="brand">ماركة مثال</div><div class="price">25,000 د.ع <span class="usd">≈ 19 دولار</span></div><div class="row"><span class="badge">متوفر</span><button class="add">+ للسلة</button></div></div>
+    <div class="card"><div class="img">🧤</div><div class="name">قفوف طبية نتريل علبة 100 حبة</div><div class="brand">ماركة مثال</div><div class="price">18,500 د.ع <span class="usd">≈ 14 دولار</span></div><div class="row"><span class="badge">متوفر</span><button class="add">+ للسلة</button></div></div>
+    <div class="card"><div class="img">🧴</div><div class="name">محلول تعقيم أدوات طبية 1 لتر</div><div class="brand">ماركة مثال</div><div class="price">12,000 د.ع <span class="usd">≈ 9 دولار</span></div><div class="row"><span class="badge">خصم</span><button class="add">+ للسلة</button></div></div>
+    <div class="card"><div class="img">🪥</div><div class="name">فرشاة أسنان جراحية معقمة</div><div class="brand">ماركة مثال</div><div class="price">7,500 د.ع <span class="usd">≈ 6 دولار</span></div><div class="row"><span class="badge">جديد</span><button class="add">+ للسلة</button></div></div>
+  </div>
+  <div class="trust"><div><span>✅</span>منتجات أصلية</div><div><span>🚚</span>شحن داخل العراق</div><div><span>💵</span>دفع عند الاستلام</div><div><span>🎧</span>دعم ومتابعة</div></div>
+</div>
+<footer><div class="container"><span>ثنايا — Thanaya Dental</span><span>من نحن | تواصل معنا | السياسات</span><span>جميع الحقوق محفوظة</span></div></footer>
+</body>
+</html>
