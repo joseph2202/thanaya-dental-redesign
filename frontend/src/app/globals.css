@@ -1,12 +1,12 @@
 @import "tailwindcss";
 
 @theme {
-  --color-ink: #142b43;
+  --color-ink: #1d2d3c;
   --color-paper: #f7fcfe;
   --color-paper2: #eaf6fb;
-  --color-brand: #049fce;
-  --color-brand-dark: #007fa9;
-  --color-brand-light: #9fe1f4;
+  --color-brand: #069dcb;
+  --color-brand-dark: #087ba3;
+  --color-brand-light: #8fddf4;
   --color-brand-lighter: #dcf4fd;
   --color-accent: #26afa5;
   --color-success: #14836c;
@@ -32,15 +32,15 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .site-btn:hover { transform: translateY(-2px); }
 .site-btn-primary { background: var(--color-brand); color: white; box-shadow: 0 10px 24px rgba(4,159,206,.16); }
 .site-btn-primary:hover { background: var(--color-brand-dark); box-shadow: 0 15px 28px rgba(4,159,206,.19); }
-.site-btn-outline { background: white; border: 1px solid #cbd8e8; color: var(--color-ink); }
-.site-btn-outline:hover { background: #f3f7ff; }
+.site-btn-outline { background: white; border: 1px solid #bddfeb; color: var(--color-ink); }
+.site-btn-outline:hover { background: #eefaff; }
 .site-surface { background: #fff; border: 1px solid #d8eaf2; border-radius: 20px; box-shadow: 0 12px 32px rgba(17,51,87,.035); }
 .site-input { background: #fff; border: 1px solid #b8e0ee; border-radius: 12px; min-height: 46px; }
 .site-input:focus { outline: 2px solid #9dbaff; border-color: var(--color-brand); }
-.site-product-visual { display: grid; place-items: center; background: radial-gradient(circle at 50% 36%, #fff 0, #edf4fe 61%, #e7effa 100%); color: #688fc4; overflow: hidden; }
+.site-product-visual { display: grid; place-items: center; background: radial-gradient(circle at 50% 36%, #fff 0, #edf4fe 61%, #e7effa 100%); color: #53acc9; overflow: hidden; }
 .site-product-visual img { width: 100%; height: 100%; object-fit: contain; padding: 1rem; }
 .site-card { background: #fff; border: 1px solid #d4eaf4; border-radius: 18px; overflow: hidden; transition: transform .22s, box-shadow .22s, border-color .22s; }
-.site-card:hover { transform: translateY(-4px); border-color: #b5ccee; box-shadow: 0 18px 36px rgba(20,53,91,.09); }
+.site-card:hover { transform: translateY(-4px); border-color: #83d7ed; box-shadow: 0 18px 36px rgba(20,53,91,.09); }
 .site-page-title { font-size: clamp(2rem, 4vw, 3.5rem); font-weight: 800; letter-spacing: -.035em; }
 .site-section { padding-block: clamp(3.5rem, 6vw, 6rem); }
 
