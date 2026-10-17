@@ -85,7 +85,7 @@ export default function Header() {
             {user ? (
               <>
                 {user.role === "admin" && (
-                  <Link href="/admin" className="hidden items-center gap-1 text-xs font-bold text-[#37546d] hover:text-brand 2xl:inline-flex" aria-label="لوحة الإدارة">
+                  <Link href="/admin" className="hidden items-center gap-1 text-xs font-bold text-[#37546d] hover:text-brand xl:inline-flex" aria-label="لوحة الإدارة">
                     <LayoutDashboard size={16} /> الإدارة
                   </Link>
                 )}
