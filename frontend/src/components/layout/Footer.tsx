@@ -3,10 +3,10 @@ import Image from 'next/image';
 import { MapPin, Phone, Clock3, Camera, Send, ArrowUpLeft } from 'lucide-react';
 
 export default function Footer() {
-  return <footer className="bg-ink text-white mt-16">
+  return <footer className="bg-[#20313b] text-white mt-16">
     <div className="site-container py-14 md:py-20 grid sm:grid-cols-2 lg:grid-cols-[1.35fr_.75fr_1fr_.75fr] gap-10 lg:gap-12">
       <div>
-        <Link href="/" className="inline-flex items-center gap-3"><Image src="/brand-mark.svg" alt="" width={42} height={42} className="w-10 h-10" /><span><strong className="block text-[25px] leading-none">ثنايا</strong><small className="text-brand-light text-[10px] tracking-wider" dir="ltr">THANAYA MEDICAL</small></span></Link>
+        <Link href="/" className="inline-flex items-center gap-3"><Image src="/logo-icon.png" alt="" width={42} height={42} className="w-10 h-10" /><span><strong className="block text-[25px] leading-none">ثنايا</strong><small className="text-brand-light text-[10px] tracking-wider" dir="ltr">THANAYA MEDICAL</small></span></Link>
         <p className="text-white/65 text-sm leading-8 max-w-[260px] mt-5">متجر عراقي للمستلزمات الطبية وطب الأسنان والأجهزة. تجربة واضحة لاختيار احتياجاتك.</p>
       </div>
       <div><h2 className="font-bold text-sm mb-5">استكشف</h2><nav className="grid gap-3 text-white/65 text-sm"><Link href="/products" className="hover:text-white">المنتجات</Link><Link href="/categories" className="hover:text-white">التصنيفات</Link><Link href="/offers" className="hover:text-white">العروض</Link><Link href="/cart" className="hover:text-white">السلة</Link></nav></div>
