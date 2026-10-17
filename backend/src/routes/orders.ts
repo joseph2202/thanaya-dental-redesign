@@ -1,11 +1,12 @@
 import { Router } from 'express';
 import { PrismaClient } from '@prisma/client';
+import { requireAdmin } from '../middleware/requireAdmin';
 
 const router = Router();
 const prisma = new PrismaClient();
 
 // Get all orders
-router.get('/', async (req, res) => {
+router.get('/', requireAdmin, async (req, res) => {
   try {
     const orders = await prisma.order.findMany({
       include: { items: { include: { product: true } } },
@@ -48,11 +49,11 @@ router.post('/', async (req, res) => {
 });
 
 // Update order status
-router.patch('/:id/status', async (req, res) => {
+router.patch('/:id/status', requireAdmin, async (req, res) => {
   try {
     const { status } = req.body;
     const order = await prisma.order.update({
-      where: { id: req.params.id },
+      where: { id: String(req.params.id) },
       data: { status }
     });
     res.json(order);
