@@ -3,7 +3,7 @@ import { useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { LayoutDashboard, Package, ShoppingBag, Users, Shapes, TicketPercent, Settings, ArrowRight, LogOut } from 'lucide-react';
+import { LayoutDashboard, Package, ShoppingBag, Users, Shapes, TicketPercent, Settings, Truck, ArrowRight, LogOut } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
 const navItems = [
@@ -14,6 +14,7 @@ const navItems = [
   { href: '/admin/categories', label: 'التصنيفات', icon: Shapes },
   { href: '/admin/coupons', label: 'الكوبونات', icon: TicketPercent },
   { href: '/admin/settings', label: 'الإعدادات', icon: Settings },
+  { href: '/admin/delivery', label: 'التوصيل', icon: Truck },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -21,6 +22,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const pathname = usePathname();
   const { user, isAdmin, logout, isLoading } = useAuth();
   const visibleItems = navItems.filter(item => {
+    if (item.href === '/admin/delivery') return user?.role === 'owner';
     if (user?.role === 'owner' || user?.role === 'admin') return true;
     if (user?.role === 'inventory') return ['/admin','/admin/products'].includes(item.href);
     if (user?.role === 'sales') return ['/admin','/admin/orders'].includes(item.href);

@@ -6,7 +6,7 @@ import Footer from '@/components/layout/Footer';
 import ProductMedia from '@/components/ui/ProductMedia';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
-import { ordersAPI } from '@/lib/api';
+import { ordersAPI, deliveryAPI, DeliveryConfig } from '@/lib/api';
 import Link from 'next/link';
 
 const cities = [
@@ -25,6 +25,13 @@ export default function CheckoutPage() {
     address: '',
     city: 'بغداد',
   });
+  const [delivery,setDelivery] = useState<DeliveryConfig|null>(null);
+  const [deliveryError,setDeliveryError] = useState('');
+  const [deliveryLoading,setDeliveryLoading] = useState(true);
+  useEffect(()=>{deliveryAPI.getPublic().then(data=>{setDelivery(data);setDeliveryError('')}).catch(()=>setDeliveryError('تعذر التحقق من أجور التوصيل. حاول مجدداً')).finally(()=>setDeliveryLoading(false))},[]);
+  const provinceRate=delivery?.rates.find(rate=>rate.province===form.city);
+  const deliveryUnavailable=Boolean(delivery?.enabled&&!provinceRate?.available);
+  const fee=delivery?.enabled?provinceRate?.fee??0:0;
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
 
@@ -69,6 +76,7 @@ export default function CheckoutPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if(deliveryLoading||deliveryError||deliveryUnavailable||!delivery){setSubmitError('تأكد من توفر التوصيل لهذه المحافظة قبل إتمام الطلب');return;}
     setSubmitting(true);
 
     setSubmitError('');
@@ -141,7 +149,7 @@ export default function CheckoutPage() {
                 className="w-full border border-[#bbdeea] rounded-xl px-4 py-3 font-bold focus:outline-none focus:border-brand bg-white"
               >
                 {cities.map((c) => (
-                  <option key={c} value={c}>{c}</option>
+                  <option key={c} value={c}>{c}{delivery?.enabled && !delivery.rates.find(r=>r.province===c)?.available?' — غير متاح':''}</option>
                 ))}
               </select>
             </div>
@@ -158,6 +166,9 @@ export default function CheckoutPage() {
               />
             </div>
 
+            {deliveryLoading&&<p className="text-sm text-neutral-600">جاري التأكد من توفر التوصيل...</p>}
+            {deliveryError&&<p role="alert" className="text-sm font-bold text-red-700">{deliveryError}</p>}
+            {deliveryUnavailable&&<p role="alert" className="text-sm font-bold text-red-700">التوصيل غير متاح حالياً إلى {form.city}. اختر محافظة متاحة.</p>}
             <div className="bg-paper2 border border-[#bbdeea] rounded-xl p-4">
               <h3 className="font-black mb-2 text-ink">طريقة الدفع</h3>
               <div className="flex items-center gap-3">
@@ -172,7 +183,7 @@ export default function CheckoutPage() {
             {submitError && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-bold text-red-700">{submitError}</p>}
             <button
               type="submit"
-              disabled={submitting || items.length === 0}
+              disabled={submitting || items.length === 0 || deliveryLoading || !!deliveryError || !delivery || deliveryUnavailable}
               className="site-btn site-btn-primary site-btn-lg w-full"
             >
               {submitting ? 'جاري تأكيد الطلب...' : 'تأكيد الطلب'}
@@ -202,11 +213,11 @@ export default function CheckoutPage() {
               </div>
               <div className="flex justify-between">
                 <span className="font-bold text-ink">الشحن</span>
-                <span className="font-black text-brand">يحدد لاحقاً</span>
+                <span className="font-black text-brand">{deliveryLoading?'جاري التحميل':deliveryError?'غير متاح للتحقق':delivery?.enabled?(deliveryUnavailable?'غير متاح':fee===0?'مجاني':fee.toLocaleString()+' د.ع'):'يحدد لاحقاً'}</span>
               </div>
               <div className="flex justify-between text-xl pt-2 border-t border-brand/20">
                 <span className="font-black text-ink">الإجمالي</span>
-                <span className="font-black text-2xl text-brand">{totalPrice.toLocaleString()} د.ع</span>
+                <span className="font-black text-2xl text-brand">{(totalPrice+fee).toLocaleString()} د.ع</span>
               </div>
             </div>
           </div>

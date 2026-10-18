@@ -111,3 +111,11 @@ export const settingsAPI = {
   getAdmin: () => apiRequest('/settings'),
   save: (data: any) => apiRequest('/settings', { method: 'PUT', body: JSON.stringify(data) }),
 };
+
+export type DeliveryRate={province:string;fee:number;available:boolean};
+export type DeliveryConfig={enabled:boolean;revision:number;rates:DeliveryRate[]};
+export const deliveryAPI={
+  getPublic:():Promise<DeliveryConfig>=>apiRequest('/delivery/public'),
+  getAdmin:():Promise<DeliveryConfig>=>apiRequest('/delivery'),
+  save:(data:DeliveryConfig):Promise<DeliveryConfig>=>apiRequest('/delivery',{method:'PUT',body:JSON.stringify(data)})
+};
