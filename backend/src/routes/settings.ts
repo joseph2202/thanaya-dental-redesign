@@ -27,7 +27,7 @@ function validate(raw:any){
  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(fields.email))throw Error('البريد غير صالح');
  if(typeof raw.showUsdApprox!=='boolean')throw Error('خيار الدولار غير صالح');
  const rate=raw.usdToIqdRate;
- if(rate!==null && (!Number.isSafeInteger(rate)||rate<1000||rate>3000))throw Error('راجع سعر الدولار: أدخل عدد الدنانير لكل دولار (مثلاً 1660)، بين 1000 و3000');
+ if(rate!==null && (!Number.isSafeInteger(rate)||rate<1||rate>1000000))throw Error('سعر الصرف يجب أن يكون عدداً صحيحاً موجباً (دنانير لكل دولار)');
  if(raw.showUsdApprox && rate===null)throw Error('أدخل سعر الصرف قبل تفعيل الدولار');
  if(!Number.isSafeInteger(raw.revision)||raw.revision<0)throw Error('إصدار إعدادات غير صالح');
  return {...fields,usdToIqdRate:rate,showUsdApprox:raw.showUsdApprox};
