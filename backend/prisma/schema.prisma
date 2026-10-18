@@ -16,6 +16,7 @@ model User {
   role      String   @default("customer")
   createdAt DateTime @default(now())
   orders    Order[]
+  roleChanges RoleChange[] @relation("RoleChangeActor")
 }
 
 model Product {
@@ -89,4 +90,16 @@ model InventoryMovement {
 
   @@index([productId, createdAt])
   @@index([referenceId])
+}
+
+model RoleChange {
+  id           String   @id @default(cuid())
+  actorId      String
+  targetId     String
+  previousRole String
+  newRole      String
+  createdAt    DateTime @default(now())
+  actor        User     @relation("RoleChangeActor", fields: [actorId], references: [id], onDelete: Restrict)
+
+  @@index([targetId, createdAt])
 }
