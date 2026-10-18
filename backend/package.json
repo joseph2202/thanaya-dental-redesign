@@ -10,6 +10,7 @@
     "db:push": "prisma db push",
     "db:studio": "prisma studio",
     "test:orders": "prisma generate && npm run build && node tests/orders.integration.cjs",
+    "test:roles": "prisma generate && npm run build && node tests/roles.integration.cjs",
     "db:safe-generate": "prisma generate"
   },
   "keywords": [],
