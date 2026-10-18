@@ -97,6 +97,7 @@ export default function AdminUsers() {
                 <th className="px-4 py-3 text-right font-black text-sm text-ink">الدور</th>
                 <th className="px-4 py-3 text-right font-black text-sm text-ink">عدد الطلبات</th>
                 <th className="px-4 py-3 text-right font-black text-sm text-ink">تاريخ التسجيل</th>
+                {currentUser?.role === "owner" && <th className="px-4 py-3 text-right font-black text-sm text-ink">تغيير الصلاحية</th>}
               </tr>
             </thead>
             <tbody>
@@ -121,6 +122,21 @@ export default function AdminUsers() {
           </table>
         </div>
       ) : null}
+      {currentUser?.role === 'owner' && !loadError && <section className="mt-8 rounded-2xl border border-brand/20 bg-white p-5" aria-label="سجل تغييرات الصلاحيات">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <h3 className="text-xl font-black text-ink">سجل تغييرات الصلاحيات</h3>
+          <button type="button" onClick={() => usersAPI.roleHistory().then(setRoleHistory).catch(() => setRoleError('تعذر تحديث سجل الصلاحيات'))} className="site-btn site-btn-outline site-btn-sm">تحديث السجل</button>
+        </div>
+        {roleHistory.length === 0 ? <p className="text-sm text-neutral-500">ماكو تغييرات بصلاحيات الموظفين بعد.</p> :
+          <div className="space-y-2">{roleHistory.map((entry: any) => {
+            const target = users.find(user => user.id === entry.targetId);
+            const actor = users.find(user => user.id === entry.actorId);
+            return <div key={entry.id} className="rounded-xl border border-brand/15 p-3 text-sm">
+              <p className="font-bold">{target?.name || 'مستخدم سابق'}: {roleLabel[entry.previousRole] || entry.previousRole} ← {roleLabel[entry.newRole] || entry.newRole}</p>
+              <p className="mt-1 text-xs text-neutral-500">بواسطة: {actor?.name || 'مالك سابق'} · {new Date(entry.createdAt).toLocaleString('ar-IQ')}</p>
+            </div>;
+          })}</div>}
+      </section>}
     </AdminLayout>
   );
 }
