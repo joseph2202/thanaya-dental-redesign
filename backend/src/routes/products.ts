@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { Prisma, PrismaClient } from '@prisma/client';
-import { requireAdmin } from '../middleware/requireAdmin';
+import { requireAdmin, requireInventory } from '../middleware/requireAdmin';
 
 const router = Router();
 const prisma = new PrismaClient();
@@ -92,7 +92,7 @@ router.get('/:id', async (req, res) => {
   } catch (error) { respondError(res, error); }
 });
 
-router.get('/:id/inventory', requireAdmin, async (req, res) => {
+router.get('/:id/inventory', requireInventory, async (req, res) => {
   try {
     const id = String(req.params.id);
     const product = await prisma.product.findUnique({ where: { id }, select: { id:true,name:true,stock:true } });
@@ -133,7 +133,7 @@ router.put('/:id', requireAdmin, async (req, res) => {
   } catch (error) { respondError(res,error); }
 });
 
-router.post('/:id/stock-adjustment', requireAdmin, async (req, res) => {
+router.post('/:id/stock-adjustment', requireInventory, async (req, res) => {
   try {
     const { delta, reason } = req.body || {};
     if (!Number.isSafeInteger(delta) || delta === 0 || Math.abs(delta) > 1000000) {
