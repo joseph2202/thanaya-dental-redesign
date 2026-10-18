@@ -18,6 +18,7 @@ model User {
   orders    Order[]
   roleChanges RoleChange[] @relation("RoleChangeActor")
   settingsChanges StoreSettingsChange[] @relation("SettingsChangeActor")
+  deliveryChanges DeliverySettingsChange[] @relation("DeliveryChangeActor")
 }
 
 model Product {
@@ -58,6 +59,8 @@ model Order {
   customerAddress String
   customerCity    String
   total           Int
+  subtotal        Int?
+  shippingFee     Int?
   status          String      @default("pending")
   paymentMethod   String      @default("cod")
   createdAt       DateTime    @default(now())
@@ -129,5 +132,29 @@ model StoreSettingsChange {
   createdAt DateTime @default(now())
   actor     User     @relation("SettingsChangeActor", fields: [actorId], references: [id], onDelete: Restrict)
 
+  @@index([createdAt])
+}
+
+// Delivery is off until the owner configures at least one governorate.
+model DeliveryConfig {
+  id        String   @id @default("main")
+  enabled   Boolean  @default(false)
+  revision  Int      @default(0)
+  updatedAt DateTime @updatedAt
+}
+
+model DeliveryRate {
+  province  String  @id
+  fee       Int     @default(0)
+  available Boolean @default(false)
+}
+
+model DeliverySettingsChange {
+  id        String   @id @default(cuid())
+  actorId   String
+  before    String
+  after     String
+  createdAt DateTime @default(now())
+  actor     User     @relation("DeliveryChangeActor", fields: [actorId], references: [id], onDelete: Restrict)
   @@index([createdAt])
 }
