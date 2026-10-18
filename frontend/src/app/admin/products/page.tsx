@@ -312,7 +312,7 @@ function ProductForm({ product, existingCategories, onSave, onCancel, loading }:
           <select value={priceUnit} onChange={e=>{
             const unit=e.target.value as 'thousands'|'usd';
             setPriceUnit(unit);
-            setPriceText(unit==='thousands'?formatThousandsIqd(form.price):exchangeRate?String(Number((form.price/exchangeRate).toFixed(2))):'');
+            setPriceText(unit==='thousands'?formatThousandsIqd(resolvedPrice??form.price):exchangeRate?String(Number(((resolvedPrice??form.price)/exchangeRate).toFixed(2))):'');
           }} className="w-full rounded-xl border border-brand/30 bg-white px-4 py-3">
             <option value="thousands">بالألف دينار العراقي (25 = 25,000 د.ع)</option>
             <option value="usd">دولار أمريكي ($10 = عشرة دولارات)</option>
