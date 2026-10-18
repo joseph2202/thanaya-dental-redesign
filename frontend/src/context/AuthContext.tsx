@@ -47,7 +47,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(getCurrentUser());
   };
 
-  const isAdmin = user?.role === 'admin';
+  const isAdmin = ['owner', 'admin', 'inventory', 'sales'].includes(user?.role || '');
 
   return (
     <AuthContext.Provider value={{ user, logout, refreshUser, isAdmin, isLoading }}>
