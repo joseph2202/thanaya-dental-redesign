@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 import { createHash } from 'node:crypto';
 import { getJwtSecret } from '../config/auth';
 import { requireAdmin, requireSales } from '../middleware/requireAdmin';
+import { isProvince } from './delivery';
 
 const router = Router();
 const prisma = new PrismaClient();
@@ -168,6 +169,14 @@ router.post('/', async (req, res) => {
     }
 
     const order = await prisma.$transaction(async (tx) => {
+      const config=await tx.deliveryConfig.findUnique({where:{id:'main'}});
+      let shippingFee:number|null=null;
+      if(config?.enabled){
+        if(!isProvince(customer.city))throw new OrderError(400,'اختر محافظة صحيحة');
+        const rate=await tx.deliveryRate.findUnique({where:{province:customer.city}});
+        if(!rate?.available)throw new OrderError(400,'التوصيل غير متاح لهذه المحافظة');
+        shippingFee=rate.fee;
+      }
       const products = await tx.product.findMany({
         where: { id: { in: lines.map(item => item.productId) } },
         select: { id: true, name: true, price: true }
@@ -200,6 +209,11 @@ router.post('/', async (req, res) => {
         await tx.inventoryMovement.create({data:{productId:item.productId,delta:-item.quantity,before:after+item.quantity,after,reason:'order_placed',referenceId:createdId,actorId:principal.id}});
       }
 
+      const subtotal=total;
+      if(shippingFee!==null){
+        total+=shippingFee;
+        if(!Number.isSafeInteger(total))throw new OrderError(400,'إجمالي الطلب كبير جداً');
+      }
       return tx.order.create({
         data: {
           id,
@@ -209,6 +223,7 @@ router.post('/', async (req, res) => {
           customerAddress: customer.address,
           customerCity: customer.city,
           total,
+          ...(shippingFee!==null ? {subtotal,shippingFee} : {}),
           items: {
             create: lines.map(item => ({
               productId: item.productId,
