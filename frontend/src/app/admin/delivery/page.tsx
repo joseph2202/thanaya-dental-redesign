@@ -2,6 +2,7 @@
 import {useEffect,useState} from 'react';
 import AdminLayout from '@/components/admin/AdminLayout';
 import {deliveryAPI,DeliveryConfig} from '@/lib/api';
+import {parseThousandsIqd,formatThousandsIqd,formatFullIqd} from '@/lib/money-entry';
 import {useAuth} from '@/context/AuthContext';
 
 export default function AdminDelivery(){
@@ -27,8 +28,8 @@ export default function AdminDelivery(){
  <section className="site-surface p-5"><h2 className="text-xl font-black mb-4">المحافظات وأجور الشحن</h2>
  <div className="grid gap-3 md:grid-cols-2">{config.rates.map((rate,index)=><div key={rate.province} className="rounded-xl border border-brand/20 bg-white p-3 flex flex-wrap gap-4 items-center justify-between">
  <label className="flex gap-2 items-center font-bold text-sm"><input type="checkbox" checked={rate.available} onChange={e=>setConfig({...config,rates:config.rates.map((r,i)=>i===index?{...r,available:e.target.checked}:r)})}/>{rate.province}</label>
- <label className="text-xs font-bold flex items-center gap-2">أجرة التوصيل
- <input className="w-28 border rounded-lg px-3 py-2 text-sm" aria-label={'أجرة '+rate.province} type="number" min="0" max="1000000" step="1" value={rate.fee} onChange={e=>setConfig({...config,rates:config.rates.map((r,i)=>i===index?{...r,fee:Number(e.target.value)}:r)})}/>د.ع</label>
+ <label className="text-xs font-bold flex items-center gap-2">أجرة التوصيل (ألف د.ع)
+ <input className="w-28 border rounded-lg px-3 py-2 text-sm" aria-label={'أجرة '+rate.province} type="number" min="0" max="1000" step="0.001" value={formatThousandsIqd(rate.fee)} onChange={e=>{const value=parseThousandsIqd(e.target.value);if(value!==null)setConfig({...config,rates:config.rates.map((r,i)=>i===index?{...r,fee:value}:r)})}}/><span className="text-xs text-brand">{formatFullIqd(rate.fee)}</span></label>
  </div>)}</div>
  </section>
  <button disabled={busy} type="submit" className="site-btn site-btn-primary">{busy?'جاري الحفظ...':'حفظ أجور التوصيل'}</button>
