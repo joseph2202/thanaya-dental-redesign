@@ -84,7 +84,7 @@ export default function Header() {
           <div className="mr-auto flex shrink-0 items-center gap-1.5 sm:gap-2.5">
             {user ? (
               <>
-                {user.role === "admin" && (
+                {["owner","admin","inventory","sales"].includes(user.role) && (
                   <Link href="/admin" className="hidden items-center gap-1 text-xs font-bold text-[#37546d] hover:text-brand xl:inline-flex" aria-label="لوحة الإدارة">
                     <LayoutDashboard size={16} /> الإدارة
                   </Link>
@@ -131,7 +131,7 @@ export default function Header() {
                 {item.label}
               </Link>
             ))}
-            {user?.role === "admin" && <Link href="/admin" onClick={() => setMenuOpen(false)} className="rounded-xl bg-[#f6fbfe] px-4 py-3 text-center text-sm font-bold">الإدارة</Link>}
+            {["owner","admin","inventory","sales"].includes(user?.role || "") && <Link href="/admin" onClick={() => setMenuOpen(false)} className="rounded-xl bg-[#f6fbfe] px-4 py-3 text-center text-sm font-bold">الإدارة</Link>}
             {user && <button type="button" onClick={() => { logout(); setMenuOpen(false); }} className="rounded-xl bg-[#f6fbfe] px-4 py-3 text-sm font-bold">خروج</button>}
           </div>
         </nav>
