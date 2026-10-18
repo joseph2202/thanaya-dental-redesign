@@ -9,6 +9,7 @@ export default function AdminUsers() {
   const [users, setUsers] = useState<any[]>([]);
   const [roleBusy, setRoleBusy] = useState<string | null>(null);
   const [roleError, setRoleError] = useState('');
+  const [loadError, setLoadError] = useState('');
   const [roleHistory, setRoleHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -18,11 +19,14 @@ export default function AdminUsers() {
   }, []);
 
   const loadUsers = async () => {
+    setLoadError('');
     try {
       const data = await usersAPI.getAll();
+      if (!Array.isArray(data)) throw new Error('الخادم لم يرجع قائمة المستخدمين');
       setUsers(data);
     } catch (error) {
       console.error('فشل تحميل المستخدمين:', error);
+      setLoadError(error instanceof Error ? error.message : 'تعذر الاتصال بالخادم');
     } finally {
       setLoading(false);
     }
@@ -65,6 +69,7 @@ export default function AdminUsers() {
       <h2 className="text-3xl font-black mb-3 text-ink">إدارة المستخدمين والصلاحيات</h2>
       <p className="text-sm text-neutral-600 mb-6">المالك فقط يغيّر صلاحيات الموظفين المسجلين. لا تشارك كلمة مرورك مع أي موظف.</p>
       {roleError && <p className="mb-4 rounded-xl bg-red-50 p-3 text-red-700" role="alert">{roleError}</p>}
+      {loadError && <div className="mb-5 rounded-xl border border-red-200 bg-red-50 p-5 text-red-800" role="alert"><p className="mb-3 font-bold">تعذر تحميل المستخدمين: {loadError}</p><button onClick={loadUsers} type="button" className="site-btn site-btn-outline site-btn-sm">إعادة المحاولة</button></div>}
       
       <div className="mb-6">
         <input
@@ -76,12 +81,12 @@ export default function AdminUsers() {
         />
       </div>
 
-      {filteredUsers.length === 0 ? (
+      {!loadError && filteredUsers.length === 0 ? (
         <div className="bg-white border-2 border-brand/20 rounded-2xl p-12 text-center">
           <div className="text-6xl mb-4">👥</div>
-          <p className="text-neutral-600">لا يوجد مستخدمين مسجلين</p>
+          <p className="text-neutral-600">{searchQuery ? 'ماكو مستخدمين يطابقون البحث' : 'لا يوجد مستخدمون مسجلون في قاعدة البيانات'}</p>
         </div>
-      ) : (
+      ) : !loadError ? (
         <div className="bg-white border-2 border-brand/20 rounded-2xl overflow-hidden">
           <table className="w-full">
             <thead className="bg-paper2">
@@ -115,7 +120,7 @@ export default function AdminUsers() {
             </tbody>
           </table>
         </div>
-      )}
+      ) : null}
     </AdminLayout>
   );
 }
