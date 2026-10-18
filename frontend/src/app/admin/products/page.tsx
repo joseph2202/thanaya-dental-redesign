@@ -3,8 +3,11 @@ import { useState, useEffect } from 'react';
 import AdminLayout from '@/components/admin/AdminLayout';
 import { productsAPI, uploadAPI } from '@/lib/api';
 import ProductIcon from '@/components/ui/ProductIcon';
+import { useAuth } from '@/context/AuthContext';
 
 export default function AdminProducts() {
+  const { user } = useAuth();
+  const canEditProducts = user?.role === 'owner' || user?.role === 'admin';
   const [productsList, setProductsList] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [showAddForm, setShowAddForm] = useState(false);
@@ -109,9 +112,9 @@ export default function AdminProducts() {
     <AdminLayout>
       <div className="flex items-center justify-between mb-8">
         <h2 className="text-3xl font-black text-ink">إدارة المنتجات</h2>
-        <button onClick={() => { setShowAddForm(true); setEditingProduct(null); }} className="bg-brand text-white rounded-full px-6 py-2 font-bold hover:bg-brand-dark transition">
+        {canEditProducts && <button onClick={() => { setShowAddForm(true); setEditingProduct(null); }} className="bg-brand text-white rounded-full px-6 py-2 font-bold hover:bg-brand-dark transition">
           + إضافة منتج
-        </button>
+        </button>}
       </div>
 
       {stockProduct && <section className="site-surface mb-7 p-6" aria-label="إدارة المخزون">
@@ -170,8 +173,8 @@ export default function AdminProducts() {
                 <td className="px-4 py-3">
                   <div className="flex gap-2">
                     <button onClick={() => openInventory(p)} className="site-btn site-btn-outline site-btn-sm">المخزون</button>
-                    <button onClick={() => handleEdit(p)} className="text-xs bg-brand/10 text-brand rounded-lg px-3 py-1 font-bold hover:bg-brand/20">تعديل</button>
-                    <button onClick={() => handleDelete(p.id)} className="text-xs bg-red-50 text-red-600 rounded-lg px-3 py-1 font-bold hover:bg-red-100">حذف</button>
+                    {canEditProducts && <button onClick={() => handleEdit(p)} className="text-xs bg-brand/10 text-brand rounded-lg px-3 py-1 font-bold hover:bg-brand/20">تعديل</button>}
+                    {canEditProducts && <button onClick={() => handleDelete(p.id)} className="text-xs bg-red-50 text-red-600 rounded-lg px-3 py-1 font-bold hover:bg-red-100">حذف</button>}
                   </div>
                 </td>
               </tr>

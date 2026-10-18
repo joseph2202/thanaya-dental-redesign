@@ -14,7 +14,7 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { getJwtSecret } from './config/auth';
-import { requireAdmin } from './middleware/requireAdmin';
+import { requireAdmin, requireInventory } from './middleware/requireAdmin';
 
 dotenv.config();
 getJwtSecret();

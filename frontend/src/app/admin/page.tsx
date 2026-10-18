@@ -3,8 +3,10 @@ import { useState, useEffect } from 'react';
 import AdminLayout from '@/components/admin/AdminLayout';
 import Link from 'next/link';
 import { usersAPI, ordersAPI, productsAPI } from '@/lib/api';
+import { useAuth } from '@/context/AuthContext';
 
 export default function AdminDashboard() {
+  const { user, isLoading } = useAuth();
   const [stats, setStats] = useState({ products: 0, orders: 0, users: 0, revenue: 0 });
 
   useEffect(() => {
@@ -26,9 +28,10 @@ export default function AdminDashboard() {
         console.error('Error loading admin data:', error);
       }
     };
-    loadData();
-  }, []);
+    if (!isLoading && (user?.role === 'owner' || user?.role === 'admin')) loadData();
+  }, [user?.role, isLoading]);
 
+  if (user?.role === 'inventory' || user?.role === 'sales') return <AdminLayout><h2 className="mb-5 text-3xl font-black">لوحة الموظف</h2><p className="mb-5 text-neutral-600">مرحباً {user.name}. اختر القسم المسموح لحسابك:</p><Link className="site-btn site-btn-primary" href={user.role === 'inventory' ? '/admin/products' : '/admin/orders'}>{user.role === 'inventory' ? 'إدارة المخزون' : 'إدارة الطلبات'}</Link></AdminLayout>;
   return (
     <AdminLayout>
       <h2 className="text-3xl font-black mb-8 text-ink">نظرة عامة</h2>

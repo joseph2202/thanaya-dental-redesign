@@ -3,7 +3,7 @@ import { Prisma, PrismaClient } from '@prisma/client';
 import jwt from 'jsonwebtoken';
 import { createHash } from 'node:crypto';
 import { getJwtSecret } from '../config/auth';
-import { requireAdmin } from '../middleware/requireAdmin';
+import { requireAdmin, requireSales } from '../middleware/requireAdmin';
 
 const router = Router();
 const prisma = new PrismaClient();
@@ -100,7 +100,7 @@ function reportError(res: import('express').Response, error: unknown, context: s
 }
 
 // Admin-only overview.
-router.get('/', requireAdmin, async (_req, res) => {
+router.get('/', requireSales, async (_req, res) => {
   try {
     const orders = await prisma.order.findMany({
       include: { items: { include: { product: true } } },
@@ -134,7 +134,7 @@ router.get('/:id', async (req, res) => {
       include: { items: { include: { product: { select: { id: true, name: true, image: true } } } } }
     });
     if (!order) return res.status(404).json({ error: 'الطلب غير موجود' });
-    if (order.userId !== principal.id && principal.role !== 'admin') {
+    if (order.userId !== principal.id && !['owner','admin','sales'].includes(principal.role)) {
       return res.status(403).json({ error: 'لا يمكنك عرض هذا الطلب' });
     }
     res.json(order);
@@ -254,7 +254,7 @@ const transitions: Record<string, string[]> = {
 };
 
 // Only admins may change status. Cancellation and confirmed returns restock ONCE.
-router.patch('/:id/status', requireAdmin, async (req, res) => {
+router.patch('/:id/status', requireSales, async (req, res) => {
   try {
     const status = req.body?.status;
     if (typeof status !== 'string' || !Object.values(transitions).flat().includes(status)) {
