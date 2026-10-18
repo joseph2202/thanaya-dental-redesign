@@ -12,7 +12,7 @@ const defaults={
 const editable=['siteName','siteDescription','phone','email','address','workingHours','usdToIqdRate','showUsdApprox'] as const;
 const publicFields={siteName:true,siteDescription:true,phone:true,email:true,address:true,workingHours:true,usdToIqdRate:true,showUsdApprox:true,revision:true} as const;
 async function current(){
-  return prisma.storeSettings.findUnique({where:{id:'main'}}) || {
+  return (await prisma.storeSettings.findUnique({where:{id:'main'}})) ?? {
     ...defaults,revision:0,updatedAt:new Date(0)
   };
 }
