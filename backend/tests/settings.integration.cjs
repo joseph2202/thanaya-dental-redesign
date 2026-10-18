@@ -35,6 +35,7 @@ async function main(){
  await eq('sales cannot save store settings',url,'PUT',{siteName:'hacked'},toks.sales,403);
  const values={siteName:'ثنايا الطبي',siteDescription:'أدوات الأسنان',phone:'07822088894',email:'info@thanaya.iq',address:'البصرة',workingHours:'السبت - الخميس',usdToIqdRate:1500,showUsdApprox:true,revision:0};
  await eq('owner input validation prevents invalid exchange rate',url,'PUT',{...values,usdToIqdRate:0},toks.owner,400);
+ await eq('misplaced decimal exchange rate rejected',url,'PUT',{...values,usdToIqdRate:150},toks.owner,400);
  await eq('owner cannot enable USD with no exchange rate',url,'PUT',{...values,usdToIqdRate:null},toks.owner,400);
  await eq('owner saves central settings',url,'PUT',values,toks.owner,200);
  const after=await eq('public settings reflect saved data',url+'/public','GET',null,null,200);
