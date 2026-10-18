@@ -5,7 +5,7 @@ export type User = {
   name: string;
   email: string;
   phone: string;
-  role: 'admin' | 'customer';
+  role: 'owner' | 'admin' | 'inventory' | 'sales' | 'customer';
   createdAt: string;
 };
 
