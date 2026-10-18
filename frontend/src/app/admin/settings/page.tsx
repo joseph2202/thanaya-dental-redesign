@@ -52,9 +52,10 @@ export default function AdminSettings(){
         <h2 className="mb-2 text-xl font-black">العملات وسعر الصرف</h2>
         <p className="mb-5 text-sm text-neutral-600">الدينار هو عملة الشراء. الدولار مجرد قيمة تقريبية للعرض، وليس سعراً مستقلاً للدفع.</p>
         <label className="block max-w-md"><span className="mb-2 block text-sm font-bold">سعر دولار واحد بالدينار العراقي (يدوي)</span>
-          <input type="number" min={100} max={10000} step={1} className="w-full rounded-xl border border-brand/25 p-3" value={settings.usdToIqdRate??''} placeholder="أدخل السعر الذي تعتمد عليه" onChange={e=>setSettings({...settings,usdToIqdRate:e.target.value===''?null:Number(e.target.value)})}/>
+          <input type="number" min={1000} max={3000} step={1} className="w-full rounded-xl border border-brand/25 p-3" value={settings.usdToIqdRate??''} placeholder="مثلاً 1660 دينار للدولار" onChange={e=>setSettings({...settings,usdToIqdRate:e.target.value===''?null:Number(e.target.value)})}/>
         </label>
         <label className="mt-5 flex items-center gap-3 text-sm font-bold"><input type="checkbox" checked={settings.showUsdApprox} onChange={e=>setSettings({...settings,showUsdApprox:e.target.checked})}/>عرض المقابل التقريبي بالدولار بصفحة المنتج</label>
+        {settings.usdToIqdRate!==null && (settings.usdToIqdRate<1000 || settings.usdToIqdRate>3000) && <p role="alert" className="mt-3 text-sm font-bold text-red-700">سعر الصرف المسجل غير منطقي. تأكد من كتابة السعر الكامل للدولار (مثال 1660)، ثم احفظ.</p>}
         {settings.usdToIqdRate&&settings.usdToIqdRate>0&&<p className="mt-5 rounded-xl bg-paper2 p-4 text-sm">مثال للعرض: 25,000 د.ع ≈ {(25000/settings.usdToIqdRate).toFixed(2)} دولار. هذا لا يغيّر سعر المنتج أو الطلب.</p>}
       </section>
       <div className="flex flex-wrap items-center gap-4"><button disabled={busy} type="submit" className="site-btn site-btn-primary">{busy?'جاري الحفظ...':'حفظ إعدادات المتجر'}</button><span className="text-xs text-neutral-500">إصدار الإعدادات: {settings.revision}</span></div>
