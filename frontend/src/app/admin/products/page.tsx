@@ -199,7 +199,7 @@ function ProductForm({ product, existingCategories, onSave, onCancel, loading }:
   useEffect(()=>{settingsAPI.getPublic().then((d:any)=>setExchangeRate(d.usdToIqdRate??null)).catch(()=>{})},[]);
   const parsed=priceUnit==='thousands'?parseThousandsIqd(priceText):parseUsd(priceText);
   const resolvedPrice=parsed===null?null:priceUnit==='thousands'?parsed:exchangeRate&&exchangeRate>0?Math.round(parsed*exchangeRate):null;
-  const rateValid=exchangeRate!==null&&exchangeRate>=1000&&exchangeRate<=3000;
+  const rateValid=exchangeRate!==null&&Number.isSafeInteger(exchangeRate)&&exchangeRate>=1&&exchangeRate<=1_000_000;
   const priceValid=resolvedPrice!==null&&Number.isSafeInteger(resolvedPrice)&&resolvedPrice>=0&&resolvedPrice<=1_000_000_000&&(priceUnit!=='usd'||rateValid);
 
 
@@ -324,7 +324,8 @@ function ProductForm({ product, existingCategories, onSave, onCancel, loading }:
               onChange={e=>setPriceText(e.target.value)}
               className="mt-2 w-full rounded-xl border border-brand/30 bg-white px-4 py-3" />
           </label>
-          {priceUnit==='usd'&&<p className={rateValid?'text-sm font-bold text-ink':'text-sm font-bold text-red-700'}>{rateValid?`سعر الصرف المعتمد: 1 دولار = ${exchangeRate.toLocaleString('en-US')} د.ع. الحسبة: ${priceText||'0'} × ${exchangeRate.toLocaleString('en-US')}`:'سعر الصرف غير مضبوط (لازم يكون بين 1000 و3000 د.ع لكل دولار). عدّله من إعدادات ثنايا قبل حفظ السعر.'}</p>}
+          {priceUnit==='usd'&&<p className={rateValid?'text-sm font-bold text-ink':'text-sm font-bold text-red-700'}>{rateValid?`سعر الصرف المعتمد: 1 دولار = ${exchangeRate.toLocaleString('en-US')} د.ع. الحسبة: ${priceText||'0'} × ${exchangeRate.toLocaleString('en-US')}`:'حدد سعر صرف موجب في إعدادات ثنايا قبل حفظ السعر.'}</p>}
+          {priceUnit==='usd'&&rateValid&&exchangeRate!==null&&(exchangeRate<1000||exchangeRate>3000)&&<p className="text-sm text-amber-700">تنبيه: سعر الصرف غير معتاد، راجع الحسبة قبل الحفظ.</p>}
           <p className={priceValid?'text-sm font-bold text-brand':'text-sm font-bold text-red-700'} role="status">
             {priceValid&&resolvedPrice!==null?'السعر النهائي: '+formatFullIqd(resolvedPrice):'أدخل سعراً صالحاً قبل الحفظ.'}
           </p>
