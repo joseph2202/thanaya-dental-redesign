@@ -79,6 +79,8 @@ export const couponsAPI = {
 // Users API
 export const usersAPI = {
   getAll: () => apiRequest('/users'),
+  updateRole: (id: string, role: string) => apiRequest(`/users/${encodeURIComponent(id)}/role`, { method: 'PATCH', body: JSON.stringify({ role }) }),
+  roleHistory: () => apiRequest('/users/role-history'),
 };
 
 // Upload API
