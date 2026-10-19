@@ -4,13 +4,35 @@ import Footer from '@/components/layout/Footer';
 import ProductMedia from '@/components/ui/ProductMedia';
 import { useCart } from '@/context/CartContext';
 import Link from 'next/link';
-import {useState} from 'react';
+import {useEffect,useState} from 'react';
+import {productsAPI,CartQuote} from '@/lib/api';
 import {Trash2,Minus,Plus,ArrowUpLeft,ShieldCheck} from 'lucide-react';
 
 export default function CartPage() {
   const { items, removeFromCart, updateQuantity, totalPrice, clearCart } = useCart();
   const [message,setMessage]=useState('');
-  const adjust=(id:string,quantity:number)=>{const result=updateQuantity(id,quantity);setMessage(result.success?'':result.message)};
+  const [quote,setQuote]=useState<CartQuote|null>(null);
+  const [quoteError,setQuoteError]=useState('');
+  const [quoteLoading,setQuoteLoading]=useState(false);
+  const signature=JSON.stringify(items.map(item=>[item.product.id,item.quantity]));
+  useEffect(()=>{
+    if(items.length===0){setQuote(null);return;}
+    let cancelled=false;
+    setQuote(null);setQuoteError('');setQuoteLoading(true);
+    productsAPI.quote(items.map(item=>({productId:item.product.id,quantity:item.quantity})))
+      .then(data=>{if(!cancelled)setQuote(data)})
+      .catch(e=>{if(!cancelled)setQuoteError(e instanceof Error?e.message:'تعذر التحقق من السلة')})
+      .finally(()=>{if(!cancelled)setQuoteLoading(false)});
+    return ()=>{cancelled=true};
+  // Quote recalculates whenever the basket identity or quantity changes.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[signature]);
+  const adjust=(id:string,quantity:number)=>{
+    const line=quote?.items.find(item=>item.productId===id);
+    if(!line?.product){setMessage('المنتج لم يعد متوفراً. احذفه من السلة');return;}
+    if(quantity>line.product.stock){setMessage('المتاح حالياً '+line.product.stock+' قطعة فقط');return;}
+    const result=updateQuantity(id,quantity);setMessage(result.success?'':result.message)
+  };
 
   if (items.length === 0) {
     return (
@@ -73,15 +95,18 @@ export default function CartPage() {
         </div>
 
         {message&&<p role="alert" className="mb-4 rounded-xl bg-red-50 p-3 font-bold text-red-700">{message}</p>}
+        {quoteLoading&&<p role="status" className="mb-4 rounded-xl bg-sky-50 p-3 text-sm text-sky-900">جاري التأكد من الأسعار والكميات الحالية...</p>}
+        {quoteError&&<p role="alert" className="mb-4 rounded-xl bg-red-50 p-3 font-bold text-red-700">{quoteError}</p>}
+        {quote?.items.some(line=>!line.available)&&<div role="alert" className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900"><strong>يرجى مراجعة السلة:</strong>{quote.items.filter(line=>!line.available).map(line=><p className="mt-1" key={line.productId}>{line.product?.name||'منتج محذوف'}: {line.product?`المتاح ${line.product.stock} قطعة، والمطلوب ${line.quantity}`:'لم يعد متوفراً'}</p>)}</div>}
+        {quote&&quote.items.some(line=>{const item=items.find(i=>i.product.id===line.productId);return line.product&&item&&line.product.price!==item.product.price})&&<p role="status" className="mb-4 rounded-xl border border-sky-200 bg-sky-50 p-3 text-sm font-bold text-sky-900">تغيّر سعر أحد المنتجات. المجموع المعتمد حالياً موضح بالأسفل؛ راجع السعر قبل المتابعة.</p>}
         <div className="site-surface !bg-[#e9f8fd] p-5 sm:p-6">
           <div className="flex justify-between items-center mb-4">
             <span className="font-bold text-lg text-ink">المجموع:</span>
             <span className="text-3xl font-black text-brand">{totalPrice.toLocaleString()} د.ع</span>
           </div>
+          <p className="mb-4 text-xs text-neutral-600">المجموع قبل الكوبون وأجور التوصيل. يتم احتساب المبلغ النهائي والتحقق من المخزون مجدداً عند تأكيد الطلب.</p>
           <div className="flex flex-col sm:flex-row gap-3">
-            <Link href="/checkout" className="site-btn site-btn-primary flex-1">
-              إتمام الطلب
-            </Link>
+            {quote?.canCheckout&&!quoteLoading?<Link href="/checkout" className="site-btn site-btn-primary flex-1">إتمام الطلب</Link>:<span aria-disabled="true" className="site-btn site-btn-primary flex-1 opacity-50 cursor-not-allowed">راجع السلة قبل إتمام الطلب</span>}
             <button onClick={() => {if(window.confirm("تريد تفرّغ السلة بالكامل؟"))clearCart()}} className="site-btn site-btn-outline">
               إفراغ السلة
             </button>

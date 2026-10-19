@@ -34,6 +34,7 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
+  const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem('thanaya-cart');
@@ -44,34 +45,28 @@ export function CartProvider({ children }: { children: ReactNode }) {
         console.error('Failed to parse cart', e);
       }
     }
+    setHydrated(true);
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('thanaya-cart', JSON.stringify(items));
-  }, [items]);
+    if (hydrated) localStorage.setItem('thanaya-cart', JSON.stringify(items));
+  }, [items, hydrated]);
 
   const addToCart = (product: Product, quantity: number = 1): { success: boolean; message: string } => {
-    // التحقق من المخزون باستخدام بيانات المنتج الممررة مباشرة
-    if (product.stock <= 0) {
-      return { success: false, message: 'نفد المخزون' };
+    if (!Number.isSafeInteger(quantity) || quantity < 1 || quantity > 100) {
+      return { success: false, message: 'الكمية يجب أن تكون بين 1 و100' };
     }
-
-    setItems((prev) => {
-      const existing = prev.find((item) => item.product.id === product.id);
-      if (existing) {
-        const newQuantity = existing.quantity + quantity;
-        if (newQuantity > product.stock) {
-          return prev;
-        }
-        return prev.map((item) =>
-          item.product.id === product.id
-            ? { ...item, quantity: newQuantity }
-            : item
-        );
-      }
+    const current = items.find(item => item.product.id === product.id)?.quantity || 0;
+    if (product.stock <= 0) return { success: false, message: 'نفد المخزون' };
+    if (current + quantity > product.stock || current + quantity > 100) {
+      return { success: false, message: 'الكمية المطلوبة أكثر من المتوفر' };
+    }
+    setItems(prev => {
+      const existing = prev.find(item => item.product.id === product.id);
+      if (existing) return prev.map(item => item.product.id === product.id
+        ? { product, quantity: item.quantity + quantity } : item);
       return [...prev, { product, quantity }];
     });
-
     return { success: true, message: 'تمت الإضافة للسلة' };
   };
 

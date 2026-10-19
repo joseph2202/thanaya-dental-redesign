@@ -39,6 +39,7 @@ export const productsAPI = {
   },
   
   getById: (id: string) => apiRequest(`/products/${id}`),
+  quote: (items: {productId:string;quantity:number}[]):Promise<CartQuote> => apiRequest('/products/quote',{method:'POST',body:JSON.stringify({items})}),
   
   create: (data: any) => apiRequest('/products', { method: 'POST', body: JSON.stringify(data) }),
   
@@ -140,3 +141,5 @@ export type SalesReport={
 export const reportsAPI={
  overview:(range:'7'|'30'|'90'|'all'):Promise<SalesReport>=>apiRequest('/reports/overview?range='+range)
 };
+
+export type CartQuote={items:{productId:string;quantity:number;product:{id:string;name:string;price:number;stock:number}|null;available:boolean}[];subtotal:number;canCheckout:boolean};

@@ -3,8 +3,7 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
-import AddToCartButton from '@/components/product/AddToCartButton';
-import BuyNowButton from '@/components/product/BuyNowButton';
+import ProductPurchaseActions from '@/components/product/ProductPurchaseActions';
 import ProductMedia from '@/components/ui/ProductMedia';
 import { ArrowLeft, CircleCheck } from 'lucide-react';
 
@@ -32,7 +31,7 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
         <h1 className="site-page-title leading-[1.35] mt-4">{product.name}</h1>
         {product.description && product.description.trim().toLowerCase() !== 'nothing' && <p className="site-muted mt-5 text-sm sm:text-base">{product.description}</p>}
         <div className="border-y border-[#d4eaf2] py-6 my-7 flex items-end justify-between gap-3"><div><span className="text-xs text-[#8495a7] block mb-2">السعر</span><strong className="text-3xl sm:text-4xl font-extrabold">{product.price.toLocaleString()} <small className="font-normal text-base">د.ع</small></strong>{approximateUsd && <span className="block text-xs text-[#8392a5] mt-2">≈ {approximateUsd} دولار (للعرض فقط)</span>}</div><span className={`inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-full ${product.stock > 0 ? 'bg-[#e9f6f1] text-success' : 'bg-red-50 text-red-700'}`}><CircleCheck size={15} /> {product.stock > 0 ? `متوفر (${product.stock} قطعة)` : 'نفد المخزون'}</span></div>
-        <div className="flex gap-3 flex-wrap"><AddToCartButton product={product} /><BuyNowButton product={product} /></div>
+        <ProductPurchaseActions product={product} />
         <p className="text-xs text-[#8495a7] mt-6">تُعرض تفاصيل المنتج والسعر والمخزون من قائمة المتجر الحالية.</p>
       </div>
     </div>

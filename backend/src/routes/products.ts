@@ -84,6 +84,48 @@ router.get('/', async (req, res) => {
   } catch (error) { respondError(res, error); }
 });
 
+// Public, read-only cart quote. Never trusts saved browser prices or stock.
+router.post('/quote', async (req, res) => {
+  try {
+    const items: unknown = req.body?.items;
+    if (!Array.isArray(items) || items.length < 1 || items.length > 50) {
+      throw new InputError(400, 'السلة يجب أن تحتوي من 1 إلى 50 منتجاً');
+    }
+    const seen = new Set<string>();
+    const lines: { productId: string; quantity: number }[] = [];
+    for (const entry of items) {
+      if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
+        throw new InputError(400, 'بيانات السلة غير صالحة');
+      }
+      const { productId, quantity } = entry as Record<string, unknown>;
+      if (typeof productId !== 'string' || !productId.trim() || productId.length > 120 || seen.has(productId) ||
+          !Number.isSafeInteger(quantity) || (quantity as number) < 1 || (quantity as number) > 100) {
+        throw new InputError(400, 'معرّف أو كمية المنتج غير صالحة أو مكررة');
+      }
+      seen.add(productId);
+      lines.push({ productId, quantity: quantity as number });
+    }
+    const products = await prisma.product.findMany({
+      where: { id: { in: lines.map(line => line.productId) } },
+      select: { id: true, name: true, price: true, stock: true }
+    });
+    const byId = new Map(products.map(product => [product.id, product]));
+    let subtotal = 0;
+    const quoted = lines.map(line => {
+      const product = byId.get(line.productId) ?? null;
+      if (product) {
+        subtotal += product.price * line.quantity;
+        if (!Number.isSafeInteger(subtotal)) throw new InputError(400, 'مجموع السلة كبير جداً');
+      }
+      return {
+        productId: line.productId, quantity: line.quantity,
+        product, available: Boolean(product && product.stock >= line.quantity)
+      };
+    });
+    res.json({ items: quoted, subtotal, canCheckout: quoted.every(line => line.available) });
+  } catch (error) { respondError(res, error); }
+});
+
 router.get('/:id', async (req, res) => {
   try {
     const product = await prisma.product.findUnique({ where: { id: String(req.params.id) } });
