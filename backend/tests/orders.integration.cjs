@@ -250,7 +250,39 @@ async function main() {
       assert.ok(stock.body.lowStock.some(p=>p.id===low.id),'live low stock warning');
       assert.equal(own.body.lowStock.length,0,'customer should not see stock alerts');
     });
-    console.log('\\nALL 9 CHECKS PASSED. Database was isolated and will be deleted.');
+    await check('report metrics exclude cancelled and returned orders and require admin',async()=>{
+      const customerForbidden=await request(base,'/api/reports/overview?range=30','GET',undefined,aliceToken);
+      assert.equal(customerForbidden.status,403);
+      const anonymous=await request(base,'/api/reports/overview?range=30','GET');
+      assert.equal(anonymous.status,401);
+      const badRange=await request(base,'/api/reports/overview?range=0','GET',undefined,adminToken);
+      assert.equal(badRange.status,400);
+      const item=await product('Reporting item',7,13000);
+      const delivered=await request(base,'/api/orders','POST',{requestId:randomUUID(),customer,items:[{productId:item.id,quantity:2}]},aliceToken);
+      assert.equal(delivered.status,201);
+      for (const status of ['confirmed','shipped','delivered']){
+        const response=await request(base,'/api/orders/'+delivered.body.id+'/status','PATCH',{status},adminToken);
+        assert.equal(response.status,200,JSON.stringify(response));
+      }
+      const before=await request(base,'/api/reports/overview?range=all','GET',undefined,adminToken);
+      assert.equal(before.status,200,JSON.stringify(before));
+      assert.ok(before.body.stats.deliveredValue>=26000);
+      assert.ok(before.body.topProducts.some(p=>p.productId===item.id&&p.units===2));
+      assert.ok(before.body.stats.totalProducts>=1);
+      assert.equal(before.body.trend.length,30);
+      const returned=await request(base,'/api/orders/'+delivered.body.id+'/status','PATCH',{status:'returned'},adminToken);
+      assert.equal(returned.status,200);
+      const after=await request(base,'/api/reports/overview?range=all','GET',undefined,adminToken);
+      assert.equal(after.status,200);
+      assert.equal(after.body.stats.deliveredValue,before.body.stats.deliveredValue-26000);
+      assert.equal(after.body.stats.deliveredOrders,before.body.stats.deliveredOrders-1);
+      assert.ok(!after.body.topProducts.some(p=>p.productId===item.id));
+      assert.ok(after.body.stats.returnedOrders>=1);
+      const week=await request(base,'/api/reports/overview?range=7','GET',undefined,adminToken);
+      assert.equal(week.status,200);
+      assert.equal(week.body.trend.length,7);
+    });
+    console.log('\\nALL 10 CHECKS PASSED. Database was isolated and will be deleted.');
   } catch (error) {
     console.error('\nORDER INTEGRATION FAILED. Server output:\n' + logs);
     throw error;

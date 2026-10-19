@@ -11,6 +11,7 @@ import userRoutes from './routes/users';
 import settingsRoutes from './routes/settings';
 import deliveryRoutes from './routes/delivery';
 import notificationsRoutes from './routes/notifications';
+import reportsRoutes from './routes/reports';
 
 // استيراد مكتبات رفع الصور
 import multer from 'multer';
@@ -118,6 +119,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/delivery', deliveryRoutes);
 app.use('/api/notifications', notificationsRoutes);
+app.use('/api/reports', reportsRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Thanaya API is running' });

@@ -128,3 +128,15 @@ export const notificationsAPI={
   get:():Promise<NotificationInbox>=>apiRequest('/notifications'),
   read:(id:string)=>apiRequest('/notifications/'+encodeURIComponent(id)+'/read',{method:'PATCH'})
 };
+
+export type SalesReport={
+ range:string;generatedAt:string;
+ stats:{orders:number;deliveredOrders:number;deliveredValue:number;discountsOnDelivered:number;deliveryFeesOnDelivered:number;averageDeliveredOrderValue:number;awaitingOrders:number;cancelledOrders:number;returnedOrders:number;totalProducts:number;lowStockProducts:number;outOfStockProducts:number};
+ statusCounts:Record<string,number>;
+ topProducts:{productId:string;name:string;units:number}[];
+ lowStock:{id:string;name:string;stock:number}[];
+ trendDays:number;trend:{date:string;orders:number;value:number}[];
+};
+export const reportsAPI={
+ overview:(range:'7'|'30'|'90'|'all'):Promise<SalesReport>=>apiRequest('/reports/overview?range='+range)
+};
