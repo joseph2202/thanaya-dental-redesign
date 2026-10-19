@@ -188,7 +188,8 @@ export default function AdminProducts() {
 }
 
 function ProductForm({ product, existingCategories, onSave, onCancel, loading }: { product: any; existingCategories: string[]; onSave: (p: any) => Promise<boolean>; onCancel: () => void; loading: boolean }) {
-  const [form, setForm] = useState(product || { name: '', description: '', price: 0, usdPrice: 0, category: '', brand: '', icon: 'Package', stock: 0, badge: '', image: '' });
+  const [form, setForm] = useState(product || { name: '', description: '', price: 0, usdPrice: 0, category: '', brand: '', icon: 'Package', stock: 0, badge: '', image: '', gallery: [], specs: [] });
+  const [extraUploading,setExtraUploading]=useState(false);
   const [success, setSuccess] = useState('');
   const [saveError, setSaveError] = useState('');
   const [imagePreview, setImagePreview] = useState(product?.image || '');
@@ -229,12 +230,22 @@ function ProductForm({ product, existingCategories, onSave, onCancel, loading }:
     }
   };
 
+  const extraImages:string[]=Array.isArray(form.gallery)?form.gallery:[];
+  const specifications:{label:string;value:string}[]=Array.isArray(form.specs)?form.specs:[];
+  const uploadExtra=async(e:React.ChangeEvent<HTMLInputElement>)=>{
+    const files=Array.from(e.target.files||[]);
+    if(files.length+extraImages.length>5){setSaveError('الحد الأقصى 5 صور إضافية');return;}
+    setExtraUploading(true);setSaveError('');
+    try{const uploaded:string[]=[];for(const file of files){const result=await uploadAPI.uploadImage(file);uploaded.push(result.url)}setForm((old:any)=>({...old,gallery:[...(Array.isArray(old.gallery)?old.gallery:[]),...uploaded]}))}
+    catch(err){setSaveError(err instanceof Error?err.message:'تعذر رفع إحدى الصور')}
+    finally{setExtraUploading(false);e.target.value=''}
+  };
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaveError('');
     if (!priceValid || resolvedPrice === null) {setSaveError('راجع السعر وسعر الصرف قبل الحفظ');return;}
     const usdPrice = exchangeRate && exchangeRate>0 ? Math.round(resolvedPrice / exchangeRate) : form.usdPrice;
-    if (!await onSave({...form,price:resolvedPrice,usdPrice})) setSaveError('ما انحفظ المنتج. تأكد من اتصال خادم المتجر وحاول مرة ثانية.');
+    if (!await onSave({...form,gallery:extraImages,specs:specifications.filter(p=>p.label.trim()||p.value.trim()),price:resolvedPrice,usdPrice})) setSaveError('ما انحفظ المنتج. تأكد من اتصال خادم المتجر وحاول مرة ثانية.');
   };
 
   return (
@@ -279,6 +290,8 @@ function ProductForm({ product, existingCategories, onSave, onCancel, loading }:
           </div>
         </div>
 
+        <div className="md:col-span-2 rounded-xl border border-brand/20 p-4"><h4 className="mb-2 font-black">صور إضافية للمنتج (حتى 5)</h4><div className="mb-3 flex flex-wrap gap-3">{extraImages.map((src:string,index:number)=><div className="relative" key={src}><img src={src} alt={'صورة إضافية '+(index+1)} className="h-20 w-20 rounded-lg border object-contain"/><button type="button" aria-label="حذف الصورة الإضافية" onClick={()=>setForm((old:any)=>({...old,gallery:old.gallery.filter((url:string)=>url!==src)}))} className="absolute -left-2 -top-2 rounded-full bg-red-600 px-2 text-white">×</button></div>)}</div><input type="file" accept="image/jpeg,image/png,image/webp" multiple disabled={extraUploading||extraImages.length>=5} onChange={uploadExtra} className="max-w-full text-sm"/><p className="mt-2 text-xs text-neutral-500">ارفع صور المنتج الحقيقية فقط. صورة الغلاف الأساسية تبقى كما هي.</p>{extraUploading&&<p role="status">جاري رفع الصور...</p>}</div>
+        <div className="md:col-span-2 rounded-xl border border-brand/20 p-4"><div className="mb-3 flex flex-wrap items-center justify-between gap-2"><h4 className="font-black">المواصفات الفنية (حتى 12)</h4><button type="button" disabled={specifications.length>=12} className="site-btn site-btn-outline site-btn-sm" onClick={()=>setForm((old:any)=>({...old,specs:[...(old.specs||[]),{label:'',value:''}]}))}>+ إضافة مواصفة</button></div>{specifications.map((spec,index)=><div key={index} className="mb-3 grid gap-2 sm:grid-cols-[1fr_2fr_auto]"><input aria-label={'اسم المواصفة '+(index+1)} maxLength={80} value={spec.label} placeholder="مثال: الشركة المصنعة" onChange={e=>setForm((old:any)=>({...old,specs:old.specs.map((p:any,i:number)=>i===index?{...p,label:e.target.value}:p)}))} className="site-input min-w-0 px-3"/><input aria-label={'قيمة المواصفة '+(index+1)} maxLength={300} value={spec.value} placeholder="مثال: DentaPro" onChange={e=>setForm((old:any)=>({...old,specs:old.specs.map((p:any,i:number)=>i===index?{...p,value:e.target.value}:p)}))} className="site-input min-w-0 px-3"/><button type="button" onClick={()=>setForm((old:any)=>({...old,specs:old.specs.filter((_:any,i:number)=>i!==index)}))} className="rounded-lg border px-3 text-red-700">حذف</button></div>)}</div>
         {/* اسم المنتج */}
         <div>
           <label className="block font-bold mb-2 text-sm text-ink">اسم المنتج *</label>
@@ -404,7 +417,7 @@ function ProductForm({ product, existingCategories, onSave, onCancel, loading }:
 
         {/* الأزرار */}
         <div className="md:col-span-2 flex gap-3 pt-2">
-          <button type="submit" disabled={loading || uploading} className="bg-brand text-white rounded-full px-8 py-3 font-bold disabled:opacity-50 hover:bg-brand-dark transition">
+          <button type="submit" disabled={loading || uploading || extraUploading} className="bg-brand text-white rounded-full px-8 py-3 font-bold disabled:opacity-50 hover:bg-brand-dark transition">
             {loading ? 'جاري الحفظ...' : (product ? 'تحديث المنتج' : 'إضافة المنتج')}
           </button>
           <button type="button" onClick={onCancel} className="bg-gray-200 text-gray-700 rounded-full px-8 py-3 font-bold hover:bg-gray-300 transition">
