@@ -5,10 +5,11 @@ import ProductMedia from '@/components/ui/ProductMedia';
 import Link from 'next/link';
 import { ArrowUpLeft } from 'lucide-react';
 import CatalogFilters from '@/components/catalog/CatalogFilters';
+import {saleUnitLabel} from '@/lib/saleUnits';
 
 export const instant = false;
 
-type CatalogProduct = { id: string; name: string; price: number; brand: string; category: string; icon?: string; image?: string | null; badge?: string };
+type CatalogProduct = { id: string; name: string; price: number; brand: string; category: string; icon?: string; image?: string | null; badge?: string; saleUnit?: string|null };
 
 type SearchParams = { category?: string; brand?: string; sort?: string; minPrice?: string; maxPrice?: string; search?: string };
 
@@ -42,7 +43,7 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3"><p className="text-sm font-bold text-[#587484]">{products.length} منتج مطابق</p>{Object.values(apiParams).some(Boolean)&&<Link href="/products" className="text-sm font-bold text-brand underline">إزالة الفلاتر</Link>}</div>
         {products.length === 0 ? <div className="site-surface text-center py-20 px-5"><h2 className="site-heading">ماكو منتجات تطابق اختيارك.</h2><p className="site-muted mt-2 mb-6">جرّب قسمًا آخر أو امسح الفلاتر.</p><Link href="/products" className="site-btn site-btn-primary">كل المنتجات</Link></div> :
           <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-5">
-            {products.map(p => <Link key={p.id} href={`/product/${p.id}`} className="site-card group block"><ProductMedia name={p.name} image={p.image} icon={p.icon} className="h-52 m-3 rounded-xl" size={60} /><div className="px-5 pb-5"><span className="text-[11px] font-bold text-brand">{p.category}</span><h2 className="font-bold text-sm leading-7 mt-1 group-hover:text-brand line-clamp-2">{p.name}</h2><p className="text-xs text-[#8b99a8] mt-1">{p.brand}</p><div className="flex justify-between items-end mt-5"><strong className="text-lg">{p.price.toLocaleString()} <small className="text-xs font-normal">د.ع</small></strong><ArrowUpLeft size={18} className="text-brand" /></div></div></Link>)}
+            {products.map(p => <Link key={p.id} href={`/product/${p.id}`} className="site-card group block"><ProductMedia name={p.name} image={p.image} icon={p.icon} className="h-52 m-3 rounded-xl" size={60} /><div className="px-5 pb-5"><span className="text-[11px] font-bold text-brand">{p.category}</span><h2 className="font-bold text-sm leading-7 mt-1 group-hover:text-brand line-clamp-2">{p.name}</h2><p className="text-xs text-[#8b99a8] mt-1">{p.brand}</p><div className="flex justify-between items-end mt-5"><strong className="text-lg">{p.price.toLocaleString()} <small className="text-xs font-normal">د.ع / {saleUnitLabel(p.saleUnit)}</small></strong><ArrowUpLeft size={18} className="text-brand" /></div></div></Link>)}
           </div>}
       </div>
     </div>

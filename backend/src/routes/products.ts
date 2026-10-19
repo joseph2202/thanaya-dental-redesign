@@ -7,8 +7,8 @@ const prisma = new PrismaClient();
 class InputError extends Error {
   constructor(public status: number, message: string) { super(message); }
 }
-const fields = ['name','description','price','usdPrice','category','brand','icon','image','gallery','specs','badge'] as const;
-type Editable = { name:string; description:string; price:number; usdPrice:number; category:string; brand:string; icon:string; image:string|null; gallery:string|null; specs:string|null; badge:string|null };
+const fields = ['name','description','price','usdPrice','category','brand','icon','image','gallery','specs','sku','model','size','saleUnit','badge'] as const;
+type Editable = { name:string; description:string; price:number; usdPrice:number; category:string; brand:string; icon:string; image:string|null; gallery:string|null; specs:string|null; sku:string|null; model:string|null; size:string|null; saleUnit:string|null; badge:string|null };
 const textField = (v: unknown, name: string, limit: number, required = true) => {
   if (typeof v !== 'string') throw new InputError(400, name + ' غير صالح');
   const cleaned = v.trim();
@@ -49,6 +49,27 @@ function parseProduct(data: unknown, partial: boolean): Partial<Editable> {
         if(!Array.isArray(val)||val.length>12||val.some(v=>!v||typeof v!=='object'||Array.isArray(v)||Object.keys(v).some(k=>!['label','value'].includes(k))||typeof v.label!=='string'||typeof v.value!=='string'||!v.label.trim()||!v.value.trim()||v.label.length>80||v.value.length>300))throw new InputError(400,'المواصفات غير صالحة');
         result.specs=JSON.stringify(val.map(v=>({label:v.label.trim(),value:v.value.trim()})));break;
       }
+      case 'sku': {
+        if (val === undefined || val === null || val === '') { result.sku = null; break; }
+        const sku = textField(val, 'رمز SKU', 40).toUpperCase();
+        if (!/^[A-Z0-9][A-Z0-9._-]{0,39}$/.test(sku)) throw new InputError(400, 'رمز SKU يقبل حروفاً إنجليزية وأرقاماً و- و_ ونقطة فقط');
+        result.sku = sku;
+        break;
+      }
+      case 'model':
+      case 'size': {
+        if (val === undefined || val === null || val === '') { result[key] = null; break; }
+        result[key] = textField(val, key === 'model' ? 'الموديل' : 'المقاس', 100);
+        break;
+      }
+      case 'saleUnit': {
+        if (val === undefined || val === null || val === '') { result.saleUnit = null; break; }
+        if (typeof val !== 'string' || !['piece','box','set','pack','pair','bottle','tube','carton','bag','roll'].includes(val)) {
+          throw new InputError(400, 'وحدة البيع غير صالحة');
+        }
+        result.saleUnit = val;
+        break;
+      }
       case 'badge':
         if (val === undefined || val === null || val === '') { result.badge = null; break; }
         if (!['new','sale','popular'].includes(String(val))) throw new InputError(400, 'شارة غير صالحة');
@@ -67,6 +88,7 @@ function publicProduct<T extends {gallery:string|null;specs:string|null}>(p:T){r
 function respondError(res: import('express').Response, error: unknown) {
   if (error instanceof InputError) return res.status(error.status).json({ error: error.message });
   if (error instanceof Prisma.PrismaClientKnownRequestError) {
+    if (error.code === 'P2002') return res.status(409).json({ error: 'رمز SKU مستخدم لمنتج آخر، اختَر رمزاً مختلفاً' });
     if (error.code === 'P2025') return res.status(404).json({ error: 'المنتج غير موجود' });
     if (['P2003', 'P2014'].includes(error.code)) return res.status(409).json({ error: 'المنتج مرتبط بسجل طلبات أو مخزون، ولا يمكن حذفه' });
     if (['P2034', 'P1008','P2028'].includes(error.code)) return res.status(409).json({ error: 'تغيّر المخزون بالتزامن، حدّث الصفحة ثم حاول ثانية' });
@@ -87,7 +109,7 @@ router.get('/', async (req, res) => {
     if (Object.keys(price).length) where.price = price;
     if (typeof search === 'string' && search.trim()) {
       const term = textField(search, 'البحث', 100);
-      where.OR = [{name:{contains:term}},{description:{contains:term}},{brand:{contains:term}}];
+      where.OR = [{name:{contains:term}},{description:{contains:term}},{brand:{contains:term}},{sku:{contains:term}},{model:{contains:term}}];
     }
     const orders: Record<string, Prisma.ProductOrderByWithRelationInput> = {
       'price-asc': {price:'asc'}, 'price-desc':{price:'desc'}, name:{name:'asc'}
@@ -119,7 +141,7 @@ router.post('/quote', async (req, res) => {
     }
     const products = await prisma.product.findMany({
       where: { id: { in: lines.map(line => line.productId) } },
-      select: { id: true, name: true, price: true, stock: true }
+      select: { id: true, name: true, price: true, stock: true, saleUnit: true }
     });
     const byId = new Map(products.map(product => [product.id, product]));
     let subtotal = 0;
@@ -182,7 +204,20 @@ router.post('/', requireAdmin, async (req, res) => {
 router.put('/:id', requireAdmin, async (req, res) => {
   try {
     const data = parseProduct(req.body, true);
-    const product = await prisma.product.update({where:{id:String(req.params.id)},data});
+    const product = await prisma.$transaction(async tx => {
+      if (Object.prototype.hasOwnProperty.call(data, 'saleUnit')) {
+        const before = await tx.product.findUnique({
+          where: { id: String(req.params.id) },
+          select: { saleUnit: true, stock: true, _count: { select: { orderItems: true, inventoryMovements: true } } }
+        });
+        if (!before) throw new InputError(404, 'المنتج غير موجود');
+        const changedUnit = (before.saleUnit ?? 'piece') !== (data.saleUnit ?? 'piece');
+        if (changedUnit && (before.stock > 0 || before._count.orderItems > 0 || before._count.inventoryMovements > 0)) {
+          throw new InputError(409, 'لا يمكن تغيير وحدة البيع لمنتج له مخزون أو سجل طلبات/حركات؛ أنشئ منتجاً جديداً بوحدة البيع المطلوبة');
+        }
+      }
+      return tx.product.update({where:{id:String(req.params.id)},data});
+    });
     res.json(publicProduct(product));
   } catch (error) { respondError(res,error); }
 });
