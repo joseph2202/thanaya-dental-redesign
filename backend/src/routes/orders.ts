@@ -5,6 +5,7 @@ import { createHash } from 'node:crypto';
 import { getJwtSecret } from '../config/auth';
 import { requireAdmin, requireSales } from '../middleware/requireAdmin';
 import { isProvince } from './delivery';
+import {discountFor,normalizeCode} from './coupons';
 
 const router = Router();
 const prisma = new PrismaClient();
@@ -21,7 +22,8 @@ function requestOrderId(userId: string, requestId: string): string {
   return 'ord_' + createHash('sha256').update(userId + ':' + requestId).digest('hex').slice(0,32);
 }
 
-function matchesCheckout(order: StoredOrder, userId: string, lines: BasketLine[], customer: Customer): boolean {
+function matchesCheckout(order: StoredOrder, userId: string, lines: BasketLine[], customer: Customer, couponCode:string|null): boolean {
+  if((order.couponCode??null)!==couponCode)return false;
   if (order.userId !== userId || order.customerName !== customer.name ||
       order.customerPhone !== customer.phone || order.customerAddress !== customer.address ||
       order.customerCity !== customer.city || order.items.length !== lines.length) return false;
@@ -145,7 +147,7 @@ router.get('/:id', async (req, res) => {
 // Server-owned prices and conditional stock decrements in ONE database transaction.
 // Client-supplied total, item prices, and userId are intentionally ignored.
 router.post('/', async (req, res) => {
-  let submission: { id: string; userId: string; lines: BasketLine[]; customer: Customer } | null = null;
+  let submission: { id: string; userId: string; lines: BasketLine[]; customer: Customer;couponCode:string|null } | null = null;
   try {
     const principal = await principalFromRequest(req);
     if (!principal) return res.status(401).json({ error: 'سجل الدخول حتى تؤكد طلبك' });
@@ -157,12 +159,14 @@ router.post('/', async (req, res) => {
       throw new OrderError(400, 'معرّف عملية الشراء مفقود أو غير صالح، حدّث الصفحة وحاول مجدداً');
     }
     const id = requestOrderId(principal.id, requestId);
-    submission = { id, userId: principal.id, lines, customer };
+    const couponCode=req.body?.couponCode==null||req.body.couponCode===''?null:typeof req.body.couponCode==='string'?normalizeCode(req.body.couponCode):null;
+    if(req.body?.couponCode && (!couponCode||!/^[A-Z0-9_-]{3,32}$/.test(couponCode)))throw new OrderError(400,'رمز الخصم غير صالح');
+    submission = { id, userId: principal.id, lines, customer, couponCode };
 
     // Replays return the original order, not a second purchase.
     const previous = await prisma.order.findUnique({ where: { id }, include: { items: true } });
     if (previous) {
-      if (!matchesCheckout(previous, principal.id, lines, customer)) {
+      if (!matchesCheckout(previous, principal.id, lines, customer,couponCode)) {
         throw new OrderError(409, 'تم استخدام معرّف الشراء لطلب مختلف');
       }
       return res.status(200).json(previous);
@@ -210,6 +214,19 @@ router.post('/', async (req, res) => {
       }
 
       const subtotal=total;
+      let discountAmount=0;
+      if(couponCode){
+        const coupon=await tx.coupon.findUnique({where:{code:couponCode}});
+        const discount=coupon?discountFor(coupon,subtotal):null;
+        if(discount===null||!coupon)throw new OrderError(409,'الكوبون غير صالح أو انتهى أو استُنفدت استخداماته');
+        const changed=await tx.coupon.updateMany({
+          where:{id:coupon.id,active:true,...(coupon.maxUses!==null?{usedCount:{lt:coupon.maxUses}}:{})},
+          data:{usedCount:{increment:1}}
+        });
+        if(changed.count!==1)throw new OrderError(409,'تم استنفاد الكوبون، يرجى المحاولة بدونه');
+        discountAmount=discount;
+      }
+      total-=discountAmount;
       if(shippingFee!==null){
         total+=shippingFee;
         if(!Number.isSafeInteger(total))throw new OrderError(400,'إجمالي الطلب كبير جداً');
@@ -223,7 +240,8 @@ router.post('/', async (req, res) => {
           customerAddress: customer.address,
           customerCity: customer.city,
           total,
-          ...(shippingFee!==null ? {subtotal,shippingFee} : {}),
+          ...(shippingFee!==null ? {subtotal,shippingFee} : {subtotal}),
+          ...(couponCode?{couponCode,discountAmount}:{}),
           items: {
             create: lines.map(item => ({
               productId: item.productId,
@@ -246,7 +264,7 @@ router.post('/', async (req, res) => {
           where: { id: submission.id }, include: { items: true }
         });
         if (previous) {
-          if (matchesCheckout(previous, submission.userId, submission.lines, submission.customer)) {
+          if (matchesCheckout(previous, submission.userId, submission.lines, submission.customer,submission.couponCode)) {
             return res.status(200).json(previous);
           }
           return res.status(409).json({ error: 'تم استخدام معرّف الشراء لطلب مختلف' });

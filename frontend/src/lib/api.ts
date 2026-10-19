@@ -73,6 +73,7 @@ export const couponsAPI = {
   getAll: () => apiRequest('/coupons'),
   create: (data: any) => apiRequest('/coupons', { method: 'POST', body: JSON.stringify(data) }),
   toggle: (id: string) => apiRequest(`/coupons/${id}/toggle`, { method: 'PATCH' }),
+  preview: (code: string, items: {productId:string;quantity:number}[]) => apiRequest('/coupons/preview', {method:'POST',body:JSON.stringify({code,items})}),
   delete: (id: string) => apiRequest(`/coupons/${id}`, { method: 'DELETE' }),
 };
 

@@ -7,7 +7,7 @@ import Link from 'next/link';
 import { ordersAPI } from '@/lib/api';
 
 type Order = {
-  id: string; total: number; status: string; createdAt: string;
+  id: string; total: number; subtotal?:number|null; shippingFee?:number|null; discountAmount?:number|null;couponCode?:string|null; status: string; createdAt: string;
   customerName: string; customerPhone: string; customerAddress: string; customerCity: string;
   items: { id: string; quantity: number; price: number; product: { name: string } }[];
 };
@@ -66,10 +66,13 @@ function ConfirmationContent() {
                     ))}
                   </div>
                 </section>
-                <div className="flex justify-between rounded-xl bg-[#edf7fc] p-4 text-xl font-black text-ink">
-                  <span>مجموع المنتجات</span><span>{order.total.toLocaleString('ar-IQ')} د.ع</span>
+                <div className="rounded-xl bg-[#edf7fc] p-4 space-y-2">
+                  <div className="flex justify-between text-sm"><span>مجموع المنتجات</span><strong>{(order.subtotal??order.items.reduce((a,i)=>a+i.price*i.quantity,0)).toLocaleString('ar-IQ')} د.ع</strong></div>
+                  {order.discountAmount!=null&&<div className="flex justify-between text-sm text-green-700"><span>كوبون {order.couponCode}</span><strong>-{order.discountAmount.toLocaleString('ar-IQ')} د.ع</strong></div>}
+                  <div className="flex justify-between text-sm"><span>التوصيل</span><strong>{order.shippingFee===null||order.shippingFee===undefined?'يحدد لاحقاً':order.shippingFee.toLocaleString('ar-IQ')+' د.ع'}</strong></div>
+                  <div className="flex justify-between border-t border-brand/20 pt-3 text-xl font-black"><span>الإجمالي</span><span>{order.total.toLocaleString('ar-IQ')} د.ع</span></div>
                 </div>
-                <p className="text-xs text-neutral-500">الدفع عند الاستلام. أجور التوصيل يتم تحديدها لاحقاً.</p>
+                <p className="text-xs text-neutral-500">طريقة الدفع: عند الاستلام.</p>
                 <div className="flex flex-wrap gap-3">
                   <Link href="/account" className="site-btn site-btn-primary flex-1">عرض طلباتي</Link>
                   <Link href="/products" className="site-btn site-btn-outline flex-1">متابعة التسوق</Link>

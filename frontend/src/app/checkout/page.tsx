@@ -6,7 +6,7 @@ import Footer from '@/components/layout/Footer';
 import ProductMedia from '@/components/ui/ProductMedia';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
-import { ordersAPI, deliveryAPI, DeliveryConfig } from '@/lib/api';
+import { ordersAPI, couponsAPI, deliveryAPI, DeliveryConfig } from '@/lib/api';
 import Link from 'next/link';
 
 const cities = [
@@ -34,6 +34,21 @@ export default function CheckoutPage() {
   const fee=delivery?.enabled?provinceRate?.fee??0:0;
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
+  const [couponInput,setCouponInput]=useState('');
+  const [coupon,setCoupon]=useState<{code:string;subtotal:number;discount:number;totalAfterDiscount:number}|null>(null);
+  const [couponBusy,setCouponBusy]=useState(false);
+  const [couponError,setCouponError]=useState('');
+  async function verifyCoupon(e:React.FormEvent){
+    e.preventDefault();setCouponError('');setCouponBusy(true);
+    try{
+      const q=await couponsAPI.preview(couponInput,items.map(i=>({productId:i.product.id,quantity:i.quantity})));
+      setCoupon(q);
+    }catch(err){setCoupon(null);setCouponError(err instanceof Error?err.message:'تعذر التحقق من الكوبون')}
+    finally{setCouponBusy(false)}
+  }
+  // A changed cart invalidates the old coupon quote.
+  const basketSignature=JSON.stringify(items.map(i=>[i.product.id,i.quantity]));
+  useEffect(()=>{setCoupon(null)},[basketSignature]);
 
   // حماية الصفحة - redirect للـ login إذا ما كان مسجل
   useEffect(() => {
@@ -83,7 +98,7 @@ export default function CheckoutPage() {
     try {
       const lines = items.map((item) => ({ productId: item.product.id, quantity: item.quantity }));
       // Reuse one identifier after network failures, but not for a changed basket/address.
-      const fingerprint = JSON.stringify({ lines: [...lines].sort((a, b) => a.productId.localeCompare(b.productId)), customer: form });
+      const fingerprint = JSON.stringify({ lines: [...lines].sort((a, b) => a.productId.localeCompare(b.productId)), customer: form, couponCode:coupon?.code??null });
       const saved = sessionStorage.getItem('thanaya-checkout-attempt');
       let attempt: { fingerprint: string; requestId: string } | null = null;
       try { attempt = saved ? JSON.parse(saved) : null; } catch { /* replace corrupt data */ }
@@ -91,7 +106,7 @@ export default function CheckoutPage() {
         attempt = { fingerprint, requestId: crypto.randomUUID() };
         sessionStorage.setItem('thanaya-checkout-attempt', JSON.stringify(attempt));
       }
-      const order = await ordersAPI.create({ items: lines, customer: form, requestId: attempt.requestId });
+      const order = await ordersAPI.create({ items: lines, customer: form, requestId: attempt.requestId, couponCode:coupon?.code??null });
       sessionStorage.removeItem('thanaya-checkout-attempt');
       clearCart();
       router.push('/order/confirmation?id=' + encodeURIComponent(order.id));
@@ -169,6 +184,15 @@ export default function CheckoutPage() {
             {deliveryLoading&&<p className="text-sm text-neutral-600">جاري التأكد من توفر التوصيل...</p>}
             {deliveryError&&<p role="alert" className="text-sm font-bold text-red-700">{deliveryError}</p>}
             {deliveryUnavailable&&<p role="alert" className="text-sm font-bold text-red-700">التوصيل غير متاح حالياً إلى {form.city}. اختر محافظة متاحة.</p>}
+            <div className="rounded-xl border border-brand/20 bg-paper2 p-4">
+              <h3 className="font-black mb-2">رمز خصم (اختياري)</h3>
+              <div className="flex gap-2">
+                <input value={couponInput} onChange={e=>{setCouponInput(e.target.value.toUpperCase());setCoupon(null);setCouponError('')}} placeholder="أدخل رمز الخصم" className="min-w-0 flex-1 rounded-xl border border-brand/30 p-3" maxLength={32} />
+                <button type="button" disabled={couponBusy||!couponInput.trim()} onClick={verifyCoupon} className="site-btn site-btn-outline site-btn-sm">{couponBusy?'جاري...':'تطبيق'}</button>
+              </div>
+              {couponError&&<p role="alert" className="mt-2 text-sm font-bold text-red-700">{couponError}</p>}
+              {coupon&&<div className="mt-2 flex justify-between gap-2 text-sm"><span className="font-bold text-green-700">كوبون {coupon.code} · خصم {coupon.discount.toLocaleString()} د.ع</span><button type="button" className="underline" onClick={()=>{setCoupon(null);setCouponInput('')}}>إزالة</button></div>}
+            </div>
             <div className="bg-paper2 border border-[#bbdeea] rounded-xl p-4">
               <h3 className="font-black mb-2 text-ink">طريقة الدفع</h3>
               <div className="flex items-center gap-3">
@@ -215,9 +239,10 @@ export default function CheckoutPage() {
                 <span className="font-bold text-ink">الشحن</span>
                 <span className="font-black text-brand">{deliveryLoading?'جاري التحميل':deliveryError?'غير متاح للتحقق':delivery?.enabled?(deliveryUnavailable?'غير متاح':fee===0?'مجاني':fee.toLocaleString()+' د.ع'):'يحدد لاحقاً'}</span>
               </div>
+              {coupon&&<div className="flex justify-between text-green-700"><span className="font-bold">الخصم ({coupon.code})</span><span className="font-black">-{coupon.discount.toLocaleString()} د.ع</span></div>}
               <div className="flex justify-between text-xl pt-2 border-t border-brand/20">
                 <span className="font-black text-ink">الإجمالي</span>
-                <span className="font-black text-2xl text-brand">{(totalPrice+fee).toLocaleString()} د.ع</span>
+                <span className="font-black text-2xl text-brand">{(totalPrice-(coupon?.discount??0)+fee).toLocaleString()} د.ع</span>
               </div>
             </div>
           </div>
