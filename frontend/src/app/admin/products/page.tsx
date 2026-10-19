@@ -41,13 +41,29 @@ export default function AdminProducts() {
 
   const openInventory = async (product: any) => {
     setStockProduct(product);setLotsData(null);setLotError('');
-    productsAPI.getLots(product.id).then(setLotsData).catch(e=>setLotError(e instanceof Error?e.message:'تعذر تحميل التشغيلات'));
+    productsAPI.getLots(product.id).then(data => {
+      setLotsData(data);
+      setStockProduct((current: any) => current?.id === product.id
+        ? {...current, stock: data.product.stock, lotTracking: data.product.lotTracking}
+        : current);
+    }).catch(e => setLotError(e instanceof Error ? e.message : 'تعذر تحميل التشغيلات'));
     setStockDelta(''); setStockReason(''); setStockError(''); setStockHistory([]);
     try { const data = await productsAPI.getInventory(product.id); setStockHistory(data.movements || []); }
     catch (error) { setStockError(error instanceof Error ? error.message : 'تعذر جلب السجل'); }
   };
 
-  const refreshLots=async(id:string)=>{setLotsData(await productsAPI.getLots(id));await loadProducts();};
+  const refreshLots = async (id: string) => {
+    const data = await productsAPI.getLots(id);
+    setLotsData(data);
+    // Keep the currently open inventory panel in sync with the audited database stock.
+    // Refreshing the table alone leaves stockProduct holding its initial zero-stock snapshot.
+    setStockProduct((current: any) => current?.id === id
+      ? {...current, stock: data.product.stock, lotTracking: data.product.lotTracking}
+      : current);
+    await loadProducts();
+    const inventory = await productsAPI.getInventory(id);
+    setStockHistory(inventory.movements || []);
+  };
   const enableLots=async()=>{
     if(!stockProduct||!confirm('تفعيل تتبع التشغيلات لهذا المنتج؟'))return;
     setLotBusy(true);setLotError('');
