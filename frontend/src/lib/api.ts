@@ -52,6 +52,7 @@ export const productsAPI = {
 // Orders API
 export const ordersAPI = {
   getAll: () => apiRequest('/orders'),
+  manage: (params: {page:number;status:string;search:string}) => apiRequest('/orders/manage?'+new URLSearchParams({page:String(params.page),status:params.status,search:params.search}).toString()),
   getMine: () => apiRequest('/orders/mine'),
   getById: (id: string) => apiRequest(`/orders/${encodeURIComponent(id)}`),
   
