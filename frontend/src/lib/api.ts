@@ -55,6 +55,7 @@ export const ordersAPI = {
   getAll: () => apiRequest('/orders'),
   manage: (params: {page:number;status:string;search:string}) => apiRequest('/orders/manage?'+new URLSearchParams({page:String(params.page),status:params.status,search:params.search}).toString()),
   getMine: () => apiRequest('/orders/mine'),
+  recoverAttempt: (requestId:string):Promise<{id:string;total:number;status:string}> => apiRequest('/orders/attempt/'+encodeURIComponent(requestId)),
   getById: (id: string) => apiRequest(`/orders/${encodeURIComponent(id)}`),
   
   create: (data: any) => apiRequest('/orders', { method: 'POST', body: JSON.stringify(data) }),
