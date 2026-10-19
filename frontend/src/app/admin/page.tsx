@@ -54,6 +54,7 @@ export default function AdminDashboard() {
         </div>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Link href="/admin/reports" className="bg-white border-2 border-brand/20 rounded-2xl p-6 hover:border-brand transition"><h3 className="font-black text-lg mb-2 text-ink">تقارير المبيعات والمخزون</h3><p className="text-sm text-neutral-600">الطلبات المسلّمة، المنتجات الأكثر مبيعاً، وتنبيهات المخزون</p></Link>
         <Link href="/admin/products" className="bg-white border-2 border-brand/20 rounded-2xl p-6 hover:border-brand transition">
           <h3 className="font-black text-lg mb-2 text-ink">إدارة المنتجات</h3>
           <p className="text-sm text-neutral-600">إضافة، تعديل، وحذف المنتجات</p>
