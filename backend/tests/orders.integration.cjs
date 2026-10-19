@@ -282,7 +282,26 @@ async function main() {
       assert.equal(week.status,200);
       assert.equal(week.body.trend.length,7);
     });
-    console.log('\\nALL 10 CHECKS PASSED. Database was isolated and will be deleted.');
+    await check('cart quote reads current prices and detects unavailable products without changing stock',async()=>{
+      const p=await product('Quoted item',3,21000);
+      const ok=await request(base,'/api/products/quote','POST',{items:[{productId:p.id,quantity:2}]});
+      assert.equal(ok.status,200);
+      assert.equal(ok.body.subtotal,42000);
+      assert.equal(ok.body.canCheckout,true);
+      assert.equal(ok.body.items[0].product.price,21000);
+      const unavailable=await request(base,'/api/products/quote','POST',{items:[{productId:p.id,quantity:4}]});
+      assert.equal(unavailable.status,200);
+      assert.equal(unavailable.body.canCheckout,false);
+      const missing=await request(base,'/api/products/quote','POST',{items:[{productId:'missing-product',quantity:1}]});
+      assert.equal(missing.status,200);
+      assert.equal(missing.body.canCheckout,false);
+      assert.equal(missing.body.items[0].product,null);
+      const invalid=await request(base,'/api/products/quote','POST',{items:[{productId:p.id,quantity:2},{productId:p.id,quantity:1}]});
+      assert.equal(invalid.status,400);
+      const remain=await prisma.product.findUnique({where:{id:p.id}});
+      assert.equal(remain.stock,3);
+    });
+    console.log('\\nALL 11 CHECKS PASSED. Database was isolated and will be deleted.');
   } catch (error) {
     console.error('\nORDER INTEGRATION FAILED. Server output:\n' + logs);
     throw error;
