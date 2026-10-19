@@ -3,13 +3,14 @@ import { useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { LayoutDashboard, Package, ShoppingBag, Users, Shapes, TicketPercent, Settings, Truck, ArrowRight, LogOut, Bell } from 'lucide-react';
+import { LayoutDashboard, Package, ShoppingBag, Users, Shapes, TicketPercent, Settings, Truck, ArrowRight, LogOut, Bell, ChartNoAxesCombined } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
 const navItems = [
   { href: '/admin', label: 'نظرة عامة', icon: LayoutDashboard },
   { href: '/admin/products', label: 'المنتجات', icon: Package },
   { href: '/admin/orders', label: 'الطلبات', icon: ShoppingBag },
+  { href: '/admin/reports', label: 'التقارير', icon: ChartNoAxesCombined },
   { href: '/notifications', label: 'الإشعارات', icon: Bell },
   { href: '/admin/users', label: 'المستخدمين', icon: Users },
   { href: '/admin/categories', label: 'التصنيفات', icon: Shapes },
