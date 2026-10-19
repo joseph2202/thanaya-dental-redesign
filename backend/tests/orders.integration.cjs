@@ -200,7 +200,26 @@ async function main() {
       for (const entry of all) assert.equal(entry.before + entry.delta, entry.after);
     });
 
-    console.log('\\nALL 7 CHECKS PASSED. Database was isolated and will be deleted.');
+    await check('orders management API requires staff and applies filters/paging',async()=>{
+      const adminView=await request(base,'/api/orders/manage?page=1&status=all&search=','GET',undefined,adminToken);
+      assert.equal(adminView.status,200,JSON.stringify(adminView));
+      assert.ok(adminView.body.total>=4);
+      assert.equal(adminView.body.pageSize,20);
+      assert.ok(Array.isArray(adminView.body.orders));
+      const customerView=await request(base,'/api/orders/manage','GET',undefined,aliceToken);
+      assert.equal(customerView.status,403);
+      const pendingView=await request(base,'/api/orders/manage?status=pending&search=Alice','GET',undefined,adminToken);
+      assert.equal(pendingView.status,200);
+      assert.ok(pendingView.body.orders.every(o=>o.status==='pending'&&o.customerName.includes('Alice')));
+      const invalid=await request(base,'/api/orders/manage?page=0','GET',undefined,adminToken);
+      assert.equal(invalid.status,400);
+      const invalidFilter=await request(base,'/api/orders/manage?status=unpaid','GET',undefined,adminToken);
+      assert.equal(invalidFilter.status,400);
+      const secondPage=await request(base,'/api/orders/manage?page=2','GET',undefined,adminToken);
+      assert.equal(secondPage.status,200);
+      assert.equal(secondPage.body.orders.length,0);
+    });
+    console.log('\\nALL 8 CHECKS PASSED. Database was isolated and will be deleted.');
   } catch (error) {
     console.error('\nORDER INTEGRATION FAILED. Server output:\n' + logs);
     throw error;
