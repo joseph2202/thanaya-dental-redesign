@@ -84,7 +84,23 @@ function parseProduct(data: unknown, partial: boolean): Partial<Editable> {
   }
   return result;
 }
-function publicProduct<T extends {gallery:string|null;specs:string|null}>(p:T){return {...p,gallery:p.gallery?JSON.parse(p.gallery):[],specs:p.specs?JSON.parse(p.specs):[]};}
+// Expiry dates are local Iraq calendar dates, not UTC instants.
+function todayInIraq(): string {
+  const parts = new Intl.DateTimeFormat('en-GB', { timeZone:'Asia/Baghdad', year:'numeric', month:'2-digit', day:'2-digit' })
+    .formatToParts(new Date());
+  const part=(name:string)=>parts.find(p=>p.type===name)?.value ?? '';
+  return part('year')+'-'+part('month')+'-'+part('day');
+}
+function validExpiryDate(value:unknown):value is string {
+  if (typeof value!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const date=new Date(value+'T00:00:00.000Z');
+  return Number.isFinite(date.getTime())&&date.toISOString().slice(0,10)===value;
+}
+function publicProduct<T extends {gallery:string|null;specs:string|null;stock:number;lotTracking:boolean;lots?:{stock:number;expiryDate:string}[]}>(p:T){
+  const {lots,...withoutLots}=p;
+  const availableStock = p.lotTracking ? (lots||[]).filter(l=>l.expiryDate>=todayInIraq()).reduce((n,l)=>n+l.stock,0) : p.stock;
+  return {...withoutLots, gallery:p.gallery?JSON.parse(p.gallery):[], specs:p.specs?JSON.parse(p.specs):[], availableStock};
+}
 function respondError(res: import('express').Response, error: unknown) {
   if (error instanceof InputError) return res.status(error.status).json({ error: error.message });
   if (error instanceof Prisma.PrismaClientKnownRequestError) {
@@ -114,7 +130,7 @@ router.get('/', async (req, res) => {
     const orders: Record<string, Prisma.ProductOrderByWithRelationInput> = {
       'price-asc': {price:'asc'}, 'price-desc':{price:'desc'}, name:{name:'asc'}
     };
-    res.json((await prisma.product.findMany({ where, orderBy: typeof sort === 'string' && orders[sort] ? orders[sort] : {createdAt:'desc'} })).map(publicProduct));
+    res.json((await prisma.product.findMany({ where, include:{lots:{select:{stock:true,expiryDate:true}}}, orderBy: typeof sort === 'string' && orders[sort] ? orders[sort] : {createdAt:'desc'} })).map(publicProduct));
   } catch (error) { respondError(res, error); }
 });
 
@@ -141,7 +157,7 @@ router.post('/quote', async (req, res) => {
     }
     const products = await prisma.product.findMany({
       where: { id: { in: lines.map(line => line.productId) } },
-      select: { id: true, name: true, price: true, stock: true, saleUnit: true }
+      select: { id: true, name: true, price: true, stock: true, saleUnit: true, lotTracking:true, lots:{select:{stock:true,expiryDate:true}} }
     });
     const byId = new Map(products.map(product => [product.id, product]));
     let subtotal = 0;
@@ -151,9 +167,11 @@ router.post('/quote', async (req, res) => {
         subtotal += product.price * line.quantity;
         if (!Number.isSafeInteger(subtotal)) throw new InputError(400, 'مجموع السلة كبير جداً');
       }
+      const availableStock=product?(product.lotTracking?product.lots.filter(l=>l.expiryDate>=todayInIraq()).reduce((n,l)=>n+l.stock,0):product.stock):0;
       return {
         productId: line.productId, quantity: line.quantity,
-        product, available: Boolean(product && product.stock >= line.quantity)
+        product:product?{id:product.id,name:product.name,price:product.price,stock:product.stock,saleUnit:product.saleUnit,availableStock}:null,
+        available: Boolean(product && availableStock >= line.quantity)
       };
     });
     res.json({ items: quoted, subtotal, canCheckout: quoted.every(line => line.available) });
@@ -162,10 +180,83 @@ router.post('/quote', async (req, res) => {
 
 router.get('/:id', async (req, res) => {
   try {
-    const product = await prisma.product.findUnique({ where: { id: String(req.params.id) } });
+    const product = await prisma.product.findUnique({ where: { id: String(req.params.id) },include:{lots:{select:{stock:true,expiryDate:true}}} });
     if (!product) return res.status(404).json({ error: 'المنتج غير موجود' });
     res.json(publicProduct(product));
   } catch (error) { respondError(res, error); }
+});
+
+// Staff-only lot register; no customer PII or supplier details are exposed.
+router.get('/:id/lots', requireInventory, async(req,res)=>{
+  try{
+    const product=await prisma.product.findUnique({where:{id:String(req.params.id)},select:{id:true,name:true,stock:true,lotTracking:true}});
+    if(!product)throw new InputError(404,'المنتج غير موجود');
+    const lots=await prisma.productLot.findMany({where:{productId:product.id},orderBy:[{expiryDate:'asc'},{createdAt:'asc'}]});
+    const today=todayInIraq();
+    res.json({product,lots:lots.map(l=>({...l,status:l.expiryDate<today?'expired':l.expiryDate<=new Date(Date.now()+30*86400000).toISOString().slice(0,10)?'soon':'valid'}))});
+  }catch(error){respondError(res,error);}
+});
+
+router.post('/:id/enable-lots',requireAdmin,async(req,res)=>{
+  try{
+    const id=String(req.params.id);
+    const result=await prisma.$transaction(async tx=>{
+      const p=await tx.product.findUnique({where:{id},select:{id:true,stock:true,lotTracking:true,_count:{select:{orderItems:true,inventoryMovements:true}}}});
+      if(!p)throw new InputError(404,'المنتج غير موجود');
+      if(p.lotTracking)throw new InputError(409,'تتبع التشغيلات مفعّل مسبقاً');
+      if(p.stock!==0||p._count.orderItems!==0||p._count.inventoryMovements!==0)throw new InputError(409,'لتفعيل التشغيلات على منتج قائم، يجب تسوية مخزونه وسجله أولاً؛ أنشئ منتجاً جديداً بمخزون صفر لهذه الميزة');
+      return tx.product.update({where:{id},data:{lotTracking:true},select:{id:true,lotTracking:true}});
+    });
+    res.json(result);
+  }catch(error){respondError(res,error);}
+});
+
+router.post('/:id/lots',requireInventory,async(req,res)=>{
+  try{
+    const id=String(req.params.id);
+    const {code,expiryDate,quantity}=req.body||{};
+    const lotCode=textField(code,'رقم التشغيلة',80).toUpperCase();
+    if(!/^[A-Z0-9][A-Z0-9._/-]{0,79}$/.test(lotCode))throw new InputError(400,'رقم التشغيلة يقبل الحروف الإنجليزية والأرقام والرموز - _ . / فقط');
+    if(!validExpiryDate(expiryDate)||expiryDate<todayInIraq())throw new InputError(400,'تاريخ الصلاحية منتهي أو غير صالح');
+    if(!Number.isSafeInteger(quantity)||quantity<1||quantity>1000000)throw new InputError(400,'كمية التشغيلة غير صالحة');
+    const saved=await prisma.$transaction(async tx=>{
+      const p=await tx.product.findUnique({where:{id},select:{stock:true,lotTracking:true}});
+      if(!p)throw new InputError(404,'المنتج غير موجود');
+      if(!p.lotTracking)throw new InputError(409,'فعّل تتبع التشغيلات لهذا المنتج أولاً');
+      if(p.stock+quantity>1000000)throw new InputError(409,'المخزون يتجاوز الحد المسموح');
+      const lot=await tx.productLot.create({data:{productId:id,code:lotCode,expiryDate,stock:quantity}});
+      const updated=await tx.product.updateMany({where:{id,stock:p.stock},data:{stock:{increment:quantity}}});
+      if(updated.count!==1)throw new InputError(409,'تغيّر المخزون، حدّث الصفحة');
+      await tx.inventoryMovement.create({data:{productId:id,before:p.stock,after:p.stock+quantity,delta:quantity,reason:'lot_received: '+lotCode,referenceId:lot.id,actorId:res.locals.adminUserId as string}});
+      return lot;
+    });
+    res.status(201).json(saved);
+  }catch(error){respondError(res,error);}
+});
+
+router.post('/:id/lots/:lotId/adjust',requireInventory,async(req,res)=>{
+  try{
+    const productId=String(req.params.id),lotId=String(req.params.lotId);
+    const {delta,reason}=req.body||{};
+    if(!Number.isSafeInteger(delta)||delta===0||Math.abs(delta)>1000000)throw new InputError(400,'فرق الكمية غير صالح');
+    const note=textField(reason,'سبب التعديل',180);
+    const saved=await prisma.$transaction(async tx=>{
+      const [p,lot]=await Promise.all([
+        tx.product.findUnique({where:{id:productId},select:{stock:true,lotTracking:true}}),
+        tx.productLot.findUnique({where:{id:lotId}})
+      ]);
+      if(!p||!lot||lot.productId!==productId||!p.lotTracking)throw new InputError(404,'التشغيلة غير موجودة');
+      if(delta>0&&lot.expiryDate<todayInIraq())throw new InputError(409,'لا يجوز إضافة مخزون لتشغيلة منتهية الصلاحية');
+      if(lot.stock+delta<0||p.stock+delta<0||p.stock+delta>1000000)throw new InputError(409,'كمية التشغيلة أو المنتج لا تكفي');
+      const change=await tx.productLot.updateMany({where:{id:lotId,stock:lot.stock},data:{stock:{increment:delta}}});
+      if(change.count!==1)throw new InputError(409,'كمية التشغيلة تغيرت؛ أعد المحاولة');
+      const update=await tx.product.updateMany({where:{id:productId,stock:p.stock},data:{stock:{increment:delta}}});
+      if(update.count!==1)throw new InputError(409,'المخزون تغير؛ أعد المحاولة');
+      await tx.inventoryMovement.create({data:{productId,delta,before:p.stock,after:p.stock+delta,reason:'lot_adjust: '+lot.code+' — '+note,referenceId:lot.id,actorId:res.locals.adminUserId as string}});
+      return tx.productLot.findUniqueOrThrow({where:{id:lotId}});
+    });
+    res.json(saved);
+  }catch(error){respondError(res,error);}
 });
 
 router.get('/:id/inventory', requireInventory, async (req, res) => {
@@ -232,8 +323,9 @@ router.post('/:id/stock-adjustment', requireInventory, async (req, res) => {
     const actorId = res.locals.adminUserId as string;
     const productId = String(req.params.id);
     const updated = await prisma.$transaction(async tx => {
-      const product = await tx.product.findUnique({ where:{id:productId},select:{stock:true} });
+      const product = await tx.product.findUnique({ where:{id:productId},select:{stock:true,lotTracking:true} });
       if (!product) throw new InputError(404,'المنتج غير موجود');
+      if (product.lotTracking) throw new InputError(409,'عدّل كمية تشغيلة محددة، لا تستخدم التعديل العام للمخزون');
       const after = product.stock + delta;
       if (!Number.isSafeInteger(after) || after < 0 || after > 1000000) throw new InputError(409,'الكمية الناتجة غير مسموحة');
       const changed = await tx.product.updateMany({
