@@ -9,6 +9,30 @@ export function discountFor(c:{kind:string;discount:number;active:boolean;minSub
  if(c.kind==='fixed')return Math.min(subtotal,c.discount);
  return null;
 }
+router.post('/preview',async(req,res)=>{
+ const code=typeof req.body?.code==='string'?normalizeCode(req.body.code):'';
+ const items=req.body?.items;
+ if(!/^[A-Z0-9_-]{3,32}$/.test(code)||!Array.isArray(items)||items.length===0||items.length>50)return res.status(400).json({error:'أدخل كوبوناً وسلة صحيحة'});
+ let subtotal=0;
+ const ids=new Set<string>();
+ for(const item of items){
+  if(!item||typeof item.productId!=='string'||!item.productId.trim()||ids.has(item.productId)||!Number.isSafeInteger(item.quantity)||item.quantity<1||item.quantity>100)return res.status(400).json({error:'تفاصيل السلة غير صالحة'});
+  ids.add(item.productId);
+ }
+ try{
+  const prices=await prisma.product.findMany({where:{id:{in:[...ids]}},select:{id:true,price:true}});
+  if(prices.length!==ids.size)return res.status(400).json({error:'أحد المنتجات غير موجود'});
+  const map=new Map(prices.map(x=>[x.id,x.price]));
+  for(const item of items){
+   subtotal+=(map.get(item.productId) as number)*item.quantity;
+   if(!Number.isSafeInteger(subtotal))return res.status(400).json({error:'المبلغ كبير جداً'});
+  }
+  const coupon=await prisma.coupon.findUnique({where:{code}});
+  const discount=coupon?discountFor(coupon,subtotal):null;
+  if(discount===null||!coupon)return res.status(409).json({error:'الكوبون غير صالح أو لا ينطبق على السلة'});
+  res.json({code,subtotal,discount,totalAfterDiscount:subtotal-discount});
+ }catch(e){console.error(e);res.status(500).json({error:'تعذر التحقق من الكوبون'})}
+});
 router.get('/',requireAdmin,async(_req,res)=>{try{res.json(await prisma.coupon.findMany({orderBy:{createdAt:'desc'}}))}catch(e){console.error(e);res.status(500).json({error:'تعذر تحميل الكوبونات'})}});
 router.post('/',requireAdmin,async(req,res)=>{
  const b=req.body||{}, code=typeof b.code==='string'?normalizeCode(b.code):'';
