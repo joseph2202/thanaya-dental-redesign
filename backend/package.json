@@ -13,6 +13,7 @@
     "test:roles": "prisma generate && npm run build && node tests/roles.integration.cjs",
     "test:settings": "prisma generate && npm run build && node tests/settings.integration.cjs",
     "test:delivery": "prisma generate && npm run build && node tests/delivery.integration.cjs",
+    "test:coupons": "prisma generate && npm run build && node tests/coupons.integration.cjs",
     "db:safe-generate": "prisma generate"
   },
   "keywords": [],
