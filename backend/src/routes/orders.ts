@@ -113,6 +113,38 @@ router.get('/', requireSales, async (_req, res) => {
   } catch (error) { reportError(res, error, 'list orders'); }
 });
 
+// Paginated operations view. Existing /orders stays backward-compatible for the dashboard.
+const ORDER_STATES=['pending','confirmed','shipped','delivered','cancelled','returned'] as const;
+router.get('/manage',requireSales,async(req,res)=>{
+  try{
+    const rawPage=typeof req.query.page==='string'?req.query.page:'1';
+    if(!/^[1-9]\d{0,4}$/.test(rawPage))return res.status(400).json({error:'رقم الصفحة غير صالح'});
+    const page=Number(rawPage),limit=20;
+    const status=typeof req.query.status==='string'?req.query.status:'all';
+    if(status!=='all'&&!ORDER_STATES.includes(status as typeof ORDER_STATES[number]))
+      return res.status(400).json({error:'فلتر الحالة غير صالح'});
+    const search=typeof req.query.search==='string'?req.query.search.trim():'';
+    if(search.length>100||Object.keys(req.query).some(k=>!['page','status','search'].includes(k)))
+      return res.status(400).json({error:'فلتر البحث غير صالح'});
+    const searchWhere:Prisma.OrderWhereInput=search?{OR:[
+      {id:{contains:search}},{customerName:{contains:search}},
+      {customerPhone:{contains:search}},{customerCity:{contains:search}},
+      {customerAddress:{contains:search}}
+    ]}:{};
+    const where:Prisma.OrderWhereInput={...searchWhere,...(status==='all'?{}:{status})};
+    const [rows,total,states]=await Promise.all([
+      prisma.order.findMany({where,include:{items:{include:{product:{select:{name:true}}}}},
+        orderBy:[{createdAt:'desc'},{id:'desc'}],skip:(page-1)*limit,take:limit}),
+      prisma.order.count({where}),
+      prisma.order.groupBy({by:['status'],_count:{_all:true},where:searchWhere})
+    ]);
+    const counts:Object=Object.fromEntries(ORDER_STATES.map(x=>[x,0]));
+    for(const entry of states)(counts as Record<string,number>)[entry.status]=entry._count._all;
+    res.json({orders:rows,total,page,pageSize:limit,totalPages:Math.max(1,Math.ceil(total/limit)),
+      statusCounts:counts,matchingSearchTotal:states.reduce((a,s)=>a+s._count._all,0)});
+  }catch(error){reportError(res,error,'manage orders')}
+});
+
 // Read a customer's own order history from the database, never browser storage.
 router.get('/mine', async (req, res) => {
   try {
