@@ -7,8 +7,8 @@ const prisma = new PrismaClient();
 class InputError extends Error {
   constructor(public status: number, message: string) { super(message); }
 }
-const fields = ['name','description','price','usdPrice','category','brand','icon','image','badge'] as const;
-type Editable = { name:string; description:string; price:number; usdPrice:number; category:string; brand:string; icon:string; image:string|null; badge:string|null };
+const fields = ['name','description','price','usdPrice','category','brand','icon','image','gallery','specs','badge'] as const;
+type Editable = { name:string; description:string; price:number; usdPrice:number; category:string; brand:string; icon:string; image:string|null; gallery:string|null; specs:string|null; badge:string|null };
 const textField = (v: unknown, name: string, limit: number, required = true) => {
   if (typeof v !== 'string') throw new InputError(400, name + ' غير صالح');
   const cleaned = v.trim();
@@ -38,6 +38,17 @@ function parseProduct(data: unknown, partial: boolean): Partial<Editable> {
       case 'image':
         if (val === undefined || val === null || val === '') { result.image = null; break; }
         result.image = textField(val, 'الصورة', 2048); break;
+      case 'gallery': {
+        if(val==null||val===''){result.gallery=null;break;}
+        if(!Array.isArray(val)||val.length>5||val.some(v=>typeof v!=='string'||v.length>2048||!/^https?:\/\//.test(v)))throw new InputError(400,'صور المعرض غير صالحة');
+        if(new Set(val).size!==val.length)throw new InputError(400,'صور المعرض مكررة');
+        result.gallery=JSON.stringify(val);break;
+      }
+      case 'specs': {
+        if(val==null||val===''){result.specs=null;break;}
+        if(!Array.isArray(val)||val.length>12||val.some(v=>!v||typeof v!=='object'||Array.isArray(v)||Object.keys(v).some(k=>!['label','value'].includes(k))||typeof v.label!=='string'||typeof v.value!=='string'||!v.label.trim()||!v.value.trim()||v.label.length>80||v.value.length>300))throw new InputError(400,'المواصفات غير صالحة');
+        result.specs=JSON.stringify(val.map(v=>({label:v.label.trim(),value:v.value.trim()})));break;
+      }
       case 'badge':
         if (val === undefined || val === null || val === '') { result.badge = null; break; }
         if (!['new','sale','popular'].includes(String(val))) throw new InputError(400, 'شارة غير صالحة');
@@ -52,6 +63,7 @@ function parseProduct(data: unknown, partial: boolean): Partial<Editable> {
   }
   return result;
 }
+function publicProduct<T extends {gallery:string|null;specs:string|null}>(p:T){return {...p,gallery:p.gallery?JSON.parse(p.gallery):[],specs:p.specs?JSON.parse(p.specs):[]};}
 function respondError(res: import('express').Response, error: unknown) {
   if (error instanceof InputError) return res.status(error.status).json({ error: error.message });
   if (error instanceof Prisma.PrismaClientKnownRequestError) {
@@ -80,7 +92,7 @@ router.get('/', async (req, res) => {
     const orders: Record<string, Prisma.ProductOrderByWithRelationInput> = {
       'price-asc': {price:'asc'}, 'price-desc':{price:'desc'}, name:{name:'asc'}
     };
-    res.json(await prisma.product.findMany({ where, orderBy: typeof sort === 'string' && orders[sort] ? orders[sort] : {createdAt:'desc'} }));
+    res.json((await prisma.product.findMany({ where, orderBy: typeof sort === 'string' && orders[sort] ? orders[sort] : {createdAt:'desc'} })).map(publicProduct));
   } catch (error) { respondError(res, error); }
 });
 
@@ -130,7 +142,7 @@ router.get('/:id', async (req, res) => {
   try {
     const product = await prisma.product.findUnique({ where: { id: String(req.params.id) } });
     if (!product) return res.status(404).json({ error: 'المنتج غير موجود' });
-    res.json(product);
+    res.json(publicProduct(product));
   } catch (error) { respondError(res, error); }
 });
 
@@ -163,7 +175,7 @@ router.post('/', requireAdmin, async (req, res) => {
       }});
       return product;
     });
-    res.status(201).json(created);
+    res.status(201).json(publicProduct(created));
   } catch (error) { respondError(res,error); }
 });
 
@@ -171,7 +183,7 @@ router.put('/:id', requireAdmin, async (req, res) => {
   try {
     const data = parseProduct(req.body, true);
     const product = await prisma.product.update({where:{id:String(req.params.id)},data});
-    res.json(product);
+    res.json(publicProduct(product));
   } catch (error) { respondError(res,error); }
 });
 

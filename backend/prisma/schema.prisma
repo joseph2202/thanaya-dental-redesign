@@ -32,6 +32,8 @@ model Product {
   brand       String
   icon        String
   image       String?
+  gallery     String? // JSON array of additional image URLs, maximum 5
+  specs       String? // JSON array of {label,value}, maximum 12
   badge       String?
   stock       Int         @default(0)
   createdAt   DateTime    @default(now())

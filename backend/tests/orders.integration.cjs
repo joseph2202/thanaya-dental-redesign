@@ -320,7 +320,30 @@ async function main() {
       const after=await prisma.product.findUnique({where:{id:p.id}});
       assert.equal(after.stock,1,'recovery must never change stock');
     });
-    console.log('\\nALL 12 CHECKS PASSED. Database was isolated and will be deleted.');
+    await check('product gallery and specs are validated and old products stay compatible',async()=>{
+      const existing=await product('Legacy product',2,20000);
+      const old=await request(base,'/api/products/'+existing.id);
+      assert.equal(old.status,200);
+      assert.deepEqual(old.body.gallery,[]);
+      assert.deepEqual(old.body.specs,[]);
+      const updated=await request(base,'/api/products/'+existing.id,'PUT',{
+        gallery:['http://localhost:4000/uploads/front.webp','http://localhost:4000/uploads/side.webp'],
+        specs:[{label:'الموديل',value:'DP-20'},{label:'الضمان',value:'سنة'}]
+      },adminToken);
+      assert.equal(updated.status,200,JSON.stringify(updated));
+      assert.equal(updated.body.gallery.length,2);
+      assert.equal(updated.body.specs[0].value,'DP-20');
+      const publicRead=await request(base,'/api/products/'+existing.id);
+      assert.deepEqual(publicRead.body.gallery,updated.body.gallery);
+      const invalid=await request(base,'/api/products/'+existing.id,'PUT',{specs:[{label:'x',value:''}]},adminToken);
+      assert.equal(invalid.status,400);
+      const unauthorized=await request(base,'/api/products/'+existing.id,'PUT',{gallery:[]},aliceToken);
+      assert.equal(unauthorized.status,403);
+      const stored=await prisma.product.findUniqueOrThrow({where:{id:existing.id}});
+      assert.equal(stored.stock,2);
+      assert.equal(stored.price,20000);
+    });
+    console.log('\\nALL 13 CHECKS PASSED. Database was isolated and will be deleted.');
   } catch (error) {
     console.error('\nORDER INTEGRATION FAILED. Server output:\n' + logs);
     throw error;

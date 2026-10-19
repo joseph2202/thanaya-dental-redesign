@@ -5,6 +5,7 @@ import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import ProductPurchaseActions from '@/components/product/ProductPurchaseActions';
 import ProductMedia from '@/components/ui/ProductMedia';
+import ProductGallery from '@/components/product/ProductGallery';
 import { ArrowLeft, CircleCheck } from 'lucide-react';
 
 export const instant = false;
@@ -25,12 +26,13 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
   return <><Header /><main className="site-container site-main py-9 md:py-14">
     <nav aria-label="مسار الصفحة" className="text-xs text-[#8090a4] flex flex-wrap items-center gap-2 mb-8"><Link href="/" className="hover:text-brand">الرئيسية</Link><span>/</span><Link href="/products" className="hover:text-brand">المنتجات</Link><span>/</span><span className="text-ink">{product.name}</span></nav>
     <div className="grid lg:grid-cols-2 gap-8 lg:gap-14 items-start">
-      <ProductMedia name={product.name} image={product.image} icon={product.icon} size={160} className="aspect-square rounded-[24px] border border-[#cde9f4] bg-white" />
+      <ProductGallery name={product.name} image={product.image} icon={product.icon} gallery={product.gallery} />
       <div className="py-2 lg:py-6">
         <span className="site-eyebrow">{product.category} {product.brand ? ` / ${product.brand}` : ''}</span>
         <h1 className="site-page-title leading-[1.35] mt-4">{product.name}</h1>
         {product.description && product.description.trim().toLowerCase() !== 'nothing' && <p className="site-muted mt-5 text-sm sm:text-base">{product.description}</p>}
         <div className="border-y border-[#d4eaf2] py-6 my-7 flex items-end justify-between gap-3"><div><span className="text-xs text-[#8495a7] block mb-2">السعر</span><strong className="text-3xl sm:text-4xl font-extrabold">{product.price.toLocaleString()} <small className="font-normal text-base">د.ع</small></strong>{approximateUsd && <span className="block text-xs text-[#8392a5] mt-2">≈ {approximateUsd} دولار (للعرض فقط)</span>}</div><span className={`inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-full ${product.stock > 0 ? 'bg-[#e9f6f1] text-success' : 'bg-red-50 text-red-700'}`}><CircleCheck size={15} /> {product.stock > 0 ? `متوفر (${product.stock} قطعة)` : 'نفد المخزون'}</span></div>
+        {Array.isArray(product.specs)&&product.specs.length>0&&<section className="mb-6 rounded-2xl border border-[#d4eaf2] bg-white p-5"><h2 className="mb-3 text-lg font-black">المواصفات الفنية</h2><dl className="divide-y divide-[#e6eef3]">{product.specs.map((spec:{label:string;value:string},i:number)=><div key={i} className="grid gap-2 py-3 text-sm sm:grid-cols-2"><dt className="font-bold text-[#547280]">{spec.label}</dt><dd className="break-words text-ink">{spec.value}</dd></div>)}</dl></section>}
         <ProductPurchaseActions product={product} />
         <p className="text-xs text-[#8495a7] mt-6">تُعرض تفاصيل المنتج والسعر والمخزون من قائمة المتجر الحالية.</p>
       </div>
