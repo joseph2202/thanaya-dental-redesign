@@ -33,7 +33,7 @@ export const authAPI = {
 
 // Products API
 export const productsAPI = {
-  getAll: (params?: { category?: string; brand?: string; sort?: string; search?: string }) => {
+  getAll: (params?: { category?: string; brand?: string; sort?: string; search?: string; minPrice?: string; maxPrice?: string }) => {
     const query = new URLSearchParams(params as any).toString();
     return apiRequest(`/products?${query}`);
   },
