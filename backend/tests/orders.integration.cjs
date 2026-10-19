@@ -343,7 +343,47 @@ async function main() {
       assert.equal(stored.stock,2);
       assert.equal(stored.price,20000);
     });
-    console.log('\\nALL 13 CHECKS PASSED. Database was isolated and will be deleted.');
+
+    await check('SKU uniqueness, optional model and size, sale units and historical stock safety',async()=>{
+      const payload = {
+        name:'Dental box',description:'Valid product',price:24000,usdPrice:17,
+        category:'Dental',brand:'Thanaya',icon:'Package',image:null,gallery:[],specs:[],
+        badge:null,sku:'dnt-box-001',model:'TM-20',size:'20 ml',saleUnit:'box',stock:3
+      };
+      const made=await request(base,'/api/products','POST',payload,adminToken);
+      assert.equal(made.status,201,JSON.stringify(made));
+      assert.equal(made.body.sku,'DNT-BOX-001');
+      assert.equal(made.body.saleUnit,'box');
+      assert.equal(made.body.model,'TM-20');
+      const read=await request(base,'/api/products/'+made.body.id);
+      assert.equal(read.body.size,'20 ml');
+      const matched=await request(base,'/api/products?search=DNT-BOX-001');
+      assert.equal(matched.status,200);
+      assert(matched.body.some(p=>p.id===made.body.id));
+      const quoted=await request(base,'/api/products/quote','POST',{items:[{productId:made.body.id,quantity:1}]});
+      assert.equal(quoted.body.items[0].product.saleUnit,'box');
+
+      const duplicate=await request(base,'/api/products','POST',{...payload,sku:'DNT-BOX-001',stock:0},adminToken);
+      assert.equal(duplicate.status,409,JSON.stringify(duplicate));
+      const badSku=await request(base,'/api/products/'+made.body.id,'PUT',{sku:'bad sku'},adminToken);
+      assert.equal(badSku.status,400);
+      const badUnit=await request(base,'/api/products/'+made.body.id,'PUT',{saleUnit:'crate'},adminToken);
+      assert.equal(badUnit.status,400);
+      const blocked=await request(base,'/api/products/'+made.body.id,'PUT',{saleUnit:'piece'},adminToken);
+      assert.equal(blocked.status,409,'Changing units must not reinterpret existing stock or history');
+      const prohibited=await request(base,'/api/products/'+made.body.id,'PUT',{sku:'CUSTOMER'},aliceToken);
+      assert.equal(prohibited.status,403);
+      const legacy=await product('Older stock',0,4000);
+      const legacyRead=await request(base,'/api/products/'+legacy.id);
+      assert.equal(legacyRead.status,200);
+      assert.equal(legacyRead.body.sku,null);
+      assert.equal(legacyRead.body.saleUnit,null);
+      const safeChange=await request(base,'/api/products/'+legacy.id,'PUT',{saleUnit:'set',sku:'SET-9'},adminToken);
+      assert.equal(safeChange.status,200,JSON.stringify(safeChange));
+      assert.equal(safeChange.body.saleUnit,'set');
+      assert.equal((await prisma.product.findUniqueOrThrow({where:{id:made.body.id}})).stock,3);
+    });
+    console.log('\\nALL 14 CHECKS PASSED. Database was isolated and will be deleted.');
   } catch (error) {
     console.error('\nORDER INTEGRATION FAILED. Server output:\n' + logs);
     throw error;

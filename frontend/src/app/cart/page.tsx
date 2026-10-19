@@ -7,6 +7,7 @@ import Link from 'next/link';
 import {useEffect,useState} from 'react';
 import {productsAPI,CartQuote} from '@/lib/api';
 import {Trash2,Minus,Plus,ArrowUpLeft,ShieldCheck} from 'lucide-react';
+import {saleUnitLabel} from '@/lib/saleUnits';
 
 export default function CartPage() {
   const { items, removeFromCart, updateQuantity, totalPrice, clearCart } = useCart();
@@ -30,7 +31,7 @@ export default function CartPage() {
   const adjust=(id:string,quantity:number)=>{
     const line=quote?.items.find(item=>item.productId===id);
     if(!line?.product){setMessage('المنتج لم يعد متوفراً. احذفه من السلة');return;}
-    if(quantity>line.product.stock){setMessage('المتاح حالياً '+line.product.stock+' قطعة فقط');return;}
+    if(quantity>line.product.stock){setMessage('المتاح حالياً '+line.product.stock+' '+saleUnitLabel(line.product.saleUnit)+' فقط');return;}
     const result=updateQuantity(id,quantity);setMessage(result.success?'':result.message)
   };
 
@@ -63,7 +64,7 @@ export default function CartPage() {
               <ProductMedia name={item.product.name} image={item.product.image} icon={item.product.icon} size={40} className="rounded-xl w-[72px] h-[72px] sm:w-[90px] sm:h-[90px] shrink-0" />
               <div className="min-w-0">
                 <Link href={`/product/${item.product.id}`} className="block font-bold text-base sm:text-lg text-ink hover:text-brand">{item.product.name}</Link>
-                <p className="text-neutral-500 text-sm">{item.product.brand}</p>
+                <p className="text-neutral-500 text-sm">{item.product.brand} · {saleUnitLabel(quote?.items.find(q=>q.productId===item.product.id)?.product?.saleUnit??item.product.saleUnit)}</p>
                 <p className="text-ink font-black mt-1 text-lg">{(quote?.items.find(q=>q.productId===item.product.id)?.product?.price??item.product.price).toLocaleString()} د.ع</p>
               </div>
               <div className="col-span-2 sm:col-span-1 flex items-center gap-2">
@@ -97,7 +98,7 @@ export default function CartPage() {
         {message&&<p role="alert" className="mb-4 rounded-xl bg-red-50 p-3 font-bold text-red-700">{message}</p>}
         {quoteLoading&&<p role="status" className="mb-4 rounded-xl bg-sky-50 p-3 text-sm text-sky-900">جاري التأكد من الأسعار والكميات الحالية...</p>}
         {quoteError&&<p role="alert" className="mb-4 rounded-xl bg-red-50 p-3 font-bold text-red-700">{quoteError}</p>}
-        {quote?.items.some(line=>!line.available)&&<div role="alert" className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900"><strong>يرجى مراجعة السلة:</strong>{quote.items.filter(line=>!line.available).map(line=><p className="mt-1" key={line.productId}>{line.product?.name||'منتج محذوف'}: {line.product?`المتاح ${line.product.stock} قطعة، والمطلوب ${line.quantity}`:'لم يعد متوفراً'}</p>)}</div>}
+        {quote?.items.some(line=>!line.available)&&<div role="alert" className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900"><strong>يرجى مراجعة السلة:</strong>{quote.items.filter(line=>!line.available).map(line=><p className="mt-1" key={line.productId}>{line.product?.name||'منتج محذوف'}: {line.product?`المتاح ${line.product.stock} ${saleUnitLabel(line.product.saleUnit)}، والمطلوب ${line.quantity}`:'لم يعد متوفراً'}</p>)}</div>}
         {quote&&quote.items.some(line=>{const item=items.find(i=>i.product.id===line.productId);return line.product&&item&&line.product.price!==item.product.price})&&<p role="status" className="mb-4 rounded-xl border border-sky-200 bg-sky-50 p-3 text-sm font-bold text-sky-900">تغيّر سعر أحد المنتجات. المجموع المعتمد حالياً موضح بالأسفل؛ راجع السعر قبل المتابعة.</p>}
         <div className="site-surface !bg-[#e9f8fd] p-5 sm:p-6">
           <div className="flex justify-between items-center mb-4">

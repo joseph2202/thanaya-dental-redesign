@@ -5,6 +5,7 @@ import { productsAPI, uploadAPI, settingsAPI } from '@/lib/api';
 import { parseThousandsIqd,parseUsd,formatThousandsIqd,formatFullIqd } from '@/lib/money-entry';
 import ProductIcon from '@/components/ui/ProductIcon';
 import { useAuth } from '@/context/AuthContext';
+import {saleUnitLabel,saleUnitOptions} from '@/lib/saleUnits';
 
 export default function AdminProducts() {
   const { user } = useAuth();
@@ -75,7 +76,7 @@ export default function AdminProducts() {
     setShowAddForm(true);
   };
 
-  const handleSave = async (product: any): Promise<boolean> => {
+  const handleSave = async (product: any): Promise<string | null> => {
     setLoading(true);
     try {
       const data = { ...product, category: product.category.trim() };
@@ -95,9 +96,9 @@ export default function AdminProducts() {
       await loadProducts();
       setShowAddForm(false);
       setEditingProduct(null);
-      return true;
-    } catch {
-      return false;
+      return null;
+    } catch (error) {
+      return error instanceof Error ? error.message : 'فشل حفظ المنتج';
     } finally {
       setLoading(false);
     }
@@ -106,7 +107,7 @@ export default function AdminProducts() {
   const existingCategories = [...new Set(productsList.map(p => p.category?.trim()).filter(Boolean))] as string[];
 
   const filteredProducts = productsList.filter((p) =>
-    p.name.toLowerCase().includes(searchQuery.toLowerCase())
+    p.name.toLowerCase().includes(searchQuery.toLowerCase()) || (p.sku||'').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
@@ -120,7 +121,7 @@ export default function AdminProducts() {
 
       {stockProduct && <section className="site-surface mb-7 p-6" aria-label="إدارة المخزون">
         <div className="flex items-center justify-between gap-3 mb-4"><h3 className="text-xl font-black">مخزون {stockProduct.name}</h3><button type="button" className="site-btn site-btn-outline site-btn-sm" onClick={() => setStockProduct(null)}>إغلاق</button></div>
-        <p className="mb-4 text-sm">الكمية الحالية: <strong className="text-brand">{stockProduct.stock}</strong> قطعة. للإضافة اكتب رقماً موجباً، وللتصحيح بالنقصان اكتب رقماً سالباً.</p>
+        <p className="mb-4 text-sm">الكمية الحالية: <strong className="text-brand">{stockProduct.stock}</strong> {saleUnitLabel(stockProduct.saleUnit)}. للإضافة اكتب رقماً موجباً، وللتصحيح بالنقصان اكتب رقماً سالباً.</p>
         <form onSubmit={saveStock} className="grid gap-3 sm:grid-cols-[130px_1fr_auto] items-end">
           <label className="text-sm font-bold">فرق الكمية<input type="number" step="1" required value={stockDelta} onChange={e=>setStockDelta(e.target.value)} className="mt-1 block w-full rounded-xl border border-brand/30 p-3" placeholder="+5 أو -2" /></label>
           <label className="text-sm font-bold">سبب التعديل<input required maxLength={250} value={stockReason} onChange={e=>setStockReason(e.target.value)} className="mt-1 block w-full rounded-xl border border-brand/30 p-3" placeholder="توريد، جرد، تلف..." /></label>
@@ -162,14 +163,14 @@ export default function AdminProducts() {
   )}
                     <div>
                       <p className="font-bold text-sm text-ink">{p.name}</p>
-                      <p className="text-xs text-neutral-500">{p.brand}</p>
+                      <p className="text-xs text-neutral-500">{p.brand}{p.sku ? ' · SKU: '+p.sku : ''}</p>
                     </div>
                   </div>
                 </td>
                 <td className="px-4 py-3 text-sm text-ink">{p.category}</td>
                 <td className="px-4 py-3 text-sm font-bold text-ink">{p.price.toLocaleString()} د.ع</td>
                 <td className="px-4 py-3">
-                  <span className={`text-sm font-bold ${p.stock > 10 ? 'text-green-600' : p.stock > 0 ? 'text-yellow-600' : 'text-red-600'}`}>{p.stock} قطعة</span>
+                  <span className={`text-sm font-bold ${p.stock > 10 ? 'text-green-600' : p.stock > 0 ? 'text-yellow-600' : 'text-red-600'}`}>{p.stock} {saleUnitLabel(p.saleUnit)}</span>
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex gap-2">
@@ -187,8 +188,8 @@ export default function AdminProducts() {
   );
 }
 
-function ProductForm({ product, existingCategories, onSave, onCancel, loading }: { product: any; existingCategories: string[]; onSave: (p: any) => Promise<boolean>; onCancel: () => void; loading: boolean }) {
-  const [form, setForm] = useState(product || { name: '', description: '', price: 0, usdPrice: 0, category: '', brand: '', icon: 'Package', stock: 0, badge: '', image: '', gallery: [], specs: [] });
+function ProductForm({ product, existingCategories, onSave, onCancel, loading }: { product: any; existingCategories: string[]; onSave: (p: any) => Promise<string | null>; onCancel: () => void; loading: boolean }) {
+  const [form, setForm] = useState(product || { name: '', description: '', price: 0, usdPrice: 0, category: '', brand: '', icon: 'Package', stock: 0, badge: '', image: '', gallery: [], specs: [], sku: '', model: '', size: '', saleUnit: 'piece' });
   const [extraUploading,setExtraUploading]=useState(false);
   const [success, setSuccess] = useState('');
   const [saveError, setSaveError] = useState('');
@@ -245,7 +246,8 @@ function ProductForm({ product, existingCategories, onSave, onCancel, loading }:
     setSaveError('');
     if (!priceValid || resolvedPrice === null) {setSaveError('راجع السعر وسعر الصرف قبل الحفظ');return;}
     const usdPrice = exchangeRate && exchangeRate>0 ? Math.round(resolvedPrice / exchangeRate) : form.usdPrice;
-    if (!await onSave({...form,gallery:extraImages,specs:specifications.filter(p=>p.label.trim()||p.value.trim()),price:resolvedPrice,usdPrice})) setSaveError('ما انحفظ المنتج. تأكد من اتصال خادم المتجر وحاول مرة ثانية.');
+    const error = await onSave({...form,gallery:extraImages,specs:specifications.filter(p=>p.label.trim()||p.value.trim()),price:resolvedPrice,usdPrice});
+    if (error) setSaveError(error);
   };
 
   return (
@@ -303,6 +305,32 @@ function ProductForm({ product, existingCategories, onSave, onCancel, loading }:
             className="w-full border-2 border-brand/30 rounded-xl px-4 py-3 focus:outline-none focus:border-brand" 
             required 
           />
+        </div>
+
+        <div className="md:col-span-2 rounded-xl border border-brand/20 bg-[#f6fbfe] p-4">
+          <h4 className="mb-3 font-black">هوية المنتج ووحدة البيع</h4>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="block text-sm font-bold">رمز المنتج SKU (اختياري وفريد)
+              <input type="text" dir="ltr" maxLength={40} value={form.sku||''} onChange={e=>setForm({...form,sku:e.target.value.toUpperCase()})}
+                placeholder="DNT-BOX-001" className="mt-2 w-full rounded-xl border border-brand/30 bg-white px-4 py-3 text-left"/>
+              <span className="mt-1 block text-xs font-normal text-neutral-600">حروف إنجليزية وأرقام و - أو _ أو نقطة. لا يتكرر بين المنتجات.</span>
+            </label>
+            <label className="block text-sm font-bold">وحدة البيع
+              <select value={form.saleUnit||'piece'} onChange={e=>setForm({...form,saleUnit:e.target.value})}
+                className="mt-2 w-full rounded-xl border border-brand/30 bg-white px-4 py-3">
+                {Object.entries(saleUnitOptions).map(([code,name])=><option key={code} value={code}>{name}</option>)}
+              </select>
+              <span className="mt-1 block text-xs font-normal text-neutral-600">السعر والمخزون والكمية المطلوبة تُحسب بهذه الوحدة. لا تغيّرها بعد بدء حركات المخزون أو البيع.</span>
+            </label>
+            <label className="block text-sm font-bold">الموديل (اختياري)
+              <input type="text" maxLength={100} value={form.model||''} onChange={e=>setForm({...form,model:e.target.value})}
+                placeholder="TM-20" className="mt-2 w-full rounded-xl border border-brand/30 bg-white px-4 py-3"/>
+            </label>
+            <label className="block text-sm font-bold">القياس / الحجم (اختياري)
+              <input type="text" maxLength={100} value={form.size||''} onChange={e=>setForm({...form,size:e.target.value})}
+                placeholder="20 ml أو Size M" className="mt-2 w-full rounded-xl border border-brand/30 bg-white px-4 py-3"/>
+            </label>
+          </div>
         </div>
 
         {/* التصنيف */}

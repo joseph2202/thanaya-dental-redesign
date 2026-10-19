@@ -1,4 +1,5 @@
 "use client";
+import {saleUnitLabel} from '@/lib/saleUnits';
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
 export type Product = {
@@ -13,6 +14,7 @@ export type Product = {
   image?: string | null;
   badge?: string;
   stock: number;
+  saleUnit?: string | null;
 };
 
 export type CartItem = {
@@ -86,7 +88,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
 
     if (quantity > item.product.stock) {
-      return { success: false, message: `الكمية المطلوبة غير متوفرة (متوفر فقط ${item.product.stock} قطعة)` };
+      return { success: false, message: `الكمية المطلوبة غير متوفرة (متوفر فقط ${item.product.stock} ${saleUnitLabel(item.product.saleUnit)})` };
     }
 
     setItems((prev) =>

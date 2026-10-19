@@ -143,4 +143,4 @@ export const reportsAPI={
  overview:(range:'7'|'30'|'90'|'all'):Promise<SalesReport>=>apiRequest('/reports/overview?range='+range)
 };
 
-export type CartQuote={items:{productId:string;quantity:number;product:{id:string;name:string;price:number;stock:number}|null;available:boolean}[];subtotal:number;canCheckout:boolean};
+export type CartQuote={items:{productId:string;quantity:number;product:{id:string;name:string;price:number;stock:number;saleUnit:string|null}|null;available:boolean}[];subtotal:number;canCheckout:boolean};
