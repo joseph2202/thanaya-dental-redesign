@@ -5,6 +5,7 @@ import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import Link from 'next/link';
 import { ordersAPI } from '@/lib/api';
+import {orderPresentation,orderStatusLabels,orderStatusColors,shortOrderCode} from '@/lib/orderPresentation';
 
 type Order = {
   id: string; total: number; subtotal?:number|null; shippingFee?:number|null; discountAmount?:number|null;couponCode?:string|null; status: string; createdAt: string;
@@ -40,15 +41,15 @@ function ConfirmationContent() {
           ) : (
             <div className="overflow-hidden rounded-3xl border border-[#d4eaf2] bg-white shadow-[0_18px_50px_#079dca10]">
               <div className="bg-[#edf7fc] px-7 py-10 text-center">
-                <div className="mx-auto mb-4 grid h-16 w-16 place-items-center rounded-full bg-white text-3xl shadow-sm">✓</div>
-                <h1 className="mb-3 text-3xl font-black text-ink">تم استلام طلبك بنجاح!</h1>
-                <p className="text-neutral-600">طلبك قيد المعالجة، وراح نتواصل وياك لتأكيد التوصيل.</p>
+                <div className="mx-auto mb-4 grid h-16 w-16 place-items-center rounded-full bg-white text-3xl shadow-sm" aria-hidden="true">{order.status==='pending'||order.status==='confirmed'||order.status==='shipped'||order.status==='delivered'?'✓':'↩'}</div>
+                <h1 className="mb-3 text-3xl font-black text-ink">{orderPresentation(order.status).heading}</h1>
+                <p className="text-neutral-600">{orderPresentation(order.status).message}</p>
               </div>
               <div className="space-y-6 p-7">
                 <div className="flex flex-wrap justify-between gap-4 border-b border-[#d4eaf2] pb-5">
-                  <div><p className="text-xs text-neutral-500">رقم الطلب</p><p className="font-black text-brand break-all">{order.id}</p></div>
+                  <div><p className="text-xs text-neutral-500">رقم الطلب</p><p className="font-black text-brand" dir="ltr">#{shortOrderCode(order.id)}</p><p className="mt-1 text-xs text-neutral-500">المعرّف الكامل موجود للمتابعة عند الحاجة</p></div>
                   <div><p className="text-xs text-neutral-500">التاريخ</p><p className="font-bold text-ink">{new Date(order.createdAt).toLocaleDateString('ar-IQ')}</p></div>
-                  <div><p className="text-xs text-neutral-500">الحالة</p><p className="font-bold text-ink">{order.status === 'pending' ? 'قيد المعالجة' : order.status}</p></div>
+                  <div><p className="text-xs text-neutral-500">الحالة</p><p className="font-bold text-ink">{orderStatusLabels[order.status]||'حالة غير معروفة'}</p></div>
                 </div>
                 <section>
                   <h2 className="mb-3 text-xl font-black text-ink">عنوان التوصيل</h2>
