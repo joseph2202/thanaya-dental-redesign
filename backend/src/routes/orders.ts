@@ -145,6 +145,25 @@ router.get('/manage',requireSales,async(req,res)=>{
   }catch(error){reportError(res,error,'manage orders')}
 });
 
+// Recover a checkout attempt after a lost response, without creating a second order.
+// The lookup is restricted to the authenticated purchaser, including for staff accounts.
+router.get('/attempt/:requestId', async (req, res) => {
+  try {
+    const principal = await principalFromRequest(req);
+    if (!principal) return res.status(401).json({ error: 'يجب تسجيل الدخول' });
+    const requestId = String(req.params.requestId);
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(requestId)) {
+      return res.status(400).json({ error: 'معرّف المحاولة غير صالح' });
+    }
+    const order = await prisma.order.findFirst({
+      where: { id: requestOrderId(principal.id, requestId), userId: principal.id },
+      select: { id: true, total: true, status: true }
+    });
+    if (!order) return res.status(404).json({ error: 'لا يوجد طلب لهذه المحاولة' });
+    res.json(order);
+  } catch (error) { reportError(res, error, 'recover checkout attempt'); }
+});
+
 // Read a customer's own order history from the database, never browser storage.
 router.get('/mine', async (req, res) => {
   try {
