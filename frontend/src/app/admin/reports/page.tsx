@@ -48,12 +48,13 @@ export default function Reports(){
     <section className="rounded-2xl border border-brand/20 bg-white p-5">
      <div className="mb-4 flex items-center gap-2"><TrendingUp size={20} className="text-brand"/><h2 className="text-lg font-black">قيمة الطلبات المُسلّمة يومياً</h2></div>
      <p className="mb-4 text-xs text-neutral-500">آخر {report.trendDays} يوم، بتوقيت العراق. الأيام بحسب تاريخ إنشاء الطلب؛ الأرقام للطلبات التي حالتها الآن مُسلّم.</p>
-     <div className="flex h-44 items-end gap-1" role="img" aria-label="مخطط قيمة الطلبات المسلّمة لكل يوم">
+     {report.trend.every(d=>d.value===0)&&<p className="rounded-xl bg-paper2/50 px-4 py-3 text-sm text-neutral-600">ماكو طلبات مُسلّمة ضمن الأيام المعروضة، لذلك الرسم البياني فارغ حالياً.</p>}
+     <div dir="ltr" className="flex h-32 items-end gap-1" role="img" aria-label="مخطط قيمة الطلبات المسلّمة لكل يوم">
       {report.trend.map(day=><div key={day.date} title={day.date+': '+money(day.value)+' ('+day.orders+' طلب)'} className="flex h-full min-w-0 flex-1 flex-col justify-end">
        <div className="min-h-[2px] w-full rounded-t-md bg-brand/80" style={{height:`${day.value/maxValue*100}%`}}/>
       </div>)}
      </div>
-     <div className="mt-2 flex justify-between text-xs text-neutral-500"><span>{report.trend[0]?.date||''}</span><span>{report.trend.at(-1)?.date||''}</span></div>
+     <div dir="ltr" className="mt-2 flex justify-between text-xs text-neutral-500"><span>{report.trend[0]?.date||''}</span><span>{report.trend.at(-1)?.date||''}</span></div>
     </section>
     <section className="rounded-2xl border border-brand/20 bg-white p-5">
      <div className="mb-4 flex items-center gap-2"><ShoppingCart size={20} className="text-brand"/><h2 className="text-lg font-black">حالات الطلبات</h2></div>
