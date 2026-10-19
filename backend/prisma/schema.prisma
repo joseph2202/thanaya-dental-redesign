@@ -45,10 +45,16 @@ model Category {
 }
 
 model Coupon {
-  id       String  @id @default(cuid())
-  code     String  @unique
-  discount Int
-  active   Boolean @default(true)
+  id          String   @id @default(cuid())
+  code        String   @unique
+  discount    Int
+  active      Boolean  @default(true)
+  kind        String   @default("percent")
+  minSubtotal Int      @default(0)
+  maxUses     Int?
+  usedCount   Int      @default(0)
+  expiresAt   DateTime?
+  createdAt   DateTime @default(now())
 }
 
 model Order {
@@ -61,6 +67,8 @@ model Order {
   total           Int
   subtotal        Int?
   shippingFee     Int?
+  couponCode      String?
+  discountAmount  Int?
   status          String      @default("pending")
   paymentMethod   String      @default("cod")
   createdAt       DateTime    @default(now())
