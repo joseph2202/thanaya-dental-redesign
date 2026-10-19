@@ -6,7 +6,7 @@ import Footer from '@/components/layout/Footer';
 import ProductMedia from '@/components/ui/ProductMedia';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
-import { ordersAPI, couponsAPI, deliveryAPI, DeliveryConfig } from '@/lib/api';
+import { ordersAPI, couponsAPI, deliveryAPI, DeliveryConfig, productsAPI, CartQuote } from '@/lib/api';
 import Link from 'next/link';
 
 const cities = [
@@ -17,7 +17,7 @@ const cities = [
 
 export default function CheckoutPage() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   const { items, totalPrice, clearCart } = useCart();
   const [form, setForm] = useState({
     name: '',
@@ -26,6 +26,10 @@ export default function CheckoutPage() {
     city: 'بغداد',
   });
   const [delivery,setDelivery] = useState<DeliveryConfig|null>(null);
+  const [quote,setQuote]=useState<CartQuote|null>(null);
+  const [quoteLoading,setQuoteLoading]=useState(true);
+  const [quoteError,setQuoteError]=useState('');
+  const [priceAcknowledged,setPriceAcknowledged]=useState(false);
   const [deliveryError,setDeliveryError] = useState('');
   const [deliveryLoading,setDeliveryLoading] = useState(true);
   useEffect(()=>{deliveryAPI.getPublic().then(data=>{setDelivery(data);setDeliveryError('')}).catch(()=>setDeliveryError('تعذر التحقق من أجور التوصيل. حاول مجدداً')).finally(()=>setDeliveryLoading(false))},[]);
@@ -46,16 +50,22 @@ export default function CheckoutPage() {
     }catch(err){setCoupon(null);setCouponError(err instanceof Error?err.message:'تعذر التحقق من الكوبون')}
     finally{setCouponBusy(false)}
   }
-  // A changed cart invalidates the old coupon quote.
+  // Cart changes invalidate old coupon and inventory/price quotes.
   const basketSignature=JSON.stringify(items.map(i=>[i.product.id,i.quantity]));
-  useEffect(()=>{setCoupon(null)},[basketSignature]);
+  useEffect(()=>{setCoupon(null);setPriceAcknowledged(false);setQuote(null);setQuoteError('');
+    if(!items.length){setQuoteLoading(false);return;}
+    let cancelled=false;setQuoteLoading(true);
+    productsAPI.quote(items.map(i=>({productId:i.product.id,quantity:i.quantity}))).then(q=>{if(!cancelled)setQuote(q)}).catch(e=>{if(!cancelled)setQuoteError(e instanceof Error?e.message:'تعذر مراجعة الأسعار')}).finally(()=>{if(!cancelled)setQuoteLoading(false)});
+    return ()=>{cancelled=true};
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[basketSignature]);
+  const serverSubtotal=quote?.subtotal??totalPrice;
+  const priceChanged=Boolean(quote?.items.some(q=>{const old=items.find(i=>i.product.id===q.productId);return !!q.product&&!!old&&old.product.price!==q.product.price}));
 
   // حماية الصفحة - redirect للـ login إذا ما كان مسجل
   useEffect(() => {
-    if (!user) {
-      router.push('/login?redirect=/checkout');
-    }
-  }, [user, router]);
+    if (!authLoading && !user) router.push('/login?redirect=/checkout');
+  }, [user, router, authLoading]);
 
   // ملء البيانات تلقائياً من الحساب
   useEffect(() => {
@@ -69,9 +79,7 @@ export default function CheckoutPage() {
     }
   }, [user]);
 
-  if (!user) {
-    return null;
-  }
+  if (authLoading || !user) return null;
 
   if (items.length === 0) {
     return (
@@ -91,25 +99,64 @@ export default function CheckoutPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if(submitting)return;
     if(deliveryLoading||deliveryError||deliveryUnavailable||!delivery){setSubmitError('تأكد من توفر التوصيل لهذه المحافظة قبل إتمام الطلب');return;}
+    if(quoteLoading||quoteError||!quote?.canCheckout){setSubmitError('راجع السلة والأسعار والكميات قبل التأكيد');return;}
+    if(priceChanged&&!priceAcknowledged){setSubmitError('تغيّر سعر أحد المنتجات. وافق على السعر الجديد أولاً');return;}
     setSubmitting(true);
 
     setSubmitError('');
     try {
-      const lines = items.map((item) => ({ productId: item.product.id, quantity: item.quantity }));
-      // Reuse one identifier after network failures, but not for a changed basket/address.
-      const fingerprint = JSON.stringify({ lines: [...lines].sort((a, b) => a.productId.localeCompare(b.productId)), customer: form, couponCode:coupon?.code??null });
-      const saved = sessionStorage.getItem('thanaya-checkout-attempt');
-      let attempt: { fingerprint: string; requestId: string } | null = null;
-      try { attempt = saved ? JSON.parse(saved) : null; } catch { /* replace corrupt data */ }
-      if (!attempt || attempt.fingerprint !== fingerprint) {
-        attempt = { fingerprint, requestId: crypto.randomUUID() };
-        sessionStorage.setItem('thanaya-checkout-attempt', JSON.stringify(attempt));
+      const lines = items.map(item => ({ productId:item.product.id, quantity:item.quantity }));
+      const fingerprint=JSON.stringify({lines:[...lines].sort((a,b)=>a.productId.localeCompare(b.productId)),customer:form,couponCode:coupon?.code??null});
+      const saved=sessionStorage.getItem('thanaya-checkout-attempt');
+      let attempt:{fingerprint:string;requestId:string}|null=null;
+      try{attempt=saved?JSON.parse(saved):null}catch{attempt=null}
+      const complete=(id:string)=>{sessionStorage.removeItem('thanaya-checkout-attempt');clearCart();router.push('/order/confirmation?id='+encodeURIComponent(id))};
+      if(attempt&&attempt.fingerprint===fingerprint){
+        try{const recovered=await ordersAPI.recoverAttempt(attempt.requestId);complete(recovered.id);return}
+        catch(e){if((e as Error&{status?:number}).status!==404)throw e}
       }
-      const order = await ordersAPI.create({ items: lines, customer: form, requestId: attempt.requestId, couponCode:coupon?.code??null });
-      sessionStorage.removeItem('thanaya-checkout-attempt');
-      clearCart();
-      router.push('/order/confirmation?id=' + encodeURIComponent(order.id));
+      // Confirm again against current server data, not localStorage amounts.
+      const [fresh,latestDelivery]=await Promise.all([productsAPI.quote(lines),deliveryAPI.getPublic()]);
+      setQuote(fresh);setDelivery(latestDelivery);
+      if(!fresh.canCheckout){setSubmitError('المخزون تغيّر؛ عد إلى السلة وعدّل الكميات');return}
+      if(fresh.subtotal!==quote.subtotal){
+        setPriceAcknowledged(false);
+        setCoupon(null);
+        setSubmitError('تغيّر سعر المنتج أثناء المراجعة. راجع المبلغ الجديد وطبّق الكوبون من جديد');
+        return;
+      }
+      const updatedRate=latestDelivery.rates.find(r=>r.province===form.city);
+      if(latestDelivery.enabled&& !updatedRate?.available){setSubmitError('التوصيل لهذه المحافظة لم يعد متاحاً');return}
+      if(latestDelivery.enabled!==delivery.enabled||(latestDelivery.enabled&&(updatedRate?.fee??0)!==fee)){
+        setSubmitError('تغيّرت إعدادات أجور التوصيل. راجع المبلغ الجديد واضغط تأكيد مرة ثانية');
+        return;
+      }
+      if(coupon){
+        const latestCoupon=await couponsAPI.preview(coupon.code,lines);
+        if(latestCoupon.discount!==coupon.discount||latestCoupon.subtotal!==fresh.subtotal){
+          setCoupon(latestCoupon);
+          setSubmitError('تغيّر مبلغ الخصم. راجع الإجمالي الجديد ثم أكد مرة ثانية');
+          return;
+        }
+      }
+      if(!attempt||attempt.fingerprint!==fingerprint){
+        attempt={fingerprint,requestId:crypto.randomUUID()};
+        sessionStorage.setItem('thanaya-checkout-attempt',JSON.stringify(attempt));
+      }
+      try{
+        const order=await ordersAPI.create({items:lines,customer:form,requestId:attempt.requestId,couponCode:coupon?.code??null});
+        complete(order.id);
+      }catch(e){
+        // If checkout was committed but the network response was lost, recover safely.
+        try{
+          const recovered=await ordersAPI.recoverAttempt(attempt.requestId);
+          complete(recovered.id);
+        }catch{
+          throw e; // Keep the attempt ID for safe retry.
+        }
+      }
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : 'تعذر تأكيد الطلب، حاول مجدداً');
     } finally {
@@ -204,10 +251,14 @@ export default function CheckoutPage() {
               </div>
             </div>
 
+            {quoteLoading&&<p role="status" className="text-sm text-sky-700">جاري التأكد من سعر المنتجات والمخزون...</p>}
+            {quoteError&&<p role="alert" className="text-sm font-bold text-red-700">{quoteError}</p>}
+            {quote&&!quote.canCheckout&&<div role="alert" className="rounded-xl bg-amber-50 p-3 text-sm text-amber-900">المخزون غير كافٍ لبعض المنتجات أو أحدها غير متوفر. <Link className="font-bold underline" href="/cart">راجع السلة</Link></div>}
+            {priceChanged&&<label className="flex items-start gap-2 rounded-xl bg-amber-50 p-3 text-sm text-amber-950"><input type="checkbox" className="mt-1" checked={priceAcknowledged} onChange={e=>setPriceAcknowledged(e.target.checked)}/><span>تغيّر سعر أحد المنتجات. راجعت المبلغ الجديد وأوافق على المتابعة.</span></label>}
             {submitError && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-bold text-red-700">{submitError}</p>}
             <button
               type="submit"
-              disabled={submitting || items.length === 0 || deliveryLoading || !!deliveryError || !delivery || deliveryUnavailable}
+              disabled={submitting || items.length === 0 || deliveryLoading || !!deliveryError || !delivery || deliveryUnavailable || quoteLoading || !!quoteError || !quote?.canCheckout || (priceChanged&&!priceAcknowledged)}
               className="site-btn site-btn-primary site-btn-lg w-full"
             >
               {submitting ? 'جاري تأكيد الطلب...' : 'تأكيد الطلب'}
@@ -223,9 +274,9 @@ export default function CheckoutPage() {
                   <ProductMedia name={item.product.name} image={item.product.image} icon={item.product.icon} size={28} className="w-12 h-12 rounded-lg flex-shrink-0" />
                   <div className="flex-1 min-w-0">
                     <p className="font-bold text-sm truncate text-ink">{item.product.name}</p>
-                    <p className="text-xs text-neutral-500">{item.quantity} × {item.product.price.toLocaleString()} د.ع</p>
+                    <p className="text-xs text-neutral-500">{item.quantity} × {(quote?.items.find(q=>q.productId===item.product.id)?.product?.price??item.product.price).toLocaleString()} د.ع</p>
                   </div>
-                  <p className="font-black text-sm text-ink">{(item.product.price * item.quantity).toLocaleString()}</p>
+                  <p className="font-black text-sm text-ink">{((quote?.items.find(q=>q.productId===item.product.id)?.product?.price??item.product.price)*item.quantity).toLocaleString()}</p>
                 </div>
               ))}
             </div>
@@ -233,7 +284,7 @@ export default function CheckoutPage() {
             <div className="border-t-2 border-brand/30 pt-4 space-y-2">
               <div className="flex justify-between">
                 <span className="font-bold text-ink">المجموع الفرعي</span>
-                <span className="font-black text-ink">{totalPrice.toLocaleString()} د.ع</span>
+                <span className="font-black text-ink">{serverSubtotal.toLocaleString()} د.ع</span>
               </div>
               <div className="flex justify-between">
                 <span className="font-bold text-ink">الشحن</span>
@@ -242,7 +293,7 @@ export default function CheckoutPage() {
               {coupon&&<div className="flex justify-between text-green-700"><span className="font-bold">الخصم ({coupon.code})</span><span className="font-black">-{coupon.discount.toLocaleString()} د.ع</span></div>}
               <div className="flex justify-between text-xl pt-2 border-t border-brand/20">
                 <span className="font-black text-ink">الإجمالي</span>
-                <span className="font-black text-2xl text-brand">{(totalPrice-(coupon?.discount??0)+fee).toLocaleString()} د.ع</span>
+                <span className="font-black text-2xl text-brand">{(serverSubtotal-(coupon?.discount??0)+fee).toLocaleString()} د.ع</span>
               </div>
             </div>
           </div>

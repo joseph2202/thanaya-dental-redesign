@@ -64,7 +64,7 @@ export default function CartPage() {
               <div className="min-w-0">
                 <Link href={`/product/${item.product.id}`} className="block font-bold text-base sm:text-lg text-ink hover:text-brand">{item.product.name}</Link>
                 <p className="text-neutral-500 text-sm">{item.product.brand}</p>
-                <p className="text-ink font-black mt-1 text-lg">{item.product.price.toLocaleString()} د.ع</p>
+                <p className="text-ink font-black mt-1 text-lg">{(quote?.items.find(q=>q.productId===item.product.id)?.product?.price??item.product.price).toLocaleString()} د.ع</p>
               </div>
               <div className="col-span-2 sm:col-span-1 flex items-center gap-2">
                 <button aria-label="تقليل الكمية" disabled={item.quantity <= 1}
@@ -82,7 +82,7 @@ export default function CartPage() {
                 </button>
               </div>
               <div className="col-span-2 flex items-center justify-between gap-3 border-t border-brand/10 pt-3 sm:col-span-3 sm:pt-2 text-left">
-                <p className="font-black text-lg text-ink">{(item.product.price * item.quantity).toLocaleString()} د.ع</p>
+                <p className="font-black text-lg text-ink">{((quote?.items.find(q=>q.productId===item.product.id)?.product?.price??item.product.price)*item.quantity).toLocaleString()} د.ع</p>
                 <button
                   onClick={() => removeFromCart(item.product.id)}
                   className="inline-flex items-center gap-1 text-red-600 text-sm font-bold hover:underline"
@@ -102,7 +102,7 @@ export default function CartPage() {
         <div className="site-surface !bg-[#e9f8fd] p-5 sm:p-6">
           <div className="flex justify-between items-center mb-4">
             <span className="font-bold text-lg text-ink">المجموع:</span>
-            <span className="text-3xl font-black text-brand">{totalPrice.toLocaleString()} د.ع</span>
+            <span className="text-3xl font-black text-brand">{(quote?.subtotal??totalPrice).toLocaleString()} د.ع</span>
           </div>
           <p className="mb-4 text-xs text-neutral-600">المجموع قبل الكوبون وأجور التوصيل. يتم احتساب المبلغ النهائي والتحقق من المخزون مجدداً عند تأكيد الطلب.</p>
           <div className="flex flex-col sm:flex-row gap-3">

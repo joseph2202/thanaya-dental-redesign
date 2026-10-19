@@ -301,7 +301,26 @@ async function main() {
       const remain=await prisma.product.findUnique({where:{id:p.id}});
       assert.equal(remain.stock,3);
     });
-    console.log('\\nALL 11 CHECKS PASSED. Database was isolated and will be deleted.');
+    await check('checkout attempt recovery is authenticated and cannot reveal another customer order',async()=>{
+      const p=await product('Retry recovery',2,15000);
+      const requestId=randomUUID();
+      const created=await request(base,'/api/orders','POST',{
+        requestId,items:[{productId:p.id,quantity:1}],customer
+      },aliceToken);
+      assert.equal(created.status,201);
+      const recovered=await request(base,'/api/orders/attempt/'+requestId,'GET',undefined,aliceToken);
+      assert.equal(recovered.status,200);
+      assert.equal(recovered.body.id,created.body.id);
+      const stranger=await request(base,'/api/orders/attempt/'+requestId,'GET',undefined,bobToken);
+      assert.equal(stranger.status,404);
+      const anonymous=await request(base,'/api/orders/attempt/'+requestId);
+      assert.equal(anonymous.status,401);
+      const invalid=await request(base,'/api/orders/attempt/not-a-uuid','GET',undefined,aliceToken);
+      assert.equal(invalid.status,400);
+      const after=await prisma.product.findUnique({where:{id:p.id}});
+      assert.equal(after.stock,1,'recovery must never change stock');
+    });
+    console.log('\\nALL 12 CHECKS PASSED. Database was isolated and will be deleted.');
   } catch (error) {
     console.error('\nORDER INTEGRATION FAILED. Server output:\n' + logs);
     throw error;
