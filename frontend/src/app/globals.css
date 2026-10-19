@@ -125,3 +125,17 @@ button, a { -webkit-tap-highlight-color: transparent; }
   *, *::before, *::after { transition-duration: .01ms !important; }
 }
 @media (max-width: 640px) { .site-container { width: min(100% - 32px, 1220px); } }
+
+/* Mobile storefront polish: prevent overflow, preserve touch targets and reduce forced width. */
+@media (max-width: 639px) {
+  .site-section { padding-block: 2.75rem; }
+  .site-heading { font-size: clamp(1.65rem, 7vw, 2.2rem); }
+  .site-page-title { font-size: clamp(1.85rem, 8vw, 2.8rem); }
+  .site-btn-lg { min-height: 52px; padding: .7rem 1.2rem; }
+  .site-surface, .site-card { min-width: 0; }
+  .site-product-visual img { padding: .6rem; }
+  .site-muted { line-height: 1.7; }
+}
+@media (hover: none) {
+  .site-card:hover { transform: none; box-shadow: none; }
+}
