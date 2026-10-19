@@ -219,7 +219,38 @@ async function main() {
       assert.equal(secondPage.status,200);
       assert.equal(secondPage.body.orders.length,0);
     });
-    console.log('\\nALL 8 CHECKS PASSED. Database was isolated and will be deleted.');
+    await check('notifications are owner-scoped, persist on orders and status changes',async()=>{
+      const before=await prisma.notification.count();
+      const product1=await product('Notifications purchase',2,17000);
+      const customerOrder=await request(base,'/api/orders','POST',{
+        requestId:randomUUID(),items:[{productId:product1.id,quantity:1}],customer
+      },aliceToken);
+      assert.equal(customerOrder.status,201,JSON.stringify(customerOrder));
+      assert.ok((await prisma.notification.count())>before,'staff should be notified of new order');
+      const adminInbox=await request(base,'/api/notifications','GET',undefined,adminToken);
+      assert.equal(adminInbox.status,200,JSON.stringify(adminInbox));
+      const ownerInboxItem=adminInbox.body.items.find(n=>n.orderId===customerOrder.body.id);
+      assert.ok(ownerInboxItem,'staff should see assigned new order');
+      const aliceInbox=await request(base,'/api/notifications','GET',undefined,aliceToken);
+      assert.equal(aliceInbox.status,200);
+      assert.ok(!aliceInbox.body.items.some(n=>n.id===ownerInboxItem.id),'customer must not read staff notices');
+      const forbidden=await request(base,'/api/notifications/'+ownerInboxItem.id+'/read','PATCH',undefined,aliceToken);
+      assert.equal(forbidden.status,404);
+      const marked=await request(base,'/api/notifications/'+ownerInboxItem.id+'/read','PATCH',undefined,adminToken);
+      assert.equal(marked.status,200);
+      const status=await request(base,'/api/orders/'+customerOrder.body.id+'/status','PATCH',{status:'confirmed'},adminToken);
+      assert.equal(status.status,200);
+      const own=await request(base,'/api/notifications','GET',undefined,aliceToken);
+      assert.equal(own.status,200);
+      assert.ok(own.body.items.some(n=>n.kind==='order_status'&&n.orderId===customerOrder.body.id));
+      const anon=await request(base,'/api/notifications');
+      assert.equal(anon.status,401);
+      const low=await product('Low stock alert',2,1000);
+      const stock=await request(base,'/api/notifications','GET',undefined,adminToken);
+      assert.ok(stock.body.lowStock.some(p=>p.id===low.id),'live low stock warning');
+      assert.equal(own.body.lowStock.length,0,'customer should not see stock alerts');
+    });
+    console.log('\\nALL 9 CHECKS PASSED. Database was isolated and will be deleted.');
   } catch (error) {
     console.error('\nORDER INTEGRATION FAILED. Server output:\n' + logs);
     throw error;

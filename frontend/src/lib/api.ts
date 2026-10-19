@@ -121,3 +121,10 @@ export const deliveryAPI={
   getAdmin:():Promise<DeliveryConfig>=>apiRequest('/delivery'),
   save:(data:DeliveryConfig):Promise<DeliveryConfig>=>apiRequest('/delivery',{method:'PUT',body:JSON.stringify(data)})
 };
+
+export type StoreNotification={id:string;kind:string;title:string;message:string;orderId:string|null;createdAt:string;readAt:string|null};
+export type NotificationInbox={items:StoreNotification[];unread:number;lowStock:{id:string;name:string;stock:number}[]};
+export const notificationsAPI={
+  get:():Promise<NotificationInbox>=>apiRequest('/notifications'),
+  read:(id:string)=>apiRequest('/notifications/'+encodeURIComponent(id)+'/read',{method:'PATCH'})
+};

@@ -3,13 +3,14 @@ import { useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { LayoutDashboard, Package, ShoppingBag, Users, Shapes, TicketPercent, Settings, Truck, ArrowRight, LogOut } from 'lucide-react';
+import { LayoutDashboard, Package, ShoppingBag, Users, Shapes, TicketPercent, Settings, Truck, ArrowRight, LogOut, Bell } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
 const navItems = [
   { href: '/admin', label: 'نظرة عامة', icon: LayoutDashboard },
   { href: '/admin/products', label: 'المنتجات', icon: Package },
   { href: '/admin/orders', label: 'الطلبات', icon: ShoppingBag },
+  { href: '/notifications', label: 'الإشعارات', icon: Bell },
   { href: '/admin/users', label: 'المستخدمين', icon: Users },
   { href: '/admin/categories', label: 'التصنيفات', icon: Shapes },
   { href: '/admin/coupons', label: 'الكوبونات', icon: TicketPercent },
@@ -24,8 +25,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const visibleItems = navItems.filter(item => {
     if (item.href === '/admin/delivery') return user?.role === 'owner';
     if (user?.role === 'owner' || user?.role === 'admin') return true;
-    if (user?.role === 'inventory') return ['/admin','/admin/products'].includes(item.href);
-    if (user?.role === 'sales') return ['/admin','/admin/orders'].includes(item.href);
+    if (user?.role === 'inventory') return ['/admin','/admin/products','/notifications'].includes(item.href);
+    if (user?.role === 'sales') return ['/admin','/admin/orders','/notifications'].includes(item.href);
     return false;
   });
 
@@ -33,8 +34,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     if (isLoading) return;
     if (!user) router.replace('/login?redirect=/admin');
     else if (!isAdmin) router.replace('/');
-    else if (user.role === 'inventory' && !['/admin','/admin/products'].includes(pathname)) router.replace('/admin/products');
-    else if (user.role === 'sales' && !['/admin','/admin/orders'].includes(pathname)) router.replace('/admin/orders');
+    else if (user.role === 'inventory' && !['/admin','/admin/products','/notifications'].includes(pathname)) router.replace('/admin/products');
+    else if (user.role === 'sales' && !['/admin','/admin/orders','/notifications'].includes(pathname)) router.replace('/admin/orders');
   }, [user, isAdmin, isLoading, router, pathname]);
 
   if (isLoading) return <div className="site-main grid place-items-center p-8 text-sm text-ink" role="status">جاري التحقق من صلاحيات الإدارة...</div>;

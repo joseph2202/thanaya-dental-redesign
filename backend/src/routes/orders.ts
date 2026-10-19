@@ -263,7 +263,7 @@ router.post('/', async (req, res) => {
         total+=shippingFee;
         if(!Number.isSafeInteger(total))throw new OrderError(400,'إجمالي الطلب كبير جداً');
       }
-      return tx.order.create({
+      const created=await tx.order.create({
         data: {
           id,
           userId: principal.id,
@@ -284,6 +284,11 @@ router.post('/', async (req, res) => {
         },
         include: { items: true }
       });
+      const staff=await tx.user.findMany({where:{role:{in:['owner','admin','sales']}},select:{id:true}});
+      if(staff.length)await tx.notification.createMany({data:staff.map(u=>({
+        recipientId:u.id,kind:'new_order',title:'طلب جديد',message:'وصل طلب من '+customer.name+' بقيمة '+total.toLocaleString('en-US')+' د.ع',orderId:created.id
+      }))});
+      return created;
     }, { maxWait: 5000, timeout: 10000 });
 
     res.status(201).json(order);
@@ -350,6 +355,11 @@ router.patch('/:id/status', requireSales, async (req, res) => {
           await tx.inventoryMovement.create({data:{productId:item.productId,delta:item.quantity,before:restored.stock-item.quantity,after:restored.stock,reason:status === 'cancelled' ? 'order_cancelled' : 'order_returned',referenceId:current.id,actorId:res.locals.adminUserId as string}});
         }
       }
+      if(current.userId)await tx.notification.create({data:{
+        recipientId:current.userId,kind:'order_status',title:'تحديث حالة طلبك',
+        message:'تغيرت حالة الطلب إلى '+({confirmed:'مؤكد',shipped:'تم الشحن',delivered:'تم التوصيل',cancelled:'ملغي',returned:'مرتجع'} as Record<string,string>)[status],
+        orderId:current.id
+      }});
       return tx.order.findUniqueOrThrow({ where: { id: current.id } });
     }, { maxWait: 5000, timeout: 10000 });
     res.json(order);

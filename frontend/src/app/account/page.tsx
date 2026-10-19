@@ -28,7 +28,7 @@ export default function AccountPage() {
     <>
       <Header />
       <main className="max-w-4xl mx-auto px-4 py-12">
-        <h1 className="text-4xl font-black mb-8 text-ink">حسابي</h1>
+        <div className="mb-8 flex items-center justify-between gap-3"><h1 className="text-4xl font-black text-ink">حسابي</h1><Link href="/notifications" className="site-btn site-btn-outline site-btn-sm">إشعاراتي</Link></div>
 
         <div className="grid md:grid-cols-3 gap-6">
           {/* معلومات المستخدم */}
