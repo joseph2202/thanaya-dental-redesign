@@ -16,6 +16,10 @@ export default function AdminProducts() {
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [stockProduct, setStockProduct] = useState<any>(null);
+  const [lotsData,setLotsData]=useState<any>(null);
+  const [lotError,setLotError]=useState('');
+  const [lotBusy,setLotBusy]=useState(false);
+  const [lotForm,setLotForm]=useState({code:'',expiryDate:'',quantity:''});
   const [stockDelta, setStockDelta] = useState('');
   const [stockReason, setStockReason] = useState('');
   const [stockError, setStockError] = useState('');
@@ -36,12 +40,38 @@ export default function AdminProducts() {
   };
 
   const openInventory = async (product: any) => {
-    setStockProduct(product);
+    setStockProduct(product);setLotsData(null);setLotError('');
+    productsAPI.getLots(product.id).then(setLotsData).catch(e=>setLotError(e instanceof Error?e.message:'تعذر تحميل التشغيلات'));
     setStockDelta(''); setStockReason(''); setStockError(''); setStockHistory([]);
     try { const data = await productsAPI.getInventory(product.id); setStockHistory(data.movements || []); }
     catch (error) { setStockError(error instanceof Error ? error.message : 'تعذر جلب السجل'); }
   };
 
+  const refreshLots=async(id:string)=>{setLotsData(await productsAPI.getLots(id));await loadProducts();};
+  const enableLots=async()=>{
+    if(!stockProduct||!confirm('تفعيل تتبع التشغيلات لهذا المنتج؟'))return;
+    setLotBusy(true);setLotError('');
+    try{await productsAPI.enableLots(stockProduct.id);await refreshLots(stockProduct.id);}
+    catch(e){setLotError(e instanceof Error?e.message:'تعذر التفعيل');}
+    finally{setLotBusy(false);}
+  };
+  const receiveLot=async(e:React.FormEvent)=>{
+    e.preventDefault();if(!stockProduct)return;
+    setLotBusy(true);setLotError('');
+    try{await productsAPI.receiveLot(stockProduct.id,{...lotForm,quantity:Number(lotForm.quantity)});await refreshLots(stockProduct.id);setLotForm({code:'',expiryDate:'',quantity:''});}
+    catch(e){setLotError(e instanceof Error?e.message:'تعذر تسجيل التشغيلة');}
+    finally{setLotBusy(false);}
+  };
+  const adjustLot=async(lot:any)=>{
+    if(!stockProduct)return;
+    const delta=Number(prompt('فرق الكمية (+ أو -):','-1'));
+    if(!Number.isSafeInteger(delta)||delta===0)return;
+    const reason=prompt('سبب التعديل');if(!reason?.trim())return;
+    setLotBusy(true);setLotError('');
+    try{await productsAPI.adjustLot(stockProduct.id,lot.id,{delta,reason:reason.trim()});await refreshLots(stockProduct.id);}
+    catch(e){setLotError(e instanceof Error?e.message:'تعذر تعديل التشغيلة');}
+    finally{setLotBusy(false);}
+  };
   const saveStock = async (e: React.FormEvent) => {
     e.preventDefault();
     const delta = Number(stockDelta);
@@ -122,11 +152,28 @@ export default function AdminProducts() {
       {stockProduct && <section className="site-surface mb-7 p-6" aria-label="إدارة المخزون">
         <div className="flex items-center justify-between gap-3 mb-4"><h3 className="text-xl font-black">مخزون {stockProduct.name}</h3><button type="button" className="site-btn site-btn-outline site-btn-sm" onClick={() => setStockProduct(null)}>إغلاق</button></div>
         <p className="mb-4 text-sm">الكمية الحالية: <strong className="text-brand">{stockProduct.stock}</strong> {saleUnitLabel(stockProduct.saleUnit)}. للإضافة اكتب رقماً موجباً، وللتصحيح بالنقصان اكتب رقماً سالباً.</p>
-        <form onSubmit={saveStock} className="grid gap-3 sm:grid-cols-[130px_1fr_auto] items-end">
+        <div className="mb-5 rounded-xl border border-brand/20 bg-[#f4faff] p-4">
+          <h4 className="mb-3 font-black">التشغيلات وتواريخ الصلاحية</h4>
+          {lotsData?.product?.lotTracking ? <>
+            <p className="mb-3 text-xs text-neutral-600">تُباع التشغيلات الصالحة حسب الأقرب انتهاءً؛ المخزون المنتهي لا يدخل ضمن المتاح للبيع.</p>
+            <div className="mb-4 space-y-2">{lotsData.lots?.map((lot:any)=><div key={lot.id} className="flex flex-wrap justify-between gap-3 rounded-lg border bg-white p-3 text-sm">
+              <div><b dir="ltr">{lot.code}</b><p>الصلاحية: {lot.expiryDate} · الكمية: {lot.stock}</p><strong className={lot.status==='expired'?'text-red-700':lot.status==='soon'?'text-amber-700':'text-green-700'}>{lot.status==='expired'?'منتهية':lot.status==='soon'?'قريبة الانتهاء':'صالحة'}</strong></div>
+              <button type="button" disabled={lotBusy} onClick={()=>adjustLot(lot)} className="site-btn site-btn-outline site-btn-sm">تعديل الكمية</button>
+            </div>)}</div>
+            <form onSubmit={receiveLot} className="grid gap-3 sm:grid-cols-3">
+              <label className="text-sm font-bold">رقم التشغيلة<input required maxLength={80} value={lotForm.code} onChange={e=>setLotForm({...lotForm,code:e.target.value})} className="mt-1 w-full rounded-xl border p-3" placeholder="LOT-2026-A"/></label>
+              <label className="text-sm font-bold">تاريخ الصلاحية<input required type="date" value={lotForm.expiryDate} onChange={e=>setLotForm({...lotForm,expiryDate:e.target.value})} className="mt-1 w-full rounded-xl border p-3"/></label>
+              <label className="text-sm font-bold">الكمية المستلمة<input required type="number" min={1} max={1000000} value={lotForm.quantity} onChange={e=>setLotForm({...lotForm,quantity:e.target.value})} className="mt-1 w-full rounded-xl border p-3"/></label>
+              <button type="submit" disabled={lotBusy} className="site-btn site-btn-primary sm:col-span-3">تسجيل التشغيلة وإضافة المخزون</button>
+            </form>
+          </> : <><p className="mb-3 text-xs text-neutral-600">لتفعيلها بأمان، المنتج لازم يكون بدون مخزون وبدون حركات أو طلبات سابقة. المنتجات القديمة تبقى على النظام السابق.</p><button type="button" disabled={lotBusy||stockProduct.stock!==0} onClick={enableLots} className="site-btn site-btn-outline site-btn-sm">تفعيل تتبع التشغيلات</button></>}
+          {lotError&&<p role="alert" className="mt-3 font-bold text-red-700">{lotError}</p>}
+        </div>
+        {!lotsData?.product?.lotTracking && <form onSubmit={saveStock} className="grid gap-3 sm:grid-cols-[130px_1fr_auto] items-end">
           <label className="text-sm font-bold">فرق الكمية<input type="number" step="1" required value={stockDelta} onChange={e=>setStockDelta(e.target.value)} className="mt-1 block w-full rounded-xl border border-brand/30 p-3" placeholder="+5 أو -2" /></label>
           <label className="text-sm font-bold">سبب التعديل<input required maxLength={250} value={stockReason} onChange={e=>setStockReason(e.target.value)} className="mt-1 block w-full rounded-xl border border-brand/30 p-3" placeholder="توريد، جرد، تلف..." /></label>
           <button type="submit" disabled={stockBusy} className="site-btn site-btn-primary">{stockBusy ? 'جاري الحفظ...' : 'تسجيل الحركة'}</button>
-        </form>
+        </form>}
         {stockError && <p role="alert" className="mt-3 font-bold text-red-700">{stockError}</p>}
         <h4 className="font-black mt-6 mb-3">آخر حركات المخزون</h4>
         <div className="max-h-64 overflow-auto space-y-2 text-sm">{stockHistory.length === 0 ? <p className="text-neutral-500">ماكو حركات مخزون مسجلة بعد.</p> : stockHistory.map((entry: any)=><div key={entry.id} className="rounded-xl border border-brand/15 px-4 py-3 flex flex-wrap justify-between gap-3"><span>{entry.reason} — {entry.delta > 0 ? '+' : ''}{entry.delta}</span><span>{entry.before} ← {entry.after}</span><time>{new Date(entry.createdAt).toLocaleString('ar-IQ')}</time></div>)}</div>
@@ -170,7 +217,7 @@ export default function AdminProducts() {
                 <td className="px-4 py-3 text-sm text-ink">{p.category}</td>
                 <td className="px-4 py-3 text-sm font-bold text-ink">{p.price.toLocaleString()} د.ع</td>
                 <td className="px-4 py-3">
-                  <span className={`text-sm font-bold ${p.stock > 10 ? 'text-green-600' : p.stock > 0 ? 'text-yellow-600' : 'text-red-600'}`}>{p.stock} {saleUnitLabel(p.saleUnit)}</span>
+                  <span className={`text-sm font-bold ${p.stock > 10 ? 'text-green-600' : p.stock > 0 ? 'text-yellow-600' : 'text-red-600'}`}>{p.lotTracking ? (p.availableStock??p.stock) : p.stock} {saleUnitLabel(p.saleUnit)}</span>
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex gap-2">
