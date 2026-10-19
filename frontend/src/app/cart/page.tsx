@@ -31,7 +31,7 @@ export default function CartPage() {
   const adjust=(id:string,quantity:number)=>{
     const line=quote?.items.find(item=>item.productId===id);
     if(!line?.product){setMessage('المنتج لم يعد متوفراً. احذفه من السلة');return;}
-    if(quantity>line.product.stock){setMessage('المتاح حالياً '+line.product.stock+' '+saleUnitLabel(line.product.saleUnit)+' فقط');return;}
+    if(quantity>line.product.availableStock){setMessage('المتاح حالياً '+line.product.availableStock+' '+saleUnitLabel(line.product.saleUnit)+' فقط');return;}
     const result=updateQuantity(id,quantity);setMessage(result.success?'':result.message)
   };
 
@@ -98,7 +98,7 @@ export default function CartPage() {
         {message&&<p role="alert" className="mb-4 rounded-xl bg-red-50 p-3 font-bold text-red-700">{message}</p>}
         {quoteLoading&&<p role="status" className="mb-4 rounded-xl bg-sky-50 p-3 text-sm text-sky-900">جاري التأكد من الأسعار والكميات الحالية...</p>}
         {quoteError&&<p role="alert" className="mb-4 rounded-xl bg-red-50 p-3 font-bold text-red-700">{quoteError}</p>}
-        {quote?.items.some(line=>!line.available)&&<div role="alert" className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900"><strong>يرجى مراجعة السلة:</strong>{quote.items.filter(line=>!line.available).map(line=><p className="mt-1" key={line.productId}>{line.product?.name||'منتج محذوف'}: {line.product?`المتاح ${line.product.stock} ${saleUnitLabel(line.product.saleUnit)}، والمطلوب ${line.quantity}`:'لم يعد متوفراً'}</p>)}</div>}
+        {quote?.items.some(line=>!line.available)&&<div role="alert" className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900"><strong>يرجى مراجعة السلة:</strong>{quote.items.filter(line=>!line.available).map(line=><p className="mt-1" key={line.productId}>{line.product?.name||'منتج محذوف'}: {line.product?`المتاح ${line.product.availableStock} ${saleUnitLabel(line.product.saleUnit)}، والمطلوب ${line.quantity}`:'لم يعد متوفراً'}</p>)}</div>}
         {quote&&quote.items.some(line=>{const item=items.find(i=>i.product.id===line.productId);return line.product&&item&&line.product.price!==item.product.price})&&<p role="status" className="mb-4 rounded-xl border border-sky-200 bg-sky-50 p-3 text-sm font-bold text-sky-900">تغيّر سعر أحد المنتجات. المجموع المعتمد حالياً موضح بالأسفل؛ راجع السعر قبل المتابعة.</p>}
         <div className="site-surface !bg-[#e9f8fd] p-5 sm:p-6">
           <div className="flex justify-between items-center mb-4">

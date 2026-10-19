@@ -104,7 +104,7 @@ function publicProduct<T extends {gallery:string|null;specs:string|null;stock:nu
 function respondError(res: import('express').Response, error: unknown) {
   if (error instanceof InputError) return res.status(error.status).json({ error: error.message });
   if (error instanceof Prisma.PrismaClientKnownRequestError) {
-    if (error.code === 'P2002') return res.status(409).json({ error: 'رمز SKU مستخدم لمنتج آخر، اختَر رمزاً مختلفاً' });
+    if (error.code === 'P2002') return res.status(409).json({ error: 'رمز SKU أو رقم التشغيلة مستخدم مسبقاً لهذا المنتج' });
     if (error.code === 'P2025') return res.status(404).json({ error: 'المنتج غير موجود' });
     if (['P2003', 'P2014'].includes(error.code)) return res.status(409).json({ error: 'المنتج مرتبط بسجل طلبات أو مخزون، ولا يمكن حذفه' });
     if (['P2034', 'P1008','P2028'].includes(error.code)) return res.status(409).json({ error: 'تغيّر المخزون بالتزامن، حدّث الصفحة ثم حاول ثانية' });

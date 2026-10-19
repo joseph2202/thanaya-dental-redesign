@@ -113,6 +113,9 @@ export default function AdminProducts() {
       if (editingProduct) {
         // Metadata updates cannot silently overwrite available stock.
         delete data.stock;
+        delete data.availableStock;
+        delete data.lotTracking;
+        delete data.lots;
         delete data.id;
         delete data.createdAt;
         delete data.orderItems;

@@ -14,7 +14,6 @@ export type Product = {
   image?: string | null;
   badge?: string;
   stock: number;
-  availableStock?: number;
   saleUnit?: string | null;
 };
 
@@ -60,8 +59,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
       return { success: false, message: 'الكمية يجب أن تكون بين 1 و100' };
     }
     const current = items.find(item => item.product.id === product.id)?.quantity || 0;
-    if ((product.availableStock??product.stock) <= 0) return { success: false, message: 'نفد المخزون' };
-    if (current + quantity > (product.availableStock??product.stock) || current + quantity > 100) {
+    if (product.stock <= 0) return { success: false, message: 'نفد المخزون' };
+    if (current + quantity > product.stock || current + quantity > 100) {
       return { success: false, message: 'الكمية المطلوبة أكثر من المتوفر' };
     }
     setItems(prev => {
@@ -88,7 +87,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       return { success: false, message: 'المنتج غير موجود في السلة' };
     }
 
-    if (quantity > (item.product.availableStock??item.product.stock)) {
+    if (quantity > item.product.stock) {
       return { success: false, message: `الكمية المطلوبة غير متوفرة (متوفر فقط ${item.product.stock} ${saleUnitLabel(item.product.saleUnit)})` };
     }
 

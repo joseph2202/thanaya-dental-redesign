@@ -8,7 +8,7 @@ import {saleUnitLabel} from '@/lib/saleUnits';
 
 export default function ProductPurchaseActions({product}:{product:Product}){
  const {addToCart}=useCart(),{user}=useAuth(),router=useRouter();
- const max=Math.min(100,Math.max(0,product.availableStock??product.stock));
+ const max=Math.min(100,Math.max(0,product.stock));
  const [quantity,setQuantity]=useState(1),[message,setMessage]=useState(''),[error,setError]=useState(false);
  function putInCart(goToCheckout:boolean){
   const result=addToCart(product,quantity);
@@ -17,7 +17,7 @@ export default function ProductPurchaseActions({product}:{product:Product}){
  }
  return <div className="rounded-[22px] border border-[#d4eaf2] bg-white p-4 sm:p-5">
   <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-   <div><strong className="block text-sm text-[#234352]">الكمية المطلوبة</strong><p className="mt-1 text-xs text-neutral-500">الحد المتوفر حالياً: {product.availableStock??product.stock} {saleUnitLabel(product.saleUnit)}</p></div>
+   <div><strong className="block text-sm text-[#234352]">الكمية المطلوبة</strong><p className="mt-1 text-xs text-neutral-500">الحد المتوفر حالياً: {product.stock} {saleUnitLabel(product.saleUnit)}</p></div>
    <div className="flex items-center overflow-hidden rounded-full border border-[#b7deec] bg-[#f6fbfd]">
     <button type="button" aria-label="تقليل الكمية" disabled={quantity<=1||max===0} onClick={()=>setQuantity(q=>Math.max(1,q-1))} className="grid h-11 w-12 place-items-center text-brand hover:bg-[#e2f5fb] disabled:opacity-40"><Minus size={18}/></button>
     <output aria-live="polite" className="min-w-10 text-center text-lg font-black">{max===0?0:quantity}</output>

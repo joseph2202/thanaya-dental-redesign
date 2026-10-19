@@ -47,10 +47,6 @@ export const productsAPI = {
   
   delete: (id: string) => apiRequest(`/products/${id}`, { method: 'DELETE' }),
   getInventory: (id: string) => apiRequest(`/products/${id}/inventory`),
-  getLots:(id:string)=>apiRequest(`/products/${encodeURIComponent(id)}/lots`),
-  enableLots:(id:string)=>apiRequest(`/products/${encodeURIComponent(id)}/enable-lots`,{method:'POST',body:'{}'}),
-  receiveLot:(id:string,data:{code:string;expiryDate:string;quantity:number})=>apiRequest(`/products/${encodeURIComponent(id)}/lots`,{method:'POST',body:JSON.stringify(data)}),
-  adjustLot:(id:string,lotId:string,data:{delta:number;reason:string})=>apiRequest(`/products/${encodeURIComponent(id)}/lots/${encodeURIComponent(lotId)}/adjust`,{method:'POST',body:JSON.stringify(data)}),
   adjustStock: (id: string, delta: number, reason: string) => apiRequest(`/products/${id}/stock-adjustment`, { method: 'POST', body: JSON.stringify({ delta, reason }) }),
 };
 
@@ -147,4 +143,4 @@ export const reportsAPI={
  overview:(range:'7'|'30'|'90'|'all'):Promise<SalesReport>=>apiRequest('/reports/overview?range='+range)
 };
 
-export type CartQuote={items:{productId:string;quantity:number;product:{id:string;name:string;price:number;stock:number;saleUnit:string|null;availableStock:number}|null;available:boolean}[];subtotal:number;canCheckout:boolean};
+export type CartQuote={items:{productId:string;quantity:number;product:{id:string;name:string;price:number;stock:number;saleUnit:string|null}|null;available:boolean}[];subtotal:number;canCheckout:boolean};
