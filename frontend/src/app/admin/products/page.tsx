@@ -334,7 +334,20 @@ function ProductForm({ product, existingCategories, onSave, onCancel, loading }:
           <label className="block font-bold mb-2 text-sm text-ink">صورة المنتج</label>
           <div className="flex items-center gap-4">
             {imagePreview && (
-              <img src={imagePreview} alt="معاينة" className="w-24 h-24 object-cover rounded-xl border-2 border-brand/30" />
+              <div className="flex shrink-0 flex-col items-center gap-2">
+                <img src={imagePreview} alt="معاينة صورة المنتج" className="h-24 w-24 rounded-xl border-2 border-brand/30 object-contain" />
+                <button
+                  type="button"
+                  disabled={uploading}
+                  onClick={() => {
+                    setForm((current: any) => ({ ...current, image: '' }));
+                    setImagePreview('');
+                  }}
+                  className="max-w-36 rounded-lg border border-amber-300 bg-amber-50 px-2 py-1.5 text-xs font-bold text-amber-900 hover:bg-amber-100 disabled:opacity-50"
+                >
+                  إزالة الصورة واستخدام الأيقونة
+                </button>
+              </div>
             )}
             <label className="flex-1 cursor-pointer">
               <div className="border-2 border-dashed border-brand/30 rounded-xl p-6 text-center hover:border-brand transition">
