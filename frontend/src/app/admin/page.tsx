@@ -103,32 +103,32 @@ export default function AdminDashboard(){
    </AdminLayout>;
  }
  return <AdminLayout>
-   <div className="space-y-5">
-     <header className="relative overflow-hidden rounded-[28px] bg-[linear-gradient(120deg,#193849_0%,#075f80_60%,#048ebd_100%)] p-5 text-white sm:p-7">
-       <div className="pointer-events-none absolute -left-14 -top-20 h-64 w-64 rounded-full border-[42px] border-white/[.05]" aria-hidden="true"/>
+   <div className="space-y-5 print:space-y-3">
+     <header className="relative overflow-hidden rounded-[28px] bg-[linear-gradient(120deg,#193849_0%,#075f80_60%,#048ebd_100%)] p-5 text-white sm:p-7 print:border print:border-[#c4dce7] print:bg-none print:bg-white print:p-4 print:text-[#263f4c]">
+       <div className="pointer-events-none absolute -left-14 -top-20 h-64 w-64 rounded-full border-[42px] border-white/[.05] print:hidden" aria-hidden="true"/>
        <div className="relative flex flex-wrap items-start justify-between gap-4">
          <div>
-           <div className="inline-flex items-center gap-2 text-[11px] font-bold tracking-[.15em] text-cyan-100/85"><ShieldCheck size={15}/> THANAYA CONTROL CENTER</div>
-           <h1 className="mt-2 text-2xl font-black tracking-tight sm:text-3xl">مركز قيادة ثنايا</h1>
-           <p className="mt-2 max-w-2xl text-sm leading-7 text-white/75">طلباتك، مؤشرات المتجر وتنبيهات المخزون من مكان واحد. الأرقام مأخوذة من بيانات المتجر، مو أرقام تجريبية.</p>
+           <div className="inline-flex items-center gap-2 text-[11px] font-bold tracking-[.15em] text-cyan-100/85 print:text-[#21647c]"><ShieldCheck size={15}/> THANAYA ADMIN DASHBOARD</div>
+           <h1 className="mt-2 text-2xl font-black tracking-tight sm:text-3xl">لوحة التحكم</h1>
+           <p className="mt-2 max-w-2xl text-sm leading-7 text-white/75 print:text-[#496b79]">متابعة الطلبات ومؤشرات الأداء وتنبيهات المخزون من مكان واحد، اعتماداً على البيانات المسجلة في المتجر.</p>
          </div>
-         <div className="flex flex-wrap items-center gap-2">
+         <div className="flex flex-wrap items-center gap-2 print:hidden">
            <Link href="/admin/orders" className="inline-flex min-h-11 items-center gap-2 rounded-full bg-white px-4 text-xs font-black text-[#0b5675] hover:bg-cyan-50">افتح الطلبات <ArrowUpLeft size={16}/></Link>
            <button onClick={()=>setRevision(v=>v+1)} disabled={refreshing} className="inline-flex min-h-11 items-center gap-2 rounded-full border border-white/30 bg-white/10 px-4 text-xs font-bold text-white hover:bg-white/20 disabled:opacity-60">
              <RefreshCw size={16} className={refreshing?'animate-spin':''}/>{refreshing?'جاري التحديث':'تحديث الآن'}
            </button>
          </div>
        </div>
-       <div className="relative mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-white/20 pt-4">
-         <div className="flex items-center gap-2 text-xs text-white/85">
+       <div className="relative mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-white/20 pt-4 print:mt-3 print:border-[#d6e9f1] print:pt-2">
+         <div className="flex items-center gap-2 text-xs text-white/85 print:text-[#496b79]">
            <CalendarDays size={16}/> آخر تحديث: {dateLabel}
          </div>
-         <span className="rounded-full bg-white/10 px-3 py-1.5 text-xs text-white/85">تحديث تلقائي كل دقيقة عند فتح الصفحة</span>
+         <span className="rounded-full bg-white/10 px-3 py-1.5 text-xs text-white/85 print:hidden">تحديث تلقائي كل دقيقة عند فتح الصفحة</span>
        </div>
      </header>
 
      <div className="flex flex-wrap items-center justify-between gap-3">
-       <h2 className="text-lg font-black text-[#203e4c]">نبضة المتجر <span className="text-xs font-normal text-[#718d9a]">— الفترة المختارة</span></h2>
+       <h2 className="text-lg font-black text-[#203e4c]">ملخص أداء المتجر <span className="text-xs font-normal text-[#718d9a]">— الفترة المختارة</span></h2>
        <div className="inline-flex flex-wrap items-center gap-1 rounded-full border border-[#cfe4ee] bg-white p-1" aria-label="فترة التقرير">
          {([['7','7 أيام'],['30','30 يوم'],['90','90 يوم'],['all','الكل']] as const).map(([value,label])=>
            <button key={value} aria-pressed={range===value} disabled={refreshing} onClick={()=>setRange(value)} className={`rounded-full px-3 py-2 text-xs font-bold transition disabled:opacity-60 ${range===value?'bg-brand text-white':'text-[#506f80] hover:bg-[#edf7fb]'}`}>{label}</button>
@@ -140,13 +140,13 @@ export default function AdminDashboard(){
      </div>}
      {!loaded&&!report?<p role="status" className="rounded-2xl border border-[#d4e8ef] bg-white p-8 text-center text-[#587483]">جاري تحميل لوحة ثنايا...</p>:null}
      {report&&<>
-       <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+       <div className="grid grid-cols-2 gap-3 xl:grid-cols-4 print:grid-cols-4 print:gap-2">
          <Metric icon={Clock3} title="تحتاج متابعة" value={report.stats.awaitingOrders.toLocaleString('en-US')} note="جديد + مؤكد + بالطريق" href="/admin/orders" accent="bg-amber-100 text-amber-700"/>
          <Metric icon={CircleCheckBig} title="قيمة الطلبات المُسلّمة" value={shortMoney(report.stats.deliveredValue)} note="ليست إثبات تحصيل ولا صافي ربح" href="/admin/reports" accent="bg-emerald-100 text-emerald-700"/>
          <Metric icon={ShoppingBasket} title="الطلبات ضمن الفترة" value={report.stats.orders.toLocaleString('en-US')} note={report.stats.deliveredOrders+' منها حالتها مُسلّم'} href="/admin/orders" accent="bg-sky-100 text-sky-700"/>
          <Metric icon={Package} title="منتجات مسجّلة" value={report.stats.totalProducts.toLocaleString('en-US')} note="تشمل المخفية من واجهة الزبون" href="/admin/products" accent="bg-indigo-100 text-indigo-700"/>
        </div>
-       <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1.45fr)_minmax(310px,1fr)]">
+       <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1.45fr)_minmax(310px,1fr)] print:grid-cols-2 print:gap-3">
          <section className="min-w-0 rounded-[23px] border border-[#cfe7f0] bg-white p-4 sm:p-5" aria-labelledby="trend-label">
            <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
              <div><span className="site-eyebrow">SALES SNAPSHOT</span><h2 id="trend-label" className="mt-1 text-lg font-black">حركة الطلبات المُسلّمة</h2><p className="mt-1 text-xs leading-6 text-[#748b97]">حسب تاريخ إنشاء الطلب وبتوقيت العراق. يعرض آخر {report.trendDays} يوماً.</p></div>
@@ -174,7 +174,7 @@ export default function AdminDashboard(){
            </div>
          </section>
        </div>
-       <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
+       <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] print:grid-cols-2 print:gap-3">
          <section className="min-w-0 rounded-[23px] border border-[#cfe7f0] bg-white p-4 sm:p-5" aria-labelledby="latest-label">
            <div className="mb-4 flex items-center justify-between gap-3"><div><span className="site-eyebrow">LATEST ACTIVITY</span><h2 id="latest-label" className="mt-1 text-lg font-black">آخر الطلبات</h2></div><Link href="/admin/orders" className="text-xs font-black text-brand hover:underline">الكل <ArrowUpLeft size={15} className="inline"/></Link></div>
            {recent.length>0?<div className="divide-y divide-[#e7f1f5]">
