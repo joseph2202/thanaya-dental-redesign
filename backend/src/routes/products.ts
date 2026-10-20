@@ -116,7 +116,7 @@ function respondError(res: import('express').Response, error: unknown) {
 router.get('/', async (req, res) => {
   try {
     const { category, brand, sort, minPrice, maxPrice, search } = req.query;
-    const where: Prisma.ProductWhereInput = {};
+    const where: Prisma.ProductWhereInput = { published: true };
     if (typeof category === 'string' && category.trim()) where.category = category.trim();
     if (typeof brand === 'string' && brand.trim()) where.brand = brand.trim();
     const price: Prisma.IntFilter = {};
@@ -156,7 +156,7 @@ router.post('/quote', async (req, res) => {
       lines.push({ productId, quantity: quantity as number });
     }
     const products = await prisma.product.findMany({
-      where: { id: { in: lines.map(line => line.productId) } },
+      where: { id: { in: lines.map(line => line.productId) }, published: true },
       select: { id: true, name: true, price: true, stock: true, saleUnit: true, lotTracking:true, lots:{select:{stock:true,expiryDate:true}} }
     });
     const byId = new Map(products.map(product => [product.id, product]));
@@ -178,10 +178,18 @@ router.post('/quote', async (req, res) => {
   } catch (error) { respondError(res, error); }
 });
 
+// Staff catalog keeps hidden products visible so their inventory and order history are preserved.
+router.get('/manage', requireInventory, async (req, res) => {
+  try {
+    const items = await prisma.product.findMany({include:{lots:{select:{stock:true,expiryDate:true}}},orderBy:{createdAt:'desc'}});
+    res.json(items.map(publicProduct));
+  } catch (error) { respondError(res,error); }
+});
+
 router.get('/:id', async (req, res) => {
   try {
     const product = await prisma.product.findUnique({ where: { id: String(req.params.id) },include:{lots:{select:{stock:true,expiryDate:true}}} });
-    if (!product) return res.status(404).json({ error: 'المنتج غير موجود' });
+    if (!product || !product.published) return res.status(404).json({ error: 'المنتج غير متاح في المتجر' });
     res.json(publicProduct(product));
   } catch (error) { respondError(res, error); }
 });
@@ -311,6 +319,17 @@ router.put('/:id', requireAdmin, async (req, res) => {
     });
     res.json(publicProduct(product));
   } catch (error) { respondError(res,error); }
+});
+
+// Owner/admin can unpublish a product without deleting stock or historical records.
+router.patch('/:id/visibility', requireAdmin, async (req, res) => {
+  try {
+    if (!req.body || typeof req.body.published !== 'boolean' || Object.keys(req.body).some(k => k !== 'published')) {
+      throw new InputError(400, 'حالة ظهور المنتج غير صالحة');
+    }
+    const result = await prisma.product.update({where:{id:String(req.params.id)},data:{published:req.body.published},select:{id:true,published:true}});
+    res.json(result);
+  } catch(error) { respondError(res,error); }
 });
 
 router.post('/:id/stock-adjustment', requireInventory, async (req, res) => {

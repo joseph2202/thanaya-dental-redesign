@@ -233,7 +233,7 @@ router.post('/', async (req, res) => {
         shippingFee=rate.fee;
       }
       const products = await tx.product.findMany({
-        where: { id: { in: lines.map(item => item.productId) } },
+        where: { id: { in: lines.map(item => item.productId) }, published: true },
         select: { id: true, name: true, price: true, lotTracking:true }
       });
       const byId = new Map(products.map(product => [product.id, product]));
@@ -253,7 +253,7 @@ router.post('/', async (req, res) => {
         total += product.price * item.quantity;
         if (!Number.isSafeInteger(total)) throw new OrderError(400, 'إجمالي الطلب كبير جداً');
         const result = await tx.product.updateMany({
-          where: { id: item.productId, stock: { gte: item.quantity } },
+          where: { id: item.productId, published: true, stock: { gte: item.quantity } },
           data: { stock: { decrement: item.quantity } }
         });
         if (result.count !== 1) {

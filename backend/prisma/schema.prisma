@@ -38,6 +38,7 @@ model Product {
   model       String? // Manufacturer model number
   size        String? // Size, variant or dimensions
   saleUnit    String? // piece, box, set, pack, pair, bottle, tube, carton, bag, roll
+  published   Boolean     @default(true) // Hidden products stay in inventory/history but cannot be newly ordered
   lotTracking Boolean     @default(false) // Opt-in only for zero-stock products with no historical movements
   lots        ProductLot[]
   badge       String?

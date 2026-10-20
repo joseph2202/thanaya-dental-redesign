@@ -15,6 +15,8 @@ export default function AdminProducts() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const [visibilityBusy, setVisibilityBusy] = useState<string | null>(null);
+  const [visibilityError, setVisibilityError] = useState('');
   const [stockProduct, setStockProduct] = useState<any>(null);
   const [lotsData,setLotsData]=useState<any>(null);
   const [lotError,setLotError]=useState('');
@@ -32,7 +34,7 @@ export default function AdminProducts() {
 
   const loadProducts = async () => {
     try {
-      const data = await productsAPI.getAll();
+      const data = await productsAPI.manage();
       setProductsList(data);
     } catch (error) {
       console.error('Failed to load products', error);
@@ -106,6 +108,22 @@ export default function AdminProducts() {
     finally { setStockBusy(false); }
   };
 
+  const toggleVisibility = async (product: any) => {
+    if (!confirm(product.published === false
+      ? 'إظهار هذا المنتج للزبائن مرة ثانية؟'
+      : 'إخفاء هذا المنتج عن الزبائن والبحث ومنع طلبات جديدة عليه؟ سيبقى المخزون والسجل محفوظين.')) return;
+    setVisibilityBusy(product.id);
+    setVisibilityError('');
+    try {
+      await productsAPI.setVisibility(product.id, product.published === false);
+      await loadProducts();
+    } catch (error) {
+      setVisibilityError(error instanceof Error ? error.message : 'تعذّر تغيير ظهور المنتج');
+    } finally {
+      setVisibilityBusy(null);
+    }
+  };
+
   const handleDelete = async (productId: string) => {
     if (confirm('هل أنت متأكد من حذف هذا المنتج؟')) {
       try {
@@ -131,6 +149,7 @@ export default function AdminProducts() {
         delete data.stock;
         delete data.availableStock;
         delete data.lotTracking;
+        delete data.published;
         delete data.lots;
         delete data.id;
         delete data.createdAt;
@@ -202,6 +221,7 @@ export default function AdminProducts() {
         <ProductForm product={editingProduct} existingCategories={existingCategories} onSave={handleSave} onCancel={() => { setShowAddForm(false); setEditingProduct(null); }} loading={loading} />
       )}
 
+      {visibilityError && <p role="alert" className="mb-4 rounded-xl bg-red-50 p-4 font-bold text-red-700">{visibilityError}</p>}
       <div className="mb-6">
         <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="ابحث عن منتج..." className="w-full max-w-md border-2 border-brand/30 rounded-xl px-4 py-2 font-bold focus:outline-none focus:border-brand" />
       </div>
@@ -228,7 +248,7 @@ export default function AdminProducts() {
     <div className="text-brand"><ProductIcon name={p.icon || 'Package'} size={32} /></div>
   )}
                     <div>
-                      <p className="font-bold text-sm text-ink">{p.name}</p>
+                      <p className="font-bold text-sm text-ink">{p.name} {p.published === false && <span className="mr-2 rounded-full bg-amber-100 px-2 py-1 text-[10px] font-bold text-amber-900">مخفي عن الزبائن</span>}</p>
                       <p className="text-xs text-neutral-500">{p.brand}{p.sku ? ' · SKU: '+p.sku : ''}</p>
                     </div>
                   </div>
@@ -241,6 +261,7 @@ export default function AdminProducts() {
                 <td className="px-4 py-3">
                   <div className="flex gap-2">
                     <button onClick={() => openInventory(p)} className="site-btn site-btn-outline site-btn-sm">المخزون</button>
+                    {canEditProducts && <button type="button" disabled={visibilityBusy === p.id} onClick={() => toggleVisibility(p)} className="rounded-lg border border-brand/20 px-3 py-1 text-xs font-bold text-ink hover:bg-brand/10 disabled:opacity-50">{visibilityBusy === p.id ? 'جاري الحفظ...' : p.published === false ? 'إظهار بالمتجر' : 'إخفاء من المتجر'}</button>}
                     {canEditProducts && <button onClick={() => handleEdit(p)} className="text-xs bg-brand/10 text-brand rounded-lg px-3 py-1 font-bold hover:bg-brand/20">تعديل</button>}
                     {canEditProducts && <button onClick={() => handleDelete(p.id)} className="text-xs bg-red-50 text-red-600 rounded-lg px-3 py-1 font-bold hover:bg-red-100">حذف</button>}
                   </div>

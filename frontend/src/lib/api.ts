@@ -39,6 +39,8 @@ export const productsAPI = {
   },
   
   getById: (id: string) => apiRequest(`/products/${id}`),
+  manage: () => apiRequest('/products/manage'),
+  setVisibility: (id: string, published: boolean) => apiRequest(`/products/${encodeURIComponent(id)}/visibility`, { method: 'PATCH', body: JSON.stringify({published}) }),
   quote: (items: {productId:string;quantity:number}[]):Promise<CartQuote> => apiRequest('/products/quote',{method:'POST',body:JSON.stringify({items})}),
   
   create: (data: any) => apiRequest('/products', { method: 'POST', body: JSON.stringify(data) }),
