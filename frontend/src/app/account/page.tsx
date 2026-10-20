@@ -82,8 +82,8 @@ export default function AccountPage(){
     order.items.some(i=>(i.product?.name||'').toLowerCase().includes(q)))
  );
 
- return <><Header/><main className="site-container site-main py-7 md:py-10">
-   <header className="relative overflow-hidden rounded-[28px] border border-[#cce8f1] bg-[linear-gradient(115deg,#e0f5fb_0%,#f4fbfe_66%,#fff_100%)] px-5 py-7 sm:px-8 sm:py-9">
+ return <><Header/><main className="site-container site-main py-5 md:py-8">
+   <header className="relative overflow-hidden rounded-[28px] border border-[#cce8f1] bg-[linear-gradient(115deg,#e0f5fb_0%,#f4fbfe_66%,#fff_100%)] px-5 py-6 sm:px-7 sm:py-7">
      <div className="absolute -left-8 -top-16 h-44 w-44 rounded-full border-[30px] border-[#9bdcec]/15" aria-hidden="true"/>
      <div className="relative flex flex-wrap items-center justify-between gap-4">
        <div><span className="site-eyebrow">THANAYA / MY ACCOUNT</span>
@@ -92,7 +92,7 @@ export default function AccountPage(){
        </div>
        <Link href="/products" className="site-btn site-btn-primary site-btn-sm"><ShoppingBag size={17}/> تسوّق المنتجات</Link>
      </div>
-     <div className="relative mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
+     <div className="relative mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
        <div className="rounded-2xl border border-white/90 bg-white/85 p-4">
          <ClipboardList size={19} className="text-brand"/><p className="mt-3 text-2xl font-black">{loading?'—':orders.length}</p><p className="text-xs font-bold text-[#678190]">جميع طلباتي</p>
        </div>
@@ -104,7 +104,7 @@ export default function AccountPage(){
        </div>
      </div>
    </header>
-   <div className="my-5 flex flex-wrap items-center gap-3">
+   <div className="my-3 flex flex-wrap items-center gap-3">
      <a href="#my-orders" className="inline-flex items-center gap-2 rounded-full border border-[#bedfeb] bg-white px-4 py-2.5 text-sm font-bold text-[#275466] hover:border-brand"><ClipboardList size={16}/> طلباتي</a>
      <a href="#saved-addresses" className="inline-flex items-center gap-2 rounded-full border border-[#bedfeb] bg-white px-4 py-2.5 text-sm font-bold text-[#275466] hover:border-brand"><MapPinned size={16}/> العناوين المحفوظة</a>
      <Link href="/notifications" className="inline-flex items-center gap-2 rounded-full border border-[#bedfeb] bg-white px-4 py-2.5 text-sm font-bold text-[#275466] hover:border-brand">إشعاراتي <ArrowUpLeft size={15}/></Link>

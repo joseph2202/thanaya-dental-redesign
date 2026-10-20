@@ -37,9 +37,9 @@ function LoginContent() {
   return (
     <>
       <Header />
-      <main className="max-w-md mx-auto px-4 py-16">
-        <div className="site-surface p-8">
-          <h1 className="text-3xl font-black mb-6 text-center text-ink">تسجيل الدخول</h1>
+      <main className="max-w-md mx-auto px-4 py-7 md:py-10">
+        <div className="site-surface p-5 sm:p-7">
+          <h1 className="text-3xl font-black mb-4 text-center text-ink">تسجيل الدخول</h1>
           
           {error && (
             <div className="bg-red-50 border-2 border-red-200 rounded-xl p-4 mb-6 text-red-700 text-sm font-bold">

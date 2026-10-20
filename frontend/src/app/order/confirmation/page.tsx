@@ -115,7 +115,7 @@ function ConfirmationContent() {
   return (
     <>
       <Header />
-      <main className="mx-auto max-w-3xl px-4 py-16" dir="rtl">
+      <main className="mx-auto max-w-4xl px-4 py-6 md:py-8" dir="rtl">
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
           <Link href="/account" className="text-sm font-black text-[#507282] hover:text-brand">← الرجوع إلى حسابي</Link>
           {order&&<button type="button" onClick={refreshStatus} disabled={refreshBusy} className="inline-flex items-center gap-2 rounded-full border border-[#bcdce8] bg-white px-4 py-2.5 text-sm font-bold text-[#335c6e] transition hover:border-brand disabled:opacity-60"><RefreshCw size={16} className={refreshBusy?'animate-spin':''}/>{refreshBusy?'جاري التحديث...':'تحديث حالة الطلب'}</button>}
@@ -136,12 +136,12 @@ function ConfirmationContent() {
             </div>
           ) : (
             <div className="overflow-hidden rounded-3xl border border-[#d4eaf2] bg-white shadow-[0_18px_50px_#079dca10]">
-              <div className="bg-[#edf7fc] px-7 py-10 text-center">
-                <div className="mx-auto mb-4 grid h-16 w-16 place-items-center rounded-full bg-white text-3xl shadow-sm" aria-hidden="true">{order.status==='pending'||order.status==='confirmed'||order.status==='shipped'||order.status==='delivered'?'✓':'↩'}</div>
+              <div className="bg-[#edf7fc] px-5 py-6 text-center sm:px-7">
+                <div className="mx-auto mb-3 grid h-14 w-14 place-items-center rounded-full bg-white text-3xl shadow-sm" aria-hidden="true">{order.status==='pending'||order.status==='confirmed'||order.status==='shipped'||order.status==='delivered'?'✓':'↩'}</div>
                 <h1 className="mb-3 text-3xl font-black text-ink">{orderPresentation(order.status).heading}</h1>
                 <p className="text-neutral-600">{orderPresentation(order.status).message}</p>
               </div>
-              <div className="space-y-6 p-5 sm:p-7">
+              <div className="space-y-4 p-4 sm:p-6">
                 <OrderProgress status={order.status}/>
                 <div className="flex flex-wrap justify-between gap-4 border-b border-[#d4eaf2] pb-5">
                   <div><p className="text-xs text-neutral-500">رقم الطلب</p><p className="font-black text-brand" dir="ltr">#{shortOrderCode(order.id)}</p><p className="mt-1 text-xs text-neutral-500">المعرّف الكامل موجود للمتابعة عند الحاجة</p></div>
