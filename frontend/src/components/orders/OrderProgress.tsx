@@ -38,6 +38,6 @@ export default function OrderProgress({status}:{status:string}){
        </li>
      })}
    </ol>:<p className="text-sm text-[#5d7885]">ما نكدر نعرض مراحل تفصيلية لهذه الحالة حالياً.</p>}
-   <p className="mt-4 text-xs leading-6 text-[#6e8895]">هذا عرض لآخر حالة مسجّلة بالنظام، مو تتبّع مباشر لموقع المندوب. حدّث الصفحة للحصول على آخر تغيير.</p>
+   <p className="mt-4 text-xs leading-6 text-[#6e8895]">هاي آخر حالة مسجّلة بالنظام، مو موقع المندوب المباشر. من الموظف يحدّث الطلب، راح تظهر الحالة الجديدة تلقائياً أثناء فتح الصفحة.</p>
  </section>;
 }
