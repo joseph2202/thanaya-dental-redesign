@@ -98,8 +98,10 @@ function validExpiryDate(value:unknown):value is string {
 }
 function publicProduct<T extends {gallery:string|null;specs:string|null;stock:number;lotTracking:boolean;lots?:{stock:number;expiryDate:string}[]}>(p:T){
   const {lots,...withoutLots}=p;
+  // Cost fields are private: never expose purchase prices on public catalog endpoints.
+  const {purchaseCostIqd,costRevision,...publicFields}=withoutLots as typeof withoutLots & {purchaseCostIqd?:number|null;costRevision?:number};
   const availableStock = p.lotTracking ? (lots||[]).filter(l=>l.expiryDate>=todayInIraq()).reduce((n,l)=>n+l.stock,0) : p.stock;
-  return {...withoutLots, gallery:p.gallery?JSON.parse(p.gallery):[], specs:p.specs?JSON.parse(p.specs):[], availableStock};
+  return {...publicFields, gallery:p.gallery?JSON.parse(p.gallery):[], specs:p.specs?JSON.parse(p.specs):[], availableStock};
 }
 function respondError(res: import('express').Response, error: unknown) {
   if (error instanceof InputError) return res.status(error.status).json({ error: error.message });
@@ -182,7 +184,8 @@ router.post('/quote', async (req, res) => {
 router.get('/manage', requireInventory, async (req, res) => {
   try {
     const items = await prisma.product.findMany({include:{lots:{select:{stock:true,expiryDate:true}}},orderBy:{createdAt:'desc'}});
-    res.json(items.map(publicProduct));
+    const canSeeCosts=['owner','admin'].includes(res.locals.staffRole as string);
+    res.json(items.map(p=>({...publicProduct(p),...(canSeeCosts?{purchaseCostIqd:p.purchaseCostIqd,costRevision:p.costRevision}:{})})));
   } catch (error) { respondError(res,error); }
 });
 
@@ -201,7 +204,12 @@ router.get('/:id/lots', requireInventory, async(req,res)=>{
     if(!product)throw new InputError(404,'المنتج غير موجود');
     const lots=await prisma.productLot.findMany({where:{productId:product.id},orderBy:[{expiryDate:'asc'},{createdAt:'asc'}]});
     const today=todayInIraq();
-    res.json({product,lots:lots.map(l=>({...l,status:l.expiryDate<today?'expired':l.expiryDate<=new Date(Date.now()+30*86400000).toISOString().slice(0,10)?'soon':'valid'}))});
+    const canSeeCosts=['owner','admin'].includes(res.locals.staffRole as string);
+    res.json({product,lots:lots.map(l=>{
+      const {purchaseCostIqd,costRevision,...safeLot}=l;
+      return {...safeLot,status:l.expiryDate<today?'expired':l.expiryDate<=new Date(Date.now()+30*86400000).toISOString().slice(0,10)?'soon':'valid',
+        ...(canSeeCosts?{purchaseCostIqd,costRevision}:{})};
+    })});
   }catch(error){respondError(res,error);}
 });
 
@@ -240,6 +248,62 @@ router.post('/:id/lots',requireInventory,async(req,res)=>{
     });
     res.status(201).json(saved);
   }catch(error){respondError(res,error);}
+});
+
+
+// Admin-only purchase-cost metadata. Does not change stock or historical orders.
+function parsePurchaseCost(body:any){
+ if(!body||typeof body!=='object'||Array.isArray(body)||Object.keys(body).some(k=>!['purchaseCostIqd','expectedRevision'].includes(k)))
+  throw new InputError(400,'بيانات تكلفة الشراء غير صالحة');
+ const value=body.purchaseCostIqd;
+ if(value!==null&&(!Number.isSafeInteger(value)||value<0||value>1_000_000_000))
+  throw new InputError(400,'تكلفة شراء القطعة يجب أن تكون رقماً صحيحاً بالدينار أو فارغة');
+ if(!Number.isSafeInteger(body.expectedRevision)||body.expectedRevision<0)
+  throw new InputError(400,'رقم مراجعة التكلفة غير صالح');
+ return {value:value as number|null,revision:body.expectedRevision as number};
+}
+router.patch('/:id/purchase-cost',requireAdmin,async(req,res)=>{
+ try{
+  const {value,revision}=parsePurchaseCost(req.body),id=String(req.params.id);
+  const updated=await prisma.$transaction(async tx=>{
+   const old=await tx.product.findUnique({where:{id},select:{purchaseCostIqd:true,costRevision:true,lotTracking:true}});
+   if(!old)throw new InputError(404,'المنتج غير موجود');
+   if(old.costRevision!==revision)throw new InputError(409,'تغيّرت تكلفة المنتج من جهاز آخر؛ حدّث الصفحة');
+   if(old.lotTracking)throw new InputError(409,'هذا المنتج يتتبع التشغيلات: سجّل تكلفة كل تشغيلة على حدة');
+   if(old.purchaseCostIqd===value)return {purchaseCostIqd:value,costRevision:revision};
+   const write=await tx.product.updateMany({where:{id,costRevision:revision},data:{purchaseCostIqd:value,costRevision:{increment:1}}});
+   if(write.count!==1)throw new InputError(409,'تغيّرت التكلفة؛ حدّث الصفحة');
+   await tx.productCostChange.create({data:{productId:id,actorId:res.locals.adminUserId as string,beforeCostIqd:old.purchaseCostIqd,afterCostIqd:value,revision:revision+1}});
+   return {purchaseCostIqd:value,costRevision:revision+1};
+  });
+  res.json(updated);
+ }catch(e){respondError(res,e);}
+});
+router.patch('/:id/lots/:lotId/purchase-cost',requireAdmin,async(req,res)=>{
+ try{
+  const {value,revision}=parsePurchaseCost(req.body),productId=String(req.params.id),lotId=String(req.params.lotId);
+  const updated=await prisma.$transaction(async tx=>{
+   const lot=await tx.productLot.findUnique({where:{id:lotId},select:{productId:true,purchaseCostIqd:true,costRevision:true}});
+   if(!lot||lot.productId!==productId)throw new InputError(404,'التشغيلة غير موجودة');
+   if(lot.costRevision!==revision)throw new InputError(409,'تغيّرت تكلفة التشغيلة من جهاز آخر؛ حدّث الصفحة');
+   const allocated=await tx.orderItemLot.count({where:{lotId}});
+   if(allocated>0)throw new InputError(409,'للتشغيلة سجل مبيعات؛ لا يمكن تعديل تكلفة الشراء دون نظام تسويات محاسبية. سيبقى التاريخ محفوظاً');
+   if(lot.purchaseCostIqd===value)return {purchaseCostIqd:value,costRevision:revision};
+   const write=await tx.productLot.updateMany({where:{id:lotId,costRevision:revision},data:{purchaseCostIqd:value,costRevision:{increment:1}}});
+   if(write.count!==1)throw new InputError(409,'تغيّرت تكلفة التشغيلة؛ حدّث الصفحة');
+   await tx.productCostChange.create({data:{productId,lotId,actorId:res.locals.adminUserId as string,beforeCostIqd:lot.purchaseCostIqd,afterCostIqd:value,revision:revision+1}});
+   return {purchaseCostIqd:value,costRevision:revision+1};
+  });
+  res.json(updated);
+ }catch(e){respondError(res,e);}
+});
+router.get('/:id/purchase-cost/history',requireAdmin,async(req,res)=>{
+ try{
+  const id=String(req.params.id);
+  const exists=await prisma.product.findUnique({where:{id},select:{id:true}});
+  if(!exists)return res.status(404).json({error:'المنتج غير موجود'});
+  res.json(await prisma.productCostChange.findMany({where:{productId:id},orderBy:[{createdAt:'desc'},{id:'desc'}],take:50}));
+ }catch(e){respondError(res,e);}
 });
 
 router.post('/:id/lots/:lotId/adjust',requireInventory,async(req,res)=>{
