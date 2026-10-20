@@ -21,15 +21,15 @@ function groupProducts(products: CatalogProduct[]): CatalogCategory[] {
   return [...groups.values()].sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, 'ar'));
 }
 
-export default function CategoryGrid({ variant = 'home' }: { variant?: 'home' | 'page' }) {
+export default function CategoryGrid({ variant = 'home', onCountChange }: { variant?: 'home' | 'page'; onCountChange?: (count: number) => void }) {
   const [categories, setCategories] = useState<CatalogCategory[]>([]);
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
 
   useEffect(() => {
     productsAPI.getAll()
-      .then((products: CatalogProduct[]) => { setCategories(groupProducts(products)); setStatus('ready'); })
+      .then((products: CatalogProduct[]) => { const groups=groupProducts(products); setCategories(groups); onCountChange?.(groups.length); setStatus('ready'); })
       .catch(() => setStatus('error'));
-  }, []);
+  }, [onCountChange]);
 
   if (status === 'loading') return <div className="site-surface p-8 text-center site-muted" role="status">جاري تحميل الأقسام...</div>;
   if (status === 'error') return <div className="site-surface p-8 text-center site-muted" role="status">تعذّر تحميل الأقسام. تأكد من تشغيل خادم المتجر ثم حدّث الصفحة.</div>;
