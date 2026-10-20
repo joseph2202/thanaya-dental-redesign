@@ -33,7 +33,7 @@ export default function AdminOrders(){
  }
  function submitSearch(e:React.FormEvent){e.preventDefault();setPage(1);setQuery(search.trim());}
  return <AdminLayout>
-  <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+  <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
    <div><h1 className="text-3xl font-black text-ink">إدارة الطلبات</h1><p className="mt-2 text-sm text-neutral-600">بحث سريع، متابعة الحالات، وتفاصيل فاتورة محفوظة من السيرفر.</p></div>
    <button onClick={()=>load()} disabled={loading} className="site-btn site-btn-outline site-btn-sm">تحديث الطلبات</button>
   </div>

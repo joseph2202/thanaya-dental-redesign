@@ -53,7 +53,7 @@ export default function AdminCategories() {
 
   return (
     <AdminLayout>
-      <h2 className="text-3xl font-black mb-8 text-ink">إدارة التصنيفات</h2>
+      <h2 className="text-3xl font-black mb-5 text-ink">إدارة التصنيفات</h2>
 
       {success && (
         <div className="bg-green-50 border-2 border-green-200 rounded-xl p-4 mb-6 text-green-700 font-bold">
@@ -61,7 +61,7 @@ export default function AdminCategories() {
         </div>
       )}
 
-      <form onSubmit={handleAdd} className="bg-white border-2 border-brand/20 rounded-2xl p-6 mb-6">
+      <form onSubmit={handleAdd} className="bg-white border-2 border-brand/20 rounded-2xl p-4 sm:p-5 mb-4">
         <h3 className="font-black text-lg mb-4 text-ink">➕ إضافة تصنيف جديد</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="md:col-span-2">

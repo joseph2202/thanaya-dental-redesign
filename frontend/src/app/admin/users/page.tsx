@@ -67,7 +67,7 @@ export default function AdminUsers() {
   return (
     <AdminLayout>
       <h2 className="text-3xl font-black mb-3 text-ink">إدارة المستخدمين والصلاحيات</h2>
-      <p className="text-sm text-neutral-600 mb-6">المالك فقط يغيّر صلاحيات الموظفين المسجلين. لا تشارك كلمة مرورك مع أي موظف.</p>
+      <p className="text-sm text-neutral-600 mb-4">المالك فقط يغيّر صلاحيات الموظفين المسجلين. لا تشارك كلمة مرورك مع أي موظف.</p>
       {roleError && <p className="mb-4 rounded-xl bg-red-50 p-3 text-red-700" role="alert">{roleError}</p>}
       {loadError && <div className="mb-5 rounded-xl border border-red-200 bg-red-50 p-5 text-red-800" role="alert"><p className="mb-3 font-bold">تعذر تحميل المستخدمين: {loadError}</p><button onClick={loadUsers} type="button" className="site-btn site-btn-outline site-btn-sm">إعادة المحاولة</button></div>}
       

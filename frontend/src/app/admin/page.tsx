@@ -34,8 +34,8 @@ export default function AdminDashboard() {
   if (user?.role === 'inventory' || user?.role === 'sales') return <AdminLayout><h2 className="mb-5 text-3xl font-black">لوحة الموظف</h2><p className="mb-5 text-neutral-600">مرحباً {user.name}. اختر القسم المسموح لحسابك:</p><Link className="site-btn site-btn-primary" href={user.role === 'inventory' ? '/admin/products' : '/admin/orders'}>{user.role === 'inventory' ? 'إدارة المخزون' : 'إدارة الطلبات'}</Link></AdminLayout>;
   return (
     <AdminLayout>
-      <h2 className="text-3xl font-black mb-8 text-ink">نظرة عامة</h2>
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+      <h2 className="text-3xl font-black mb-5 text-ink">نظرة عامة</h2>
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-5">
         <div className="bg-white border-2 border-brand/20 rounded-2xl p-6">
           <p className="text-neutral-500 text-sm mb-2">المنتجات</p>
           <p className="text-4xl font-black text-brand">{stats.products}</p>

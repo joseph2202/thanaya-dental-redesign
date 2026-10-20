@@ -30,5 +30,5 @@ export default function NotificationsPage(){
  </div>;
  if(isLoading)return <p className="p-10">جاري تحميل الحساب...</p>;
  if(!user)return <><Header/><main className="mx-auto max-w-3xl p-10"><p>سجّل الدخول لعرض إشعاراتك.</p><Link href="/login?redirect=/notifications" className="text-brand underline">تسجيل الدخول</Link></main><Footer/></>;
- return staff?<AdminLayout>{body}</AdminLayout>:<><Header/><main className="site-container py-10">{body}</main><Footer/></>;
+ return staff?<AdminLayout>{body}</AdminLayout>:<><Header/><main className="site-container py-5 md:py-8">{body}</main><Footer/></>;
 }
