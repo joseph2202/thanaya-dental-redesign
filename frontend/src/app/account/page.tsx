@@ -41,6 +41,37 @@ export default function AccountPage(){
   return ()=>{active=false};
  },[user,authLoading,router]);
 
+ // Lightweight refresh of the signed-in customer's order summary.
+ // Does not mutate orders; staff status changes appear without a page reload.
+ useEffect(() => {
+   if (authLoading || !user) return;
+   let active=true;
+   let fetching=false;
+   let lastCheck=0;
+   const refresh = async () => {
+     if (!active || fetching || document.visibilityState !== 'visible') return;
+     if (Date.now()-lastCheck < 10000) return;
+     fetching=true;
+     lastCheck=Date.now();
+     try {
+       const rows:CustomerOrder[]=await ordersAPI.getMine();
+       if(active)setOrders(rows);
+     } catch {
+       // Keep the last valid list on a temporary network error.
+     } finally {fetching=false}
+   };
+   const interval=window.setInterval(()=>{void refresh()},60000);
+   const onFocus=()=>{void refresh()};
+   const onVisible=()=>{if(document.visibilityState==='visible')void refresh()};
+   window.addEventListener('focus',onFocus);
+   document.addEventListener('visibilitychange',onVisible);
+   return ()=>{
+     active=false;window.clearInterval(interval);
+     window.removeEventListener('focus',onFocus);
+     document.removeEventListener('visibilitychange',onVisible);
+   };
+ },[user,authLoading]);
+
  if(authLoading||!user)return null;
  const activeCount=orders.filter(order=>['pending','confirmed','shipped'].includes(order.status)).length;
  const deliveredCount=orders.filter(order=>order.status==='delivered').length;
@@ -91,7 +122,7 @@ export default function AccountPage(){
      <section id="my-orders" className="site-surface min-w-0 scroll-mt-28 p-5 sm:p-6" aria-labelledby="orders-title">
        <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
          <h2 id="orders-title" className="text-xl font-black">طلباتي {!loading&&!loadError&&<span className="text-brand">({orders.length})</span>}</h2>
-         <span className="text-xs font-bold text-[#6c8390]">تتبع الحالات المسجّلة في المتجر</span>
+         <span className="text-xs font-bold text-[#6c8390]">الطلبات تتحدّث تلقائياً أثناء فتح الصفحة</span>
        </div>
        {orders.length>0&&<div className="mb-5 space-y-3">
          <label className="relative block">
