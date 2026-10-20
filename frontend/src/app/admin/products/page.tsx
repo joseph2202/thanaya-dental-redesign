@@ -39,6 +39,12 @@ export default function AdminProducts() {
   const [stockError, setStockError] = useState('');
   const [stockBusy, setStockBusy] = useState(false);
   const [stockHistory, setStockHistory] = useState<any[]>([]);
+  const [unitCostInput,setUnitCostInput]=useState('');
+  const [unitCostBusy,setUnitCostBusy]=useState(false);
+  const [unitCostMessage,setUnitCostMessage]=useState('');
+  const [lotCostEdit,setLotCostEdit]=useState<string|null>(null);
+  const [lotCostInput,setLotCostInput]=useState('');
+  const [lotCostBusy,setLotCostBusy]=useState(false);
 
   useEffect(() => {
     loadProducts();
@@ -55,6 +61,8 @@ export default function AdminProducts() {
 
   const openInventory = async (product: any) => {
     setStockProduct(product);setLotsData(null);setLotError('');
+    setUnitCostInput(product.purchaseCostIqd==null?'':String(product.purchaseCostIqd));
+    setUnitCostMessage('');setLotCostEdit(null);
     productsAPI.getLots(product.id).then(data => {
       setLotsData(data);
       setStockProduct((current: any) => current?.id === product.id
@@ -120,6 +128,39 @@ export default function AdminProducts() {
     finally { setStockBusy(false); }
   };
 
+  const validCost=(value:string):number|null|undefined=>{
+    const cleaned=value.trim().replace(/,/g,'');
+    if(cleaned==='')return null;
+    if(!/^\\d{1,10}$/.test(cleaned))return undefined;
+    const numeric=Number(cleaned);
+    return Number.isSafeInteger(numeric)&&numeric<=1_000_000_000?numeric:undefined;
+  };
+  const saveUnitCost=async(e:React.FormEvent)=>{
+    e.preventDefault();if(!stockProduct||unitCostBusy)return;
+    const cost=validCost(unitCostInput);
+    if(cost===undefined){setUnitCostMessage('أدخل تكلفة بالدينار رقم صحيح أو اتركها فارغة إذا غير معروفة');return;}
+    setUnitCostBusy(true);setUnitCostMessage('');
+    try{
+      const saved=await productsAPI.savePurchaseCost(stockProduct.id,cost,stockProduct.costRevision||0);
+      setStockProduct((current:any)=>current?{...current,...saved}:current);
+      setUnitCostMessage('انحفظت تكلفة الشراء في سجل التعديلات، بدون تغيير السعر أو المخزون');
+      await loadProducts();
+    }catch(e){setUnitCostMessage(e instanceof Error?e.message:'تعذّر حفظ تكلفة الشراء');}
+    finally{setUnitCostBusy(false);}
+  };
+  const saveLotCost=async(lot:any)=>{
+    if(!stockProduct||lotCostBusy)return;
+    const cost=validCost(lotCostInput);
+    if(cost===undefined){setLotError('أدخل تكلفة صحيحة بالدينار أو اتركها فارغة');return;}
+    setLotCostBusy(true);setLotError('');
+    try{
+      await productsAPI.saveLotPurchaseCost(stockProduct.id,lot.id,cost,lot.costRevision||0);
+      setLotCostEdit(null);setLotCostInput('');
+      await refreshLots(stockProduct.id);
+      setUnitCostMessage('انحفظت تكلفة التشغيلة بسجل المراجعات، من دون تغيير مخزونها');
+    }catch(e){setLotError(e instanceof Error?e.message:'تعذّر حفظ تكلفة التشغيلة');}
+    finally{setLotCostBusy(false);}
+  };
   const toggleVisibility = (product: any) => {
     if (visibilityBusy) return;
     setVisibilityError('');
@@ -275,12 +316,33 @@ export default function AdminProducts() {
       {stockProduct && <section className="site-surface mb-5 p-4 md:p-5" aria-label="إدارة المخزون">
         <div className="flex items-center justify-between gap-3 mb-4"><h3 className="text-xl font-black">مخزون {stockProduct.name}</h3><button type="button" className="site-btn site-btn-outline site-btn-sm" onClick={() => setStockProduct(null)}>إغلاق</button></div>
         <p className="mb-4 text-sm">الكمية الحالية: <strong className="text-brand">{stockProduct.stock}</strong> {saleUnitLabel(stockProduct.saleUnit)}. للإضافة اكتب رقماً موجباً، وللتصحيح بالنقصان اكتب رقماً سالباً.</p>
+        {canEditProducts&&<div className="mb-4 rounded-2xl border border-[#c6e4ed] bg-white p-4">
+          <h4 className="mb-2 text-base font-black text-[#28505f]">تكلفة الشراء <span className="mr-2 rounded-full bg-[#e9f6fb] px-2 py-1 text-[10px] font-bold text-[#127ea3]">معلومات داخلية</span></h4>
+          <p className="mb-3 text-xs leading-6 text-neutral-600">التكلفة بالدينار لكل وحدة بيع. هذه بيانات شراء مرجعية وليست صافي الربح أو تكلفة الطلبات القديمة؛ لا تتغير أسعار الزبائن أو الكميات.</p>
+          {!stockProduct.lotTracking?<form onSubmit={saveUnitCost} className="flex flex-wrap items-end gap-3">
+            <label className="min-w-[190px] flex-1 text-sm font-bold">تكلفة شراء الوحدة (د.ع)
+              <input type="text" inputMode="numeric" dir="ltr" value={unitCostInput} onChange={e=>setUnitCostInput(e.target.value)} placeholder="اترك فارغاً إذا غير معروف" className="mt-2 w-full rounded-xl border border-brand/25 p-3" />
+            </label>
+            <button disabled={unitCostBusy} type="submit" className="site-btn site-btn-primary site-btn-sm">{unitCostBusy?'جاري الحفظ...':'حفظ تكلفة الشراء'}</button>
+            {stockProduct.purchaseCostIqd!=null&&<p className="w-full text-xs font-bold text-[#327583]">الفرق المبدئي للوحدة قبل الخصومات والمصاريف: {(stockProduct.price-stockProduct.purchaseCostIqd).toLocaleString('en-US')} د.ع</p>}
+          </form>:<p className="rounded-xl bg-[#f0f9fc] p-3 text-sm text-[#346d83]">هذا المنتج يستخدم التشغيلات. سجّل تكلفة شراء كل تشغيلة بشكل مستقل بالأسفل حتى تظل البيانات دقيقة.</p>}
+          {unitCostMessage&&<p role="status" className="mt-3 text-sm font-bold text-[#416477]">{unitCostMessage}</p>}
+        </div>}
         <div className="mb-5 rounded-xl border border-brand/20 bg-[#f4faff] p-4">
           <h4 className="mb-3 font-black">التشغيلات وتواريخ الصلاحية</h4>
           {lotsData?.product?.lotTracking ? <>
             <p className="mb-3 text-xs text-neutral-600">تُباع التشغيلات الصالحة حسب الأقرب انتهاءً؛ المخزون المنتهي لا يدخل ضمن المتاح للبيع.</p>
             <div className="mb-4 space-y-2">{lotsData.lots?.map((lot:any)=><div key={lot.id} className="flex flex-wrap justify-between gap-3 rounded-lg border bg-white p-3 text-sm">
-              <div><b dir="ltr">{lot.code}</b><p>الصلاحية: {lot.expiryDate} · الكمية: {lot.stock}</p><strong className={lot.status==='expired'?'text-red-700':lot.status==='soon'?'text-amber-700':'text-green-700'}>{lot.status==='expired'?'منتهية':lot.status==='soon'?'قريبة الانتهاء':'صالحة'}</strong></div>
+              <div><b dir="ltr">{lot.code}</b><p>الصلاحية: {lot.expiryDate} · الكمية: {lot.stock}</p>
+                {canEditProducts&&<div className="mt-1">
+                  <p className="text-xs font-bold text-[#457486]">تكلفة الوحدة: {lot.purchaseCostIqd==null?'غير مسجلة':lot.purchaseCostIqd.toLocaleString('en-US')+' د.ع'}</p>
+                  {lotCostEdit===lot.id?<div className="mt-2 flex flex-wrap items-center gap-2">
+                    <input aria-label="تكلفة شراء التشغيلة بالدينار" inputMode="numeric" dir="ltr" value={lotCostInput} onChange={e=>setLotCostInput(e.target.value)} className="w-40 rounded-lg border p-2" placeholder="التكلفة د.ع"/>
+                    <button type="button" disabled={lotCostBusy} onClick={()=>void saveLotCost(lot)} className="rounded-lg bg-brand px-3 py-2 text-xs font-bold text-white">حفظ</button>
+                    <button type="button" disabled={lotCostBusy} onClick={()=>setLotCostEdit(null)} className="rounded-lg border px-3 py-2 text-xs font-bold">إلغاء</button>
+                  </div>:<button type="button" onClick={()=>{setLotCostEdit(lot.id);setLotCostInput(lot.purchaseCostIqd==null?'':String(lot.purchaseCostIqd));}} className="mt-1 rounded-lg border border-brand/20 px-2 py-1 text-xs font-bold text-brand">تعديل تكلفة التشغيلة</button>}
+                </div>}
+                <strong className={lot.status==='expired'?'text-red-700':lot.status==='soon'?'text-amber-700':'text-green-700'}>{lot.status==='expired'?'منتهية':lot.status==='soon'?'قريبة الانتهاء':'صالحة'}</strong></div>
               <button type="button" disabled={lotBusy} onClick={()=>adjustLot(lot)} className="site-btn site-btn-outline site-btn-sm">تعديل الكمية</button>
             </div>)}</div>
             <form onSubmit={receiveLot} className="grid gap-3 sm:grid-cols-3">
