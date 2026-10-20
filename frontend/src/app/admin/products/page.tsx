@@ -1,5 +1,6 @@
 "use client";
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { Eye, EyeOff, ShieldCheck, X } from 'lucide-react';
 import AdminLayout from '@/components/admin/AdminLayout';
 import { productsAPI, uploadAPI, settingsAPI } from '@/lib/api';
 import { parseThousandsIqd,parseUsd,formatThousandsIqd,formatFullIqd } from '@/lib/money-entry';
@@ -17,6 +18,15 @@ export default function AdminProducts() {
   const [loading, setLoading] = useState(false);
   const [visibilityBusy, setVisibilityBusy] = useState<string | null>(null);
   const [visibilityError, setVisibilityError] = useState('');
+  const [pendingVisibility, setPendingVisibility] = useState<any | null>(null);
+  const visibilityDialogRef = useRef<HTMLDialogElement>(null);
+
+  useEffect(() => {
+    const dialog = visibilityDialogRef.current;
+    if (!dialog) return;
+    if (pendingVisibility && !dialog.open) dialog.showModal();
+    if (!pendingVisibility && dialog.open) dialog.close();
+  }, [pendingVisibility]);
   const [stockProduct, setStockProduct] = useState<any>(null);
   const [lotsData,setLotsData]=useState<any>(null);
   const [lotError,setLotError]=useState('');
@@ -108,15 +118,21 @@ export default function AdminProducts() {
     finally { setStockBusy(false); }
   };
 
-  const toggleVisibility = async (product: any) => {
-    if (!confirm(product.published === false
-      ? 'إظهار هذا المنتج للزبائن مرة ثانية؟'
-      : 'إخفاء هذا المنتج عن الزبائن والبحث ومنع طلبات جديدة عليه؟ سيبقى المخزون والسجل محفوظين.')) return;
+  const toggleVisibility = (product: any) => {
+    if (visibilityBusy) return;
+    setVisibilityError('');
+    setPendingVisibility(product);
+  };
+
+  const confirmVisibility = async () => {
+    const product = pendingVisibility;
+    if (!product || visibilityBusy) return;
     setVisibilityBusy(product.id);
     setVisibilityError('');
     try {
       await productsAPI.setVisibility(product.id, product.published === false);
       await loadProducts();
+      setPendingVisibility(null);
     } catch (error) {
       setVisibilityError(error instanceof Error ? error.message : 'تعذّر تغيير ظهور المنتج');
     } finally {
@@ -180,6 +196,69 @@ export default function AdminProducts() {
 
   return (
     <AdminLayout>
+      <dialog
+        ref={visibilityDialogRef}
+        dir="rtl"
+        aria-labelledby="visibility-dialog-title"
+        aria-describedby="visibility-dialog-description"
+        onClose={() => setPendingVisibility(null)}
+        onCancel={(event) => { if (visibilityBusy) event.preventDefault(); }}
+        onClick={(event) => { if (event.target === event.currentTarget && !visibilityBusy) setPendingVisibility(null); }}
+        className="fixed inset-0 z-[100] m-auto w-[calc(100%-2rem)] max-w-[460px] overflow-hidden rounded-[28px] border border-[#b8e2ef] bg-white p-0 text-[#233943] shadow-[0_30px_100px_rgba(13,45,65,.35)] backdrop:bg-[#102c3d]/60 backdrop:backdrop-blur-[5px]"
+      >
+        {pendingVisibility && (
+          <>
+            <div className="relative bg-[linear-gradient(125deg,#e7f8fd,#f7fcff)] px-6 pb-6 pt-7 sm:px-8">
+              <button
+                type="button"
+                aria-label="إغلاق نافذة التأكيد"
+                onClick={() => setPendingVisibility(null)}
+                disabled={Boolean(visibilityBusy)}
+                className="absolute left-5 top-5 grid h-9 w-9 place-items-center rounded-full border border-[#c4e5ef] bg-white text-[#4c6877] transition hover:bg-[#dff3fa] disabled:opacity-50"
+              >
+                <X size={18} aria-hidden="true" />
+              </button>
+              <div className="mb-4 grid h-14 w-14 place-items-center rounded-2xl border border-[#b4e0ec] bg-white text-[#038cb9] shadow-sm">
+                {pendingVisibility.published === false ? <Eye size={26} aria-hidden="true" /> : <EyeOff size={26} aria-hidden="true" />}
+              </div>
+              <h3 id="visibility-dialog-title" className="text-xl font-black leading-8 text-[#213b49]">
+                {pendingVisibility.published === false ? 'إظهار المنتج بالمتجر؟' : 'إخفاء المنتج عن الزبائن؟'}
+              </h3>
+              <p className="mt-2 break-words text-base font-bold text-[#087ba3]">{pendingVisibility.name}</p>
+              <p id="visibility-dialog-description" className="mt-3 text-sm leading-7 text-[#526e7b]">
+                {pendingVisibility.published === false
+                  ? 'راح يرجع المنتج للبحث وصفحات المتجر، ويصير ممكن طلبه إذا عنده مخزون متاح.'
+                  : 'راح يختفي من صفحات الزبائن والبحث، وما تنقبل عليه طلبات جديدة. مخزونه وسجل التشغيلات والطلبات القديمة تبقى محفوظة.'}
+              </p>
+            </div>
+            <div className="px-6 py-5 sm:px-8">
+              <div className="mb-5 flex items-start gap-2 rounded-xl bg-[#f1f9fc] px-3 py-3 text-xs font-semibold leading-6 text-[#456b7e]">
+                <ShieldCheck size={18} className="mt-0.5 shrink-0 text-[#058fba]" aria-hidden="true" />
+                <span>تگدر ترجع تغيّر حالة العرض بأي وقت من إدارة المنتجات.</span>
+              </div>
+              {visibilityError && <p role="alert" className="mb-4 rounded-xl bg-red-50 px-3 py-2 text-sm font-bold text-red-700">{visibilityError}</p>}
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setPendingVisibility(null)}
+                  disabled={Boolean(visibilityBusy)}
+                  className="min-h-12 rounded-full border-2 border-[#35515e] bg-white px-3 text-sm font-black text-[#263f4c] transition hover:bg-[#edf5f8] disabled:opacity-50"
+                >
+                  إلغاء
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmVisibility}
+                  disabled={Boolean(visibilityBusy)}
+                  className="min-h-12 rounded-full border-2 border-[#059bd0] bg-[#059bd0] px-3 text-sm font-black text-white shadow-[0_5px_0_#047ba8] transition hover:bg-[#008bbd] disabled:opacity-60 disabled:shadow-none"
+                >
+                  {visibilityBusy ? 'جاري الحفظ...' : pendingVisibility.published === false ? 'تأكيد الإظهار' : 'تأكيد الإخفاء'}
+                </button>
+              </div>
+            </div>
+          </>
+        )}
+      </dialog>
       <div className="flex items-center justify-between mb-8">
         <h2 className="text-3xl font-black text-ink">إدارة المنتجات</h2>
         {canEditProducts && <button onClick={() => { setShowAddForm(true); setEditingProduct(null); }} className="bg-brand text-white rounded-full px-6 py-2 font-bold hover:bg-brand-dark transition">
