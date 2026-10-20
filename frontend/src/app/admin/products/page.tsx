@@ -332,7 +332,7 @@ export default function AdminProducts() {
           <h4 className="mb-3 font-black">التشغيلات وتواريخ الصلاحية</h4>
           {lotsData?.product?.lotTracking ? <>
             <p className="mb-3 text-xs text-neutral-600">تُباع التشغيلات الصالحة حسب الأقرب انتهاءً؛ المخزون المنتهي لا يدخل ضمن المتاح للبيع.</p>
-            <div className="mb-4 space-y-2">{lotsData.lots?.map((lot:any)=><div key={lot.id} className="flex flex-wrap justify-between gap-3 rounded-lg border bg-white p-3 text-sm">
+            <div className="mb-4 space-y-2">{lotsData.lots?.map((lot:any)=><div key={lot.id} className="flex flex-wrap items-start justify-between gap-3 rounded-xl border border-brand/15 bg-white p-3 text-sm">
               <div><b dir="ltr">{lot.code}</b><p>الصلاحية: {lot.expiryDate} · الكمية: {lot.stock}</p>
                 {canEditProducts&&<div className="mt-1">
                   <p className="text-xs font-bold text-[#457486]">تكلفة الوحدة: {lot.purchaseCostIqd==null?'غير مسجلة':lot.purchaseCostIqd.toLocaleString('en-US')+' د.ع'}</p>
@@ -343,13 +343,13 @@ export default function AdminProducts() {
                   </div>:<button type="button" onClick={()=>{setLotCostEdit(lot.id);setLotCostInput(lot.purchaseCostIqd==null?'':String(lot.purchaseCostIqd));}} className="mt-1 rounded-lg border border-brand/20 px-2 py-1 text-xs font-bold text-brand">تعديل تكلفة التشغيلة</button>}
                 </div>}
                 <strong className={lot.status==='expired'?'text-red-700':lot.status==='soon'?'text-amber-700':'text-green-700'}>{lot.status==='expired'?'منتهية':lot.status==='soon'?'قريبة الانتهاء':'صالحة'}</strong></div>
-              <button type="button" disabled={lotBusy} onClick={()=>adjustLot(lot)} className="site-btn site-btn-outline site-btn-sm">تعديل الكمية</button>
+              <button type="button" disabled={lotBusy} onClick={()=>adjustLot(lot)} className="site-btn site-btn-outline site-btn-sm self-start shrink-0">تعديل الكمية</button>
             </div>)}</div>
             <form onSubmit={receiveLot} className="grid gap-3 sm:grid-cols-3">
               <label className="text-sm font-bold">رقم التشغيلة<input required maxLength={80} value={lotForm.code} onChange={e=>setLotForm({...lotForm,code:e.target.value})} className="mt-1 w-full rounded-xl border p-3" placeholder="LOT-2026-A"/></label>
               <label className="text-sm font-bold">تاريخ الصلاحية<input required type="date" value={lotForm.expiryDate} onChange={e=>setLotForm({...lotForm,expiryDate:e.target.value})} className="mt-1 w-full rounded-xl border p-3"/></label>
               <label className="text-sm font-bold">الكمية المستلمة<input required type="number" min={1} max={1000000} value={lotForm.quantity} onChange={e=>setLotForm({...lotForm,quantity:e.target.value})} className="mt-1 w-full rounded-xl border p-3"/></label>
-              <button type="submit" disabled={lotBusy} className="site-btn site-btn-primary sm:col-span-3">تسجيل التشغيلة وإضافة المخزون</button>
+              <button type="submit" disabled={lotBusy} className="site-btn site-btn-primary w-fit max-w-full justify-self-start sm:col-span-3">تسجيل التشغيلة وإضافة المخزون</button>
             </form>
           </> : <><p className="mb-3 text-xs text-neutral-600">لتفعيلها بأمان، المنتج لازم يكون بدون مخزون وبدون حركات أو طلبات سابقة. المنتجات القديمة تبقى على النظام السابق.</p><button type="button" disabled={lotBusy||stockProduct.stock!==0} onClick={enableLots} className="site-btn site-btn-outline site-btn-sm">تفعيل تتبع التشغيلات</button></>}
           {lotError&&<p role="alert" className="mt-3 font-bold text-red-700">{lotError}</p>}
