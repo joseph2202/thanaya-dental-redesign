@@ -5,6 +5,7 @@ import Ticker from "@/components/home/Ticker";
 import Categories from "@/components/home/Categories";
 import Products from "@/components/home/Products";
 import OfferBanner from "@/components/home/OfferBanner";
+import ShoppingSteps from "@/components/home/ShoppingSteps";
 
 export default function Home() {
   return (
@@ -14,6 +15,7 @@ export default function Home() {
       <Ticker />
       <Categories />
       <Products />
+      <ShoppingSteps />
       <OfferBanner />
       <Footer compact />
     </>

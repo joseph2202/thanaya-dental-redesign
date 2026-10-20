@@ -67,7 +67,7 @@ export default function AddressBook(){
   };
   const input='mt-1.5 w-full rounded-xl border border-[#c6e4ed] bg-white px-4 py-3 text-sm outline-none focus:border-[#059bd0] focus:ring-2 focus:ring-[#059bd0]/15';
 
-  return <section className="site-surface mt-6 p-5 sm:p-6" aria-labelledby="addresses-title">
+  return <section id="saved-addresses" className="site-surface mt-6 scroll-mt-28 p-5 sm:p-6" aria-labelledby="addresses-title">
     <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
       <div><h2 id="addresses-title" className="flex items-center gap-2 text-xl font-black"><MapPin className="text-brand" size={22}/>عناويني المحفوظة</h2>
         <p className="site-muted mt-1 text-sm">احفظ حتى 5 عناوين، واختَر عنوانك بسرعة عند الطلب القادم.</p>
