@@ -15,7 +15,7 @@ export default function Home() {
       <Categories />
       <Products />
       <OfferBanner />
-      <Footer />
+      <Footer compact />
     </>
   );
 }

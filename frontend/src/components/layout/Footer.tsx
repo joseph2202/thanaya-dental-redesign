@@ -5,12 +5,12 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { MapPin, Phone, Clock3, Camera, Send, ArrowUpLeft } from 'lucide-react';
 
-export default function Footer() {
+export default function Footer({ compact = false }: { compact?: boolean }) {
   const [settings,setSettings]=useState<any>(null);
   useEffect(()=>{settingsAPI.getPublic().then(setSettings).catch(()=>{});},[]);
   const safePhone=settings?.phone||'07822088894';
-  return <footer className="bg-[#20313b] text-white mt-16">
-    <div className="site-container py-14 md:py-20 grid sm:grid-cols-2 lg:grid-cols-[1.35fr_.75fr_1fr_.75fr] gap-10 lg:gap-12">
+  return <footer className={`bg-[#20313b] text-white ${compact ? "mt-0" : "mt-16"}`}>
+    <div className={`site-container grid sm:grid-cols-2 lg:grid-cols-[1.35fr_.75fr_1fr_.75fr] ${compact ? "py-9 md:py-11 gap-7 lg:gap-9" : "py-14 md:py-20 gap-10 lg:gap-12"}`}>
       <div>
         <Link href="/" className="inline-flex items-center gap-3"><Image src="/logo-icon.png" alt="" width={42} height={42} className="w-10 h-10" /><span><strong className="block text-[25px] leading-none">{settings?.siteName||"ثنايا"}</strong><small className="text-brand-light text-[10px] tracking-wider" dir="ltr">THANAYA MEDICAL</small></span></Link>
         <p className="text-white/65 text-sm leading-8 max-w-[260px] mt-5">{settings?.siteDescription||"متجر عراقي للمستلزمات الطبية وطب الأسنان والأجهزة. تجربة واضحة لاختيار احتياجاتك."}</p>

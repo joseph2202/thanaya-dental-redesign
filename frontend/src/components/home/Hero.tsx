@@ -4,18 +4,18 @@ import {ArrowUpLeft, ArrowLeft, MapPin, Search, ShieldCheck, Package, Stethoscop
 export default function Hero(){
   return <section aria-labelledby="hero-title" className="relative isolate overflow-hidden border-b border-[#d1e9f1] bg-[linear-gradient(135deg,#f4fbfd_0%,#e9f7fb_56%,#f8fcfd_100%)]">
     <div aria-hidden="true" className="pointer-events-none absolute -top-32 -left-32 h-96 w-96 rounded-full bg-[#9bdbef]/20 blur-3xl" />
-    <div className="site-container relative grid min-h-[540px] items-center gap-8 py-12 sm:py-16 lg:grid-cols-[1.15fr_.85fr] lg:gap-12 lg:py-24">
+    <div className="site-container relative grid items-center gap-8 py-9 sm:py-12 lg:grid-cols-[1.15fr_.85fr] lg:gap-10 lg:py-14">
       <div className="max-w-3xl">
         <div className="inline-flex max-w-full items-center gap-2 rounded-full border border-[#b4e3ee] bg-white/85 px-3.5 py-2 text-[11px] font-bold text-[#056f92] shadow-sm sm:text-xs">
           <Sparkles size={15} className="shrink-0" aria-hidden="true" /> متخصصون بمستلزمات طب الأسنان والأجهزة الطبية
         </div>
-        <h1 id="hero-title" className="mt-6 text-[clamp(2.15rem,5.5vw,4.65rem)] font-black leading-[1.28] tracking-[-.045em] text-[#233943]">
+        <h1 id="hero-title" className="mt-5 text-[clamp(2.15rem,5.5vw,4.65rem)] font-black leading-[1.28] tracking-[-.045em] text-[#233943]">
           تجهيز عيادتك<br /><span className="text-[#0497c7]">صار أسهل ويا ثنايا.</span>
         </h1>
-        <p className="mt-5 max-w-xl text-sm leading-8 text-[#566e7a] sm:text-base sm:leading-9">
+        <p className="mt-4 max-w-xl text-sm leading-8 text-[#566e7a] sm:text-base sm:leading-9">
           تصفّح مستلزمات طب الأسنان والمواد والأجهزة الطبية، قارن التفاصيل والأسعار بالدينار العراقي، واختَر اللي تحتاجه بوضوح.
         </p>
-        <div className="mt-8 flex flex-col gap-3 min-[440px]:flex-row min-[440px]:flex-wrap">
+        <div className="mt-6 flex flex-col gap-3 min-[440px]:flex-row min-[440px]:flex-wrap">
           <Link href="/products" className="site-btn site-btn-primary min-[440px]:min-w-[190px]">
             تسوّق المنتجات <ArrowUpLeft size={18} aria-hidden="true" />
           </Link>
@@ -23,7 +23,7 @@ export default function Hero(){
             استكشف الأقسام <ArrowLeft size={18} aria-hidden="true" />
           </Link>
         </div>
-        <div className="mt-10 flex flex-wrap items-center gap-x-6 gap-y-3 border-t border-[#b8dae6] pt-5 text-xs font-semibold text-[#537282]">
+        <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-3 border-t border-[#b8dae6] pt-5 text-xs font-semibold text-[#537282]">
           <span className="inline-flex items-center gap-2"><MapPin size={16} className="text-brand" aria-hidden="true" /> متجر عراقي من البصرة</span>
           <span className="inline-flex items-center gap-2"><ShieldCheck size={16} className="text-brand" aria-hidden="true" /> أسعار واضحة بالدينار</span>
         </div>
