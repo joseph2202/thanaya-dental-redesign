@@ -7,10 +7,13 @@ const defaults={
   phone:'07822088894',email:'info@thanaya.iq',
   address:'البصرة - حي الخضراء - شارع مستشفى النفط',
   workingHours:'السبت - الخميس: 12 ظهراً - 9 مساءً',
-  usdToIqdRate:null as number|null,showUsdApprox:false
+  usdToIqdRate:null as number|null,showUsdApprox:false,
+  bannerEnabled:true,bannerEyebrow:'THANAYA / BASRA',bannerTitle:'احتياجات عيادتك، أسهل مع ثنايا.',
+  bannerDescription:'تصفّح مستلزمات طب الأسنان والأجهزة الطبية، ورتّب احتياجاتك من الأقسام الموجودة في المتجر.',
+  bannerButtonLabel:'ابدأ التصفّح',bannerButtonHref:'/products',bannerImage:null as string|null
 };
-const editable=['siteName','siteDescription','phone','email','address','workingHours','usdToIqdRate','showUsdApprox'] as const;
-const publicFields={siteName:true,siteDescription:true,phone:true,email:true,address:true,workingHours:true,usdToIqdRate:true,showUsdApprox:true,revision:true} as const;
+const editable=['siteName','siteDescription','phone','email','address','workingHours','usdToIqdRate','showUsdApprox','bannerEnabled','bannerEyebrow','bannerTitle','bannerDescription','bannerButtonLabel','bannerButtonHref','bannerImage'] as const;
+const publicFields={siteName:true,siteDescription:true,phone:true,email:true,address:true,workingHours:true,usdToIqdRate:true,showUsdApprox:true,bannerEnabled:true,bannerEyebrow:true,bannerTitle:true,bannerDescription:true,bannerButtonLabel:true,bannerButtonHref:true,bannerImage:true,revision:true} as const;
 async function current(){
   return (await prisma.storeSettings.findUnique({where:{id:'main'}})) ?? {
     ...defaults,revision:0,updatedAt:new Date(0)
@@ -19,7 +22,8 @@ async function current(){
 function validate(raw:any){
  if(!raw||typeof raw!=='object'||Array.isArray(raw)||Object.keys(raw).some(k=>![...editable,'revision'].includes(k as any))) throw Error('حقول غير مسموحة');
  const fields:any={};
- const limits:any={siteName:100,siteDescription:600,phone:40,email:120,address:350,workingHours:160};
+ const limits:any={siteName:100,siteDescription:600,phone:40,email:120,address:350,workingHours:160,
+   bannerEyebrow:50,bannerTitle:90,bannerDescription:300,bannerButtonLabel:30};
  for(const [key,limit] of Object.entries(limits)){
    if(typeof raw[key]!=='string'||!raw[key].trim()||raw[key].trim().length>(limit as number))throw Error('قيمة غير صالحة: '+key);
    fields[key]=raw[key].trim();
@@ -29,11 +33,21 @@ function validate(raw:any){
  const rate=raw.usdToIqdRate;
  if(rate!==null && (!Number.isSafeInteger(rate)||rate<1||rate>1000000))throw Error('سعر الصرف يجب أن يكون عدداً صحيحاً موجباً (دنانير لكل دولار)');
  if(raw.showUsdApprox && rate===null)throw Error('أدخل سعر الصرف قبل تفعيل الدولار');
+ if(typeof raw.bannerEnabled!=='boolean')throw Error('حالة البنر غير صالحة');
+ const allowedBannerLinks=['/products','/categories','/offers','/account'];
+ if(typeof raw.bannerButtonHref!=='string'||!allowedBannerLinks.includes(raw.bannerButtonHref))throw Error('رابط زر البنر غير مسموح');
+ const bannerImage=raw.bannerImage;
+ const uploadOrigin='http://localhost:'+String(process.env.PORT||4000)+'/uploads/';
+ if(bannerImage!==null && (typeof bannerImage!=='string'||bannerImage.length>300||
+   !bannerImage.startsWith(uploadOrigin)||
+   !/^[0-9]+-[0-9]+\.(jpg|jpeg|png|webp)$/i.test(bannerImage.slice(uploadOrigin.length))))
+   throw Error('صورة البنر يجب أن تكون من صور المتجر المرفوعة');
  if(!Number.isSafeInteger(raw.revision)||raw.revision<0)throw Error('إصدار إعدادات غير صالح');
- return {...fields,usdToIqdRate:rate,showUsdApprox:raw.showUsdApprox};
+ return {...fields,usdToIqdRate:rate,showUsdApprox:raw.showUsdApprox,bannerEnabled:raw.bannerEnabled,
+   bannerButtonHref:raw.bannerButtonHref,bannerImage};
 }
 router.get('/public',async(_req,res)=>{
- try{ const row=await current(); const {siteName,siteDescription,phone,email,address,workingHours,usdToIqdRate,showUsdApprox}=row;res.json({siteName,siteDescription,phone,email,address,workingHours,usdToIqdRate,showUsdApprox}); }
+ try{ const row=await current(); const {siteName,siteDescription,phone,email,address,workingHours,usdToIqdRate,showUsdApprox,bannerEnabled,bannerEyebrow,bannerTitle,bannerDescription,bannerButtonLabel,bannerButtonHref,bannerImage}=row;res.json({siteName,siteDescription,phone,email,address,workingHours,usdToIqdRate,showUsdApprox,bannerEnabled,bannerEyebrow,bannerTitle,bannerDescription,bannerButtonLabel,bannerButtonHref,bannerImage}); }
  catch(e){console.error(e);res.status(500).json({error:'تعذر تحميل الإعدادات'});}
 });
 router.get('/',requireOwner,async(_req,res)=>{

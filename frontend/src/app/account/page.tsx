@@ -114,8 +114,8 @@ export default function AccountPage(){
        <h2 className="mb-3 flex items-center gap-2 text-lg font-black"><UserRound size={19} className="text-brand"/> معلومات حسابي</h2>
        <dl className="grid gap-3 text-sm sm:grid-cols-3 sm:gap-6">
          <div><dt className="text-neutral-500">الاسم</dt><dd className="mt-1 font-bold">{user.name}</dd></div>
-         <div><dt className="text-neutral-500">البريد الإلكتروني</dt><dd className="mt-1 break-all font-bold" dir="ltr">{user.email}</dd></div>
-         <div><dt className="text-neutral-500">الهاتف</dt><dd className="mt-1 font-bold" dir="ltr">{user.phone}</dd></div>
+         <div><dt className="text-neutral-500">البريد الإلكتروني</dt><dd className="mt-1 break-all text-right font-bold" dir="ltr">{user.email}</dd></div>
+         <div><dt className="text-neutral-500">الهاتف</dt><dd className="mt-1 text-right font-bold" dir="ltr">{user.phone}</dd></div>
        </dl>
        <div className="mt-3 rounded-xl bg-[#eef8fb] px-3 py-2 text-xs leading-6 text-[#5c7b89]">احفظ عناوين توصيلك للطلبات القادمة. <a href="#saved-addresses" className="font-bold text-[#047ba8] underline">إدارة العناوين</a></div>
      </aside>
