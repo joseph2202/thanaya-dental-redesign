@@ -2,8 +2,8 @@
 import {useCallback,useEffect,useState} from 'react';
 import AdminLayout from '@/components/admin/AdminLayout';
 import Link from 'next/link';
-import {Printer} from 'lucide-react';
-import {ordersAPI} from '@/lib/api';
+import {Printer,FileSpreadsheet} from 'lucide-react';
+import {ordersAPI,exportsAPI} from '@/lib/api';
 
 type Line={id:string;quantity:number;price:number;product?:{name:string}};
 type Order={id:string;customerName:string;customerPhone:string;customerAddress:string;customerCity:string;total:number;subtotal:number|null;shippingFee:number|null;couponCode:string|null;discountAmount:number|null;status:string;createdAt:string;items:Line[]};
@@ -18,6 +18,7 @@ export default function AdminOrders(){
  const [data,setData]=useState<Result|null>(null),[status,setStatus]=useState('all'),[search,setSearch]=useState(''),[query,setQuery]=useState(''),[page,setPage]=useState(1);
  const [loading,setLoading]=useState(true),[error,setError]=useState(''),[notice,setNotice]=useState(''),[busy,setBusy]=useState<string|null>(null);
  const [expanded,setExpanded]=useState<string|null>(null);
+ const [exportBusy,setExportBusy]=useState(false);
  const load=useCallback(async()=>{
   setLoading(true);setError('');
   try{setData(await ordersAPI.manage({page,status,search:query}))}
@@ -37,7 +38,10 @@ export default function AdminOrders(){
  return <AdminLayout>
   <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
    <div><h1 className="text-3xl font-black text-ink">إدارة الطلبات</h1><p className="mt-2 text-sm text-neutral-600">بحث سريع، متابعة الحالات، وتفاصيل فاتورة محفوظة من السيرفر.</p></div>
-   <button onClick={()=>load()} disabled={loading} className="site-btn site-btn-outline site-btn-sm">تحديث الطلبات</button>
+   <div className="flex flex-wrap gap-2">
+     <button type="button" disabled={exportBusy} onClick={async()=>{setExportBusy(true);setError('');try{await exportsAPI.download('orders','all')}catch(e){setError(e instanceof Error?e.message:'تعذّر التصدير')}finally{setExportBusy(false)}}} className="site-btn site-btn-outline site-btn-sm"><FileSpreadsheet size={16}/>{exportBusy?'جاري تجهيز Excel...':'تصدير كل الطلبات Excel'}</button>
+     <button onClick={()=>load()} disabled={loading} className="site-btn site-btn-outline site-btn-sm">تحديث الطلبات</button>
+   </div>
   </div>
   {error&&<p className="mb-4 rounded-xl bg-red-50 p-4 text-red-700 font-bold" role="alert">{error}</p>}
   {notice&&<p className="mb-4 rounded-xl bg-green-50 p-4 text-green-700 font-bold" role="status">{notice}</p>}
