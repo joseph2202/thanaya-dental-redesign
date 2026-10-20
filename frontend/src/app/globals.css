@@ -23,10 +23,10 @@ button, a { -webkit-tap-highlight-color: transparent; }
 :focus-visible { outline: 3px solid #5DBEE0; outline-offset: 3px; }
 ::selection { background: #B2DFF0; color: #2E2E2D; }
 
-.site-container { width: min(100% - 40px, 1220px); margin-inline: auto; }
-.site-main { min-height: 55vh; }
+.site-container { width: min(100% - 40px, 1360px); margin-inline: auto; }
+.site-main { min-height: 0; }
 .site-eyebrow { color: var(--color-brand); font-size: .76rem; font-weight: 700; letter-spacing: .12em; }
-.site-heading { font-size: clamp(1.75rem, 3vw, 2.6rem); font-weight: 800; line-height: 1.45; letter-spacing: -.025em; }
+.site-heading { font-size: clamp(1.7rem, 2.8vw, 2.45rem); font-weight: 800; line-height: 1.35; letter-spacing: -.025em; }
 .site-muted { color: #626b70; line-height: 1.9; }
 /* THANAYA BUTTONS — raised cyan pill + bold dark-outline pill.
    Keep the same geometry on links and native buttons. */
@@ -114,7 +114,7 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .site-card { background: #fff; border: 1px solid #B2DFF0; border-radius: 18px; overflow: hidden; transition: transform .22s, box-shadow .22s, border-color .22s; }
 .site-card:hover { transform: translateY(-4px); border-color: #5DBEE0; box-shadow: 0 18px 36px rgba(20,53,91,.09); }
 .site-page-title { font-size: clamp(2rem, 4vw, 3.5rem); font-weight: 800; letter-spacing: -.035em; }
-.site-section { padding-block: clamp(3.5rem, 6vw, 6rem); }
+.site-section { padding-block: clamp(1.75rem, 3.6vw, 3rem); }
 
 @keyframes marquee { from { transform: translateX(0); } to { transform: translateX(50%); } }
 .animate-marquee { display: flex; width: max-content; animation: marquee 34s linear infinite; }
@@ -124,11 +124,11 @@ button, a { -webkit-tap-highlight-color: transparent; }
   .animate-marquee { animation: none; }
   *, *::before, *::after { transition-duration: .01ms !important; }
 }
-@media (max-width: 640px) { .site-container { width: min(100% - 32px, 1220px); } }
+@media (max-width: 640px) { .site-container { width: min(100% - 28px, 1360px); } }
 
 /* Mobile storefront polish: prevent overflow, preserve touch targets and reduce forced width. */
 @media (max-width: 639px) {
-  .site-section { padding-block: 2.75rem; }
+  .site-section { padding-block: 1.65rem; }
   .site-heading { font-size: clamp(1.65rem, 7vw, 2.2rem); }
   .site-page-title { font-size: clamp(1.85rem, 8vw, 2.8rem); }
   .site-btn-lg { min-height: 52px; padding: .7rem 1.2rem; }
