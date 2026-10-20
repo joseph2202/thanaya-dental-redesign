@@ -15,12 +15,12 @@ function zip(files:{name:string;content:string}[]){
   const name=utf(f.name),bytes=utf(f.content),crc=crc32(bytes);
   const header=Buffer.alloc(30);
   header.writeUInt32LE(0x04034b50,0);header.writeUInt16LE(20,4);header.writeUInt16LE(0x0800,6);
-  header.writeUInt16LE(0,8);header.writeUInt32LE(crc,14);
+  header.writeUInt16LE(0,8);header.writeUInt16LE(33,12);header.writeUInt32LE(crc,14);
   header.writeUInt32LE(bytes.length,18);header.writeUInt32LE(bytes.length,22);header.writeUInt16LE(name.length,26);
   chunks.push(header,name,bytes);
   const central=Buffer.alloc(46);
   central.writeUInt32LE(0x02014b50,0);central.writeUInt16LE(20,4);central.writeUInt16LE(20,6);
-  central.writeUInt16LE(0x0800,8);central.writeUInt32LE(crc,16);
+  central.writeUInt16LE(0x0800,8);central.writeUInt16LE(33,14);central.writeUInt32LE(crc,16);
   central.writeUInt32LE(bytes.length,20);central.writeUInt32LE(bytes.length,24);
   central.writeUInt16LE(name.length,28);central.writeUInt32LE(offset,42);
   directory.push(central,name);

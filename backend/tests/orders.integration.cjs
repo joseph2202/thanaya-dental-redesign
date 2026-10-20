@@ -549,7 +549,30 @@ async function main() {
       assert.equal(off.status,200);
       assert.equal((await request(base,'/api/settings/public')).body.bannerEnabled,false);
     });
-    console.log('\\nALL 18 CHECKS PASSED. Database was isolated and will be deleted.');
+    await check('Excel exports are authorized XLSX archives and do not mutate data',async()=>{
+      const none=await request(base,'/api/exports/orders?range=all');
+      assert.equal(none.status,401);
+      const customer=await request(base,'/api/exports/orders?range=all','GET',undefined,aliceToken);
+      assert.equal(customer.status,403);
+      const bad=await request(base,'/api/exports/orders?range=invalid','GET',undefined,adminToken);
+      assert.equal(bad.status,400);
+      const count=await prisma.order.count();
+      const stock=(await prisma.product.aggregate({_sum:{stock:true}}))._sum.stock;
+      for(const pathname of ['/api/exports/orders?range=all','/api/exports/inventory']){
+        const response=await fetch(base+pathname,{headers:{Authorization:'Bearer '+adminToken},signal:AbortSignal.timeout(15000)});
+        assert.equal(response.status,200,pathname);
+        assert.match(response.headers.get('content-type')||'',/spreadsheetml/);
+        assert.match(response.headers.get('content-disposition')||'',/\.xlsx/);
+        const buf=Buffer.from(await response.arrayBuffer());
+        assert.equal(buf.readUInt32LE(0),0x04034b50);
+        assert.ok(buf.includes(Buffer.from('xl/workbook.xml')));
+        assert.ok(buf.includes(Buffer.from('xl/worksheets/sheet1.xml')));
+        assert.ok(buf.includes(Buffer.from('xl/worksheets/sheet2.xml')));
+      }
+      assert.equal(await prisma.order.count(),count);
+      assert.equal((await prisma.product.aggregate({_sum:{stock:true}}))._sum.stock,stock);
+    });
+    console.log('\\nALL 19 CHECKS PASSED. Database was isolated and will be deleted.');
   } catch (error) {
     console.error('\nORDER INTEGRATION FAILED. Server output:\n' + logs);
     throw error;

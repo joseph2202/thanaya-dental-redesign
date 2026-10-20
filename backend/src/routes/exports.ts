@@ -6,7 +6,11 @@ import {createXlsx,Sheet} from '../lib/simpleXlsx';
 const router=Router(),prisma=new PrismaClient();
 const allowed=['7','30','90','all'] as const;
 const statuses:Record<string,string>={pending:'قيد المعالجة',confirmed:'مؤكد',shipped:'بالطريق',delivered:'مُسلّم',cancelled:'ملغي',returned:'مرتجع'};
-const date=(d:Date)=>new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Baghdad',year:'numeric',month:'2-digit',day:'2-digit'}).format(d);
+const date=(d:Date)=>{
+ const parts=new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Baghdad',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(d);
+ const value=(key:string)=>parts.find(p=>p.type===key)?.value||'';
+ return value('year')+'-'+value('month')+'-'+value('day');
+};
 const safe=(v:string|null|undefined)=>v||'';
 const title=(v:string|null|undefined)=>v||'منتج';
 function send(res:import('express').Response,buf:Buffer,name:string){
