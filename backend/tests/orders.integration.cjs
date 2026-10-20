@@ -514,7 +514,42 @@ async function main() {
         assert.equal(unchanged.customerAddress,snapshot.customerAddress);
       }
     });
-    console.log('\\nALL 17 CHECKS PASSED. Database was isolated and will be deleted.');
+    await check('owner can manage audited home banner while customers cannot',async()=>{
+      const owner=await prisma.user.create({data:{name:'Owner test',email:'owner@integration.invalid',phone:'07812345671',password:'unused',role:'owner'}});
+      const ownerToken=credentials(jwt,owner);
+      const defaults=await request(base,'/api/settings/public');
+      assert.equal(defaults.status,200);
+      assert.equal(defaults.body.bannerEnabled,true);
+      assert.equal(defaults.body.bannerButtonHref,'/products');
+      const adminGet=await request(base,'/api/settings','GET',undefined,adminToken);
+      assert.equal(adminGet.status,403);
+      const ownerGet=await request(base,'/api/settings','GET',undefined,ownerToken);
+      assert.equal(ownerGet.status,200,JSON.stringify(ownerGet));
+      const initial=ownerGet.body;
+      const updated={...initial,bannerEnabled:true,bannerTitle:'عرض خاص لمستلزمات الأسنان',bannerDescription:'اختر احتياجات العيادة',bannerEyebrow:'THANAYA / OFFERS',
+        bannerButtonLabel:'شوف العروض',bannerButtonHref:'/offers',bannerImage:null};
+      const denied=await request(base,'/api/settings','PUT',updated,aliceToken);
+      assert.equal(denied.status,403);
+      const badLink=await request(base,'/api/settings','PUT',{...updated,bannerButtonHref:'https://evil.example'},ownerToken);
+      assert.equal(badLink.status,400);
+      const badImage=await request(base,'/api/settings','PUT',{...updated,bannerImage:'https://evil.example/tracker.svg'},ownerToken);
+      assert.equal(badImage.status,400);
+      const saved=await request(base,'/api/settings','PUT',updated,ownerToken);
+      assert.equal(saved.status,200,JSON.stringify(saved));
+      assert.equal(saved.body.bannerTitle,updated.bannerTitle);
+      const publicRead=await request(base,'/api/settings/public');
+      assert.equal(publicRead.status,200);
+      assert.equal(publicRead.body.bannerTitle,updated.bannerTitle);
+      assert.equal(publicRead.body.bannerButtonHref,'/offers');
+      const stale=await request(base,'/api/settings','PUT',updated,ownerToken);
+      assert.equal(stale.status,409);
+      const changes=await prisma.storeSettingsChange.findMany({where:{actorId:owner.id}});
+      assert.equal(changes.length,1);
+      const off=await request(base,'/api/settings','PUT',{...saved.body,bannerEnabled:false},ownerToken);
+      assert.equal(off.status,200);
+      assert.equal((await request(base,'/api/settings/public')).body.bannerEnabled,false);
+    });
+    console.log('\\nALL 18 CHECKS PASSED. Database was isolated and will be deleted.');
   } catch (error) {
     console.error('\nORDER INTEGRATION FAILED. Server output:\n' + logs);
     throw error;

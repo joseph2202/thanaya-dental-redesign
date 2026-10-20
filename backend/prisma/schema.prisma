@@ -183,6 +183,13 @@ model StoreSettings {
   workingHours    String   @default("السبت - الخميس: 12 ظهراً - 9 مساءً")
   usdToIqdRate    Int?
   showUsdApprox   Boolean  @default(false)
+  bannerEnabled   Boolean  @default(true)
+  bannerEyebrow   String   @default("THANAYA / BASRA")
+  bannerTitle     String   @default("احتياجات عيادتك، أسهل مع ثنايا.")
+  bannerDescription String @default("تصفّح مستلزمات طب الأسنان والأجهزة الطبية، ورتّب احتياجاتك من الأقسام الموجودة في المتجر.")
+  bannerButtonLabel String @default("ابدأ التصفّح")
+  bannerButtonHref String  @default("/products")
+  bannerImage     String?
   revision        Int      @default(0)
   updatedAt       DateTime @updatedAt
 }
