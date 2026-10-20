@@ -470,7 +470,51 @@ async function main() {
       assert.equal(visible.status,200);
       assert.equal((await request(base,'/api/products/'+hidden.id)).status,200);
     });
-    console.log('\\nALL 16 CHECKS PASSED. Database was isolated and will be deleted.');
+    await check('saved delivery addresses are private, limited, and do not change old orders',async()=>{
+      const snapshot=await prisma.order.findFirst({where:{userId:alice.id},select:{id:true,customerAddress:true}});
+      const noAuth=await request(base,'/api/addresses');
+      assert.equal(noAuth.status,401);
+      const bad=await request(base,'/api/addresses','POST',{label:'بيت',name:'Test',phone:'999',city:'البصرة',address:'العشار شارع 1'},aliceToken);
+      assert.equal(bad.status,400);
+      const first=await request(base,'/api/addresses','POST',{label:'العيادة',name:'مستلم تجريبي',phone:'07812345678',city:'البصرة',address:'شارع العيادة الاختباري رقم 2'},aliceToken);
+      assert.equal(first.status,201,JSON.stringify(first));
+      assert.equal(first.body.isDefault,true);
+      const second=await request(base,'/api/addresses','POST',{label:'بيت',name:'مستلم ثانٍ',phone:'07812345678',city:'بغداد',address:'عنوان اختباري شارع 33'},aliceToken);
+      assert.equal(second.status,201,JSON.stringify(second));
+      assert.equal(second.body.isDefault,false);
+      const bobRead=await request(base,'/api/addresses','GET',undefined,bobToken);
+      assert.equal(bobRead.status,200);
+      assert.equal(bobRead.body.length,0);
+      const bobUpdate=await request(base,'/api/addresses/'+first.body.id,'PUT',{label:'تزوير',name:'مستلم جديد',phone:'07812345678',city:'البصرة',address:'شارع غير مسموح'},bobToken);
+      assert.equal(bobUpdate.status,404);
+      const bobDefault=await request(base,'/api/addresses/'+first.body.id+'/default','POST',{},bobToken);
+      assert.equal(bobDefault.status,404);
+      const bobDelete=await request(base,'/api/addresses/'+first.body.id,'DELETE',undefined,bobToken);
+      assert.equal(bobDelete.status,404);
+      const changeDefault=await request(base,'/api/addresses/'+second.body.id+'/default','POST',{},aliceToken);
+      assert.equal(changeDefault.status,200);
+      assert.equal(changeDefault.body.isDefault,true);
+      const updated=await request(base,'/api/addresses/'+second.body.id,'PUT',{label:'عنوان معدل',name:'مستلم جديد',phone:'07812345678',city:'النجف',address:'العنوان بعد التعديل في النجف'},aliceToken);
+      assert.equal(updated.status,200);
+      assert.equal(updated.body.city,'النجف');
+      for(let i=0;i<3;i++){
+        const created=await request(base,'/api/addresses','POST',{label:'إضافي '+i,name:'مستلم اختبار',phone:'07812345678',city:'البصرة',address:'عنوان اختبار رقم '+i},aliceToken);
+        assert.equal(created.status,201,JSON.stringify(created));
+      }
+      const over=await request(base,'/api/addresses','POST',{label:'سادس',name:'مستلم اختبار',phone:'07812345678',city:'البصرة',address:'العنوان السادس'},aliceToken);
+      assert.equal(over.status,409);
+      const deleteDefault=await request(base,'/api/addresses/'+second.body.id,'DELETE',undefined,aliceToken);
+      assert.equal(deleteDefault.status,200);
+      const read=await request(base,'/api/addresses','GET',undefined,aliceToken);
+      assert.equal(read.status,200);
+      assert.equal(read.body.length,4);
+      assert.equal(read.body.filter(a=>a.isDefault).length,1);
+      if(snapshot){
+        const unchanged=await prisma.order.findUniqueOrThrow({where:{id:snapshot.id},select:{customerAddress:true}});
+        assert.equal(unchanged.customerAddress,snapshot.customerAddress);
+      }
+    });
+    console.log('\\nALL 17 CHECKS PASSED. Database was isolated and will be deleted.');
   } catch (error) {
     console.error('\nORDER INTEGRATION FAILED. Server output:\n' + logs);
     throw error;
