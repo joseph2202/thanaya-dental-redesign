@@ -131,7 +131,7 @@ export default function AdminProducts() {
   const validCost=(value:string):number|null|undefined=>{
     const cleaned=value.trim().replace(/,/g,'');
     if(cleaned==='')return null;
-    if(!/^\\d{1,10}$/.test(cleaned))return undefined;
+    if(!/^\d{1,10}$/.test(cleaned))return undefined;
     const numeric=Number(cleaned);
     return Number.isSafeInteger(numeric)&&numeric<=1_000_000_000?numeric:undefined;
   };
