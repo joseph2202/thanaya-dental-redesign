@@ -25,6 +25,8 @@ function ConfirmationContent() {
   const [error, setError] = useState('');
   const [refreshBusy,setRefreshBusy]=useState(false);
   const [refreshError,setRefreshError]=useState('');
+  const [automaticCheck,setAutomaticCheck]=useState('');
+  const [automaticError,setAutomaticError]=useState(false);
   const [reorderBusy,setReorderBusy]=useState(false);
   const [reorderError,setReorderError]=useState('');
   const [askToReplace,setAskToReplace]=useState(false);
@@ -37,10 +39,50 @@ function ConfirmationContent() {
       .finally(() => setLoading(false));
   }, [id]);
 
+  // Poll the saved order status only while this page is visible.
+  // Staff/courier still need to CONFIRM delivery; polling never changes a status.
+  useEffect(() => {
+    if (!id || !order?.id) return;
+    let alive = true;
+    let checking = false;
+    let lastPoll = 0;
+    const syncOrder = async () => {
+      if (!alive || checking || document.visibilityState !== 'visible') return;
+      // Window focus and visibility-change events sometimes fire together.
+      if (Date.now() - lastPoll < 10000) return;
+      checking = true;
+      lastPoll = Date.now();
+      try {
+        const latest: Order = await ordersAPI.getById(id);
+        if (alive) {
+          setOrder(latest);
+          setAutomaticCheck(new Date().toLocaleTimeString('ar-IQ', { hour: '2-digit', minute: '2-digit' }));
+          setAutomaticError(false);
+        }
+      } catch {
+        // Don't replace a valid order with an error screen on transient network loss.
+        if (alive) setAutomaticError(true);
+      } finally {
+        checking = false;
+      }
+    };
+    const interval = window.setInterval(() => { void syncOrder(); }, 30000);
+    const onFocus = () => { void syncOrder(); };
+    const onVisible = () => { if (document.visibilityState === 'visible') void syncOrder(); };
+    window.addEventListener('focus', onFocus);
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      alive = false;
+      window.clearInterval(interval);
+      window.removeEventListener('focus', onFocus);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, [id, order?.id]);
+
   const refreshStatus = async () => {
     if(!id||refreshBusy)return;
     setRefreshBusy(true);setRefreshError('');
-    try{setOrder(await ordersAPI.getById(id))}
+    try{setOrder(await ordersAPI.getById(id));setAutomaticCheck(new Date().toLocaleTimeString('ar-IQ', { hour: '2-digit', minute: '2-digit' }));setAutomaticError(false)}
     catch(e){setRefreshError(e instanceof Error?e.message:'تعذّر تحديث حالة الطلب')}
     finally{setRefreshBusy(false)}
   };
@@ -79,6 +121,12 @@ function ConfirmationContent() {
           {order&&<button type="button" onClick={refreshStatus} disabled={refreshBusy} className="inline-flex items-center gap-2 rounded-full border border-[#bcdce8] bg-white px-4 py-2.5 text-sm font-bold text-[#335c6e] transition hover:border-brand disabled:opacity-60"><RefreshCw size={16} className={refreshBusy?'animate-spin':''}/>{refreshBusy?'جاري التحديث...':'تحديث حالة الطلب'}</button>}
         </div>
         {refreshError&&<p role="alert" className="mb-4 rounded-xl bg-amber-50 p-3 text-sm text-amber-900">{refreshError}</p>}
+        {order && <div role="status" className="mb-4 flex flex-wrap items-center gap-2 rounded-xl border border-[#d4e9f1] bg-white/90 px-4 py-2.5 text-xs font-bold text-[#517588]">
+          <span className="h-2 w-2 rounded-full bg-emerald-500" aria-hidden="true" />
+          تتحدّث الحالة تلقائياً كل 30 ثانية أثناء فتح الصفحة
+          {automaticCheck && <span className="font-normal">· آخر تحقق: {automaticCheck}</span>}
+          {automaticError && <span className="text-amber-800">· تعذّر آخر تحقق، جرّب زر التحديث</span>}
+        </div>}
         {loading ? <p className="text-center font-bold text-ink">جاري تحميل تفاصيل الطلب...</p> :
           error || !order ? (
             <div className="rounded-3xl bg-white border border-red-100 p-10 text-center">
