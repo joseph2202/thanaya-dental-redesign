@@ -28,6 +28,7 @@ type CartContextType = {
   removeFromCart: (productId: string) => void;
   updateQuantity: (productId: string, quantity: number) => { success: boolean; message: string };
   clearCart: () => void;
+  replaceCart: (entries: CartItem[]) => { success: boolean; message: string };
   totalItems: number;
   totalPrice: number;
 };
@@ -102,6 +103,29 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const clearCart = () => setItems([]);
 
+  // Used only after refetching the current prices and available stock from the server.
+  // Replace all items atomically; unlike repeated addToCart calls, this cannot
+  // accumulate stale quantities or accidentally combine two separate purchases.
+  const replaceCart = (entries: CartItem[]): { success: boolean; message: string } => {
+    if (!hydrated) return { success: false, message: 'انتظر تحميل سلتك ثم حاول مرة ثانية' };
+    if (!Array.isArray(entries) || entries.length === 0 || entries.length > 50) {
+      return { success: false, message: 'الطلب لا يحتوي منتجات قابلة للإضافة' };
+    }
+    const ids = new Set<string>();
+    for (const entry of entries) {
+      const { product, quantity } = entry;
+      if (!product || typeof product.id !== 'string' || ids.has(product.id) ||
+          !Number.isSafeInteger(quantity) || quantity < 1 || quantity > 100 ||
+          !Number.isSafeInteger(product.stock) || product.stock < quantity ||
+          !Number.isSafeInteger(product.price) || product.price < 0) {
+        return { success: false, message: 'بعض المنتجات أو الكميات لم تعد متوفرة. راجع الطلب.' };
+      }
+      ids.add(product.id);
+    }
+    setItems(entries);
+    return { success: true, message: 'تم تجهيز السلة، راجع الأسعار والكميات قبل تأكيد طلب جديد' };
+  };
+
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
   const totalPrice = items.reduce(
     (sum, item) => sum + item.product.price * item.quantity,
@@ -116,6 +140,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         removeFromCart,
         updateQuantity,
         clearCart,
+        replaceCart,
         totalItems,
         totalPrice,
       }}
