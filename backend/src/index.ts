@@ -12,6 +12,7 @@ import settingsRoutes from './routes/settings';
 import deliveryRoutes from './routes/delivery';
 import notificationsRoutes from './routes/notifications';
 import reportsRoutes from './routes/reports';
+import addressesRoutes from './routes/addresses';
 
 // استيراد مكتبات رفع الصور
 import multer from 'multer';
@@ -113,6 +114,7 @@ app.post('/api/upload', requireAdmin, uploadImage, (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);
+app.use('/api/addresses', addressesRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/coupons', couponRoutes);
 app.use('/api/users', userRoutes);

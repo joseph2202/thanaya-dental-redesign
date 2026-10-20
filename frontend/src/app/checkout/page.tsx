@@ -6,7 +6,7 @@ import Footer from '@/components/layout/Footer';
 import ProductMedia from '@/components/ui/ProductMedia';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
-import { ordersAPI, couponsAPI, deliveryAPI, DeliveryConfig, productsAPI, CartQuote } from '@/lib/api';
+import { ordersAPI, couponsAPI, deliveryAPI, DeliveryConfig, productsAPI, CartQuote, addressesAPI, SavedAddress } from '@/lib/api';
 import Link from 'next/link';
 
 const cities = [
@@ -25,6 +25,10 @@ export default function CheckoutPage() {
     address: '',
     city: 'بغداد',
   });
+  const [savedAddresses,setSavedAddresses] = useState<SavedAddress[]>([]);
+  const [savedChoice,setSavedChoice] = useState('');
+  const [addressesLoading,setAddressesLoading] = useState(true);
+  const [addressesError,setAddressesError] = useState('');
   const [delivery,setDelivery] = useState<DeliveryConfig|null>(null);
   const [quote,setQuote]=useState<CartQuote|null>(null);
   const [quoteLoading,setQuoteLoading]=useState(true);
@@ -78,6 +82,34 @@ export default function CheckoutPage() {
       });
     }
   }, [user]);
+
+  // Saved addresses prefill delivery details; the order still records an immutable
+  // snapshot of the visible form, so editing the address book never rewrites old orders.
+  useEffect(() => {
+    if (!user) return;
+    let active=true;
+    setAddressesLoading(true);setAddressesError('');
+    addressesAPI.getMine().then(addresses=>{
+      if(!active)return;
+      setSavedAddresses(addresses);
+      const defaultAddress=addresses.find(a=>a.isDefault);
+      if(defaultAddress){
+        setSavedChoice(defaultAddress.id);
+        setForm(current=>current.address.trim()?current:{
+          name:defaultAddress.name,phone:defaultAddress.phone,
+          city:defaultAddress.city,address:defaultAddress.address
+        });
+      }
+    }).catch(e=>{if(active)setAddressesError(e instanceof Error?e.message:'تعذّر جلب العناوين المحفوظة')})
+      .finally(()=>{if(active)setAddressesLoading(false)});
+    return ()=>{active=false};
+  },[user]);
+
+  const selectSavedAddress=(id:string)=>{
+    setSavedChoice(id);
+    const picked=savedAddresses.find(a=>a.id===id);
+    if(picked)setForm({name:picked.name,phone:picked.phone,city:picked.city,address:picked.address});
+  };
 
   if (authLoading || !user) return null;
 
@@ -173,6 +205,16 @@ export default function CheckoutPage() {
         <div className="grid md:grid-cols-2 gap-8">
           <form onSubmit={handleSubmit} className="bg-white border border-[#d4eaf2] rounded-2xl p-6 space-y-5 h-fit">
             <h2 className="text-2xl font-black mb-4 text-ink">بيانات التوصيل</h2>
+            {addressesLoading&&<p role="status" className="text-sm text-neutral-600">جاري تحميل عناوينك المحفوظة...</p>}
+            {addressesError&&<p className="rounded-xl bg-amber-50 p-3 text-sm text-amber-900">العناوين المحفوظة غير متاحة حالياً؛ تكدر تدخل العنوان يدوياً. {addressesError}</p>}
+            {savedAddresses.length>0&&<div className="rounded-2xl border border-[#cce7f1] bg-[#f1faff] p-4">
+              <label htmlFor="checkout-saved-address" className="block text-sm font-black">اختَر عنواناً محفوظاً (اختياري)</label>
+              <select id="checkout-saved-address" value={savedChoice} onChange={e=>selectSavedAddress(e.target.value)} className="mt-2 w-full rounded-xl border border-[#bbdeea] bg-white px-4 py-3 text-sm font-bold">
+                <option value="">إدخال العنوان يدوياً</option>
+                {savedAddresses.map(a=><option key={a.id} value={a.id}>{a.label} — {a.city}{a.isDefault?' (افتراضي)':''}</option>)}
+              </select>
+              <p className="mt-2 text-xs leading-6 text-[#587380]">تكدر تعدّل بيانات المستلم أدناه لهذا الطلب بدون تغيير العنوان المحفوظ.</p>
+            </div>}
 
             <div>
               <label className="block font-bold mb-2 text-sm text-ink">الاسم الكامل</label>
@@ -180,7 +222,7 @@ export default function CheckoutPage() {
                 required
                 type="text"
                 value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                onChange={(e) => {setForm({ ...form, name: e.target.value });setSavedChoice('')}}
                 className="w-full border border-[#bbdeea] rounded-xl px-4 py-3 font-bold focus:outline-none focus:border-brand"
                 placeholder="مثال: أحمد محمد"
               />
@@ -195,7 +237,7 @@ export default function CheckoutPage() {
                   type="tel"
                   pattern="07[0-9]{9}"
                   value={form.phone}
-                  onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                  onChange={(e) => {setForm({ ...form, phone: e.target.value });setSavedChoice('')}}
                   className="flex-1 border border-[#bbdeea] rounded-xl px-4 py-3 font-bold focus:outline-none focus:border-brand"
                   placeholder="7822088894"
                 />
@@ -207,7 +249,7 @@ export default function CheckoutPage() {
               <label className="block font-bold mb-2 text-sm text-ink">المحافظة</label>
               <select
                 value={form.city}
-                onChange={(e) => setForm({ ...form, city: e.target.value })}
+                onChange={(e) => {setForm({ ...form, city: e.target.value });setSavedChoice('')}}
                 className="w-full border border-[#bbdeea] rounded-xl px-4 py-3 font-bold focus:outline-none focus:border-brand bg-white"
               >
                 {cities.map((c) => (
@@ -221,7 +263,7 @@ export default function CheckoutPage() {
               <textarea
                 required
                 value={form.address}
-                onChange={(e) => setForm({ ...form, address: e.target.value })}
+                onChange={(e) => {setForm({ ...form, address: e.target.value });setSavedChoice('')}}
                 rows={3}
                 className="w-full border border-[#bbdeea] rounded-xl px-4 py-3 font-bold focus:outline-none focus:border-brand resize-none"
                 placeholder="المنطقة، الشارع، أقرب نقطة دالة..."

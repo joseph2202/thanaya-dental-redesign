@@ -58,6 +58,16 @@ export const productsAPI = {
   adjustStock: (id: string, delta: number, reason: string) => apiRequest(`/products/${id}/stock-adjustment`, { method: 'POST', body: JSON.stringify({ delta, reason }) }),
 };
 
+export type SavedAddress = { id:string;label:string;name:string;phone:string;city:string;address:string;isDefault:boolean;createdAt:string;updatedAt:string };
+export type AddressInput = Pick<SavedAddress,'label'|'name'|'phone'|'city'|'address'>;
+export const addressesAPI = {
+  getMine: ():Promise<SavedAddress[]> => apiRequest('/addresses'),
+  create: (data:AddressInput):Promise<SavedAddress> => apiRequest('/addresses',{method:'POST',body:JSON.stringify(data)}),
+  update: (id:string,data:AddressInput):Promise<SavedAddress> => apiRequest('/addresses/'+encodeURIComponent(id),{method:'PUT',body:JSON.stringify(data)}),
+  setDefault: (id:string):Promise<SavedAddress> => apiRequest('/addresses/'+encodeURIComponent(id)+'/default',{method:'POST',body:'{}'}),
+  delete: (id:string):Promise<{deleted:boolean}> => apiRequest('/addresses/'+encodeURIComponent(id),{method:'DELETE'}),
+};
+
 // Orders API
 export const ordersAPI = {
   getAll: () => apiRequest('/orders'),

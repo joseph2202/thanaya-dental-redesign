@@ -7,6 +7,7 @@ import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import {useAuth} from '@/context/AuthContext';
 import {ordersAPI} from '@/lib/api';
+import AddressBook from '@/components/account/AddressBook';
 import {orderStatusColors,orderStatusLabels,shortOrderCode} from '@/lib/orderPresentation';
 
 type CustomerOrder={id:string;status:string;total:number;createdAt:string;items:{quantity:number}[]};
@@ -63,5 +64,6 @@ export default function AccountPage(){
      })}</div>}
    </section>
   </div>
+  <AddressBook />
  </main><Footer/></>;
 }
