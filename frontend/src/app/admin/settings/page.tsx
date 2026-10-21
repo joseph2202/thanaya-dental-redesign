@@ -1,128 +1,63 @@
 "use client";
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import AdminLayout from '@/components/admin/AdminLayout';
+import { settingsAPI } from '@/lib/api';
+import { useAuth } from '@/context/AuthContext';
 
 type Settings = {
-  siteName: string;
-  siteDescription: string;
-  phone: string;
-  email: string;
-  address: string;
-  workingHours: string;
+  siteName:string;siteDescription:string;phone:string;email:string;address:string;workingHours:string;
+  usdToIqdRate:number|null;showUsdApprox:boolean;revision:number;
 };
-
-export default function AdminSettings() {
-  const [settings, setSettings] = useState<Settings>({
-    siteName: 'ثنايا',
-    siteDescription: 'متجر عراقي للمستلزمات الطبية وطب الأسنان والأجهزة',
-    phone: '07822088894',
-    email: 'info@thanaya.iq',
-    address: 'البصرة - حي الخضراء - شارع مستشفى النفط',
-    workingHours: 'السبت - الخميس: 12 ظهراً - 9 مساءً',
-  });
-  const [success, setSuccess] = useState('');
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    const saved = localStorage.getItem('thanaya-settings');
-    if (saved) {
-      try {
-        setSettings(JSON.parse(saved));
-      } catch (e) {}
-    }
-  }, []);
-
-  const handleSave = (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    localStorage.setItem('thanaya-settings', JSON.stringify(settings));
-    setSuccess('تم حفظ الإعدادات بنجاح');
-    setTimeout(() => setSuccess(''), 3000);
-    setLoading(false);
-  };
-
-  return (
-    <AdminLayout>
-      <h2 className="text-3xl font-black mb-8 text-ink">إعدادات الموقع</h2>
-
-      {success && (
-        <div className="bg-green-50 border-2 border-green-200 rounded-xl p-4 mb-6 text-green-700 font-bold">
-          ✅ {success}
-        </div>
-      )}
-
-      <form onSubmit={handleSave} className="bg-white border-2 border-brand/20 rounded-2xl p-6 space-y-5">
-        <div>
-          <label className="block font-bold mb-2 text-sm text-ink">اسم الموقع *</label>
-          <input
-            type="text"
-            value={settings.siteName}
-            onChange={(e) => setSettings({ ...settings, siteName: e.target.value })}
-            className="w-full border-2 border-brand/30 rounded-xl px-4 py-3 focus:outline-none focus:border-brand"
-            required
-          />
-        </div>
-
-        <div>
-          <label className="block font-bold mb-2 text-sm text-ink">وصف الموقع *</label>
-          <textarea
-            value={settings.siteDescription}
-            onChange={(e) => setSettings({ ...settings, siteDescription: e.target.value })}
-            className="w-full border-2 border-brand/30 rounded-xl px-4 py-3 focus:outline-none focus:border-brand resize-none"
-            rows={3}
-            required
-          />
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block font-bold mb-2 text-sm text-ink">رقم الهاتف *</label>
-            <input
-              type="tel"
-              value={settings.phone}
-              onChange={(e) => setSettings({ ...settings, phone: e.target.value })}
-              className="w-full border-2 border-brand/30 rounded-xl px-4 py-3 focus:outline-none focus:border-brand"
-              required
-            />
-          </div>
-          <div>
-            <label className="block font-bold mb-2 text-sm text-ink">البريد الإلكتروني *</label>
-            <input
-              type="email"
-              value={settings.email}
-              onChange={(e) => setSettings({ ...settings, email: e.target.value })}
-              className="w-full border-2 border-brand/30 rounded-xl px-4 py-3 focus:outline-none focus:border-brand"
-              required
-            />
-          </div>
-        </div>
-
-        <div>
-          <label className="block font-bold mb-2 text-sm text-ink">العنوان *</label>
-          <input
-            type="text"
-            value={settings.address}
-            onChange={(e) => setSettings({ ...settings, address: e.target.value })}
-            className="w-full border-2 border-brand/30 rounded-xl px-4 py-3 focus:outline-none focus:border-brand"
-            required
-          />
-        </div>
-
-        <div>
-          <label className="block font-bold mb-2 text-sm text-ink">ساعات العمل *</label>
-          <input
-            type="text"
-            value={settings.workingHours}
-            onChange={(e) => setSettings({ ...settings, workingHours: e.target.value })}
-            className="w-full border-2 border-brand/30 rounded-xl px-4 py-3 focus:outline-none focus:border-brand"
-            required
-          />
-        </div>
-
-        <button type="submit" disabled={loading} className="bg-brand text-white rounded-full px-8 py-3 font-bold hover:bg-brand-dark transition disabled:opacity-50">
-          {loading ? 'جاري الحفظ...' : 'حفظ الإعدادات'}
-        </button>
-      </form>
-    </AdminLayout>
-  );
+const fields: {key:keyof Settings;label:string;type?:string;multiline?:boolean}[]=[
+  {key:'siteName',label:'اسم المتجر'},{key:'siteDescription',label:'وصف المتجر',multiline:true},
+  {key:'phone',label:'هاتف المتجر'},{key:'email',label:'البريد الإلكتروني',type:'email'},
+  {key:'address',label:'العنوان'},{key:'workingHours',label:'ساعات العمل'}
+];
+export default function AdminSettings(){
+  const {user}=useAuth();
+  const [settings,setSettings]=useState<Settings|null>(null);
+  const [busy,setBusy]=useState(false),[error,setError]=useState(''),[success,setSuccess]=useState('');
+  const [loading,setLoading]=useState(true);
+  async function load(){
+    setLoading(true);setError('');
+    try{setSettings(await settingsAPI.getAdmin());}
+    catch(e){setError(e instanceof Error?e.message:'تعذر تحميل الإعدادات');}
+    finally{setLoading(false);}
+  }
+  useEffect(()=>{if(user?.role==='owner')load();else setLoading(false);},[user?.role]);
+  async function save(e:React.FormEvent){
+    e.preventDefault();if(!settings)return;
+    setBusy(true);setError('');setSuccess('');
+    try{const updated=await settingsAPI.save(settings);setSettings(updated);setSuccess('حُفظت إعدادات ثنايا بقاعدة البيانات بنجاح');}
+    catch(e){setError(e instanceof Error?e.message:'تعذر الحفظ');}
+    finally{setBusy(false);}
+  }
+  if(user?.role!=='owner')return <AdminLayout><p className="site-surface p-6">تعديل إعدادات المتجر الرئيسية متاح للمالك فقط.</p></AdminLayout>;
+  return <AdminLayout>
+    <div className="mb-7"><span className="site-eyebrow">THANAYA / SETTINGS</span>
+      <h1 className="mt-2 text-3xl font-black text-ink">إعدادات ثنايا</h1>
+      <p className="mt-2 text-sm text-neutral-600">تنحفظ الإعدادات على السيرفر، وتكون متاحة على الأجهزة الأخرى. سعر الطلبات القديمة لا يتغيّر.</p>
+    </div>
+    {error&&<div role="alert" className="mb-5 rounded-xl border border-red-200 bg-red-50 p-4 font-bold text-red-700">{error}<button type="button" onClick={load} className="mr-4 underline">إعادة التحميل</button></div>}
+    {success&&<div role="status" className="mb-5 rounded-xl bg-green-50 p-4 font-bold text-green-700">{success}</div>}
+    {loading?<p>جاري تحميل الإعدادات...</p>:settings&&<form onSubmit={save} className="grid gap-6">
+      <section className="site-surface p-6"><h2 className="mb-5 text-xl font-black">معلومات المتجر</h2>
+        <div className="grid gap-5 md:grid-cols-2">{fields.map(field=><label key={field.key} className={field.multiline?'md:col-span-2':''}>
+          <span className="mb-2 block text-sm font-bold">{field.label}</span>
+          {field.multiline?<textarea required maxLength={600} rows={3} className="w-full rounded-xl border border-brand/25 p-3" value={String(settings[field.key]??'')} onChange={e=>setSettings({...settings,[field.key]:e.target.value})}/>:
+          <input required type={field.type||'text'} className="w-full rounded-xl border border-brand/25 p-3" value={String(settings[field.key]??'')} onChange={e=>setSettings({...settings,[field.key]:e.target.value})}/>}
+        </label>)}</div>
+      </section>
+      <section className="site-surface p-6">
+        <h2 className="mb-2 text-xl font-black">العملات وسعر الصرف</h2>
+        <p className="mb-5 text-sm text-neutral-600">الدينار هو عملة الشراء. الدولار مجرد قيمة تقريبية للعرض، وليس سعراً مستقلاً للدفع.</p>
+        <label className="block max-w-md"><span className="mb-2 block text-sm font-bold">سعر دولار واحد بالدينار العراقي (يدوي)</span>
+          <input type="number" min={100} max={10000} step={1} className="w-full rounded-xl border border-brand/25 p-3" value={settings.usdToIqdRate??''} placeholder="أدخل السعر الذي تعتمد عليه" onChange={e=>setSettings({...settings,usdToIqdRate:e.target.value===''?null:Number(e.target.value)})}/>
+        </label>
+        <label className="mt-5 flex items-center gap-3 text-sm font-bold"><input type="checkbox" checked={settings.showUsdApprox} onChange={e=>setSettings({...settings,showUsdApprox:e.target.checked})}/>عرض المقابل التقريبي بالدولار بصفحة المنتج</label>
+        {settings.usdToIqdRate&&settings.usdToIqdRate>0&&<p className="mt-5 rounded-xl bg-paper2 p-4 text-sm">مثال للعرض: 25,000 د.ع ≈ {(25000/settings.usdToIqdRate).toFixed(2)} دولار. هذا لا يغيّر سعر المنتج أو الطلب.</p>}
+      </section>
+      <div className="flex flex-wrap items-center gap-4"><button disabled={busy} type="submit" className="site-btn site-btn-primary">{busy?'جاري الحفظ...':'حفظ إعدادات المتجر'}</button><span className="text-xs text-neutral-500">إصدار الإعدادات: {settings.revision}</span></div>
+    </form>}
+  </AdminLayout>;
 }

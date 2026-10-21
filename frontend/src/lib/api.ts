@@ -104,3 +104,10 @@ export const uploadAPI = {
     return response.json();
   },
 };
+
+// Central settings (GET public for storefront; writes owner-only).
+export const settingsAPI = {
+  getPublic: () => apiRequest('/settings/public'),
+  getAdmin: () => apiRequest('/settings'),
+  save: (data: any) => apiRequest('/settings', { method: 'PUT', body: JSON.stringify(data) }),
+};

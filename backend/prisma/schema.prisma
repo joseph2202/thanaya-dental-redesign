@@ -17,6 +17,7 @@ model User {
   createdAt DateTime @default(now())
   orders    Order[]
   roleChanges RoleChange[] @relation("RoleChangeActor")
+  settingsChanges StoreSettingsChange[] @relation("SettingsChangeActor")
 }
 
 model Product {
@@ -102,4 +103,31 @@ model RoleChange {
   actor        User     @relation("RoleChangeActor", fields: [actorId], references: [id], onDelete: Restrict)
 
   @@index([targetId, createdAt])
+}
+
+// Public storefront settings. One row with id="main"; no private keys stored here.
+model StoreSettings {
+  id              String   @id @default("main")
+  siteName        String   @default("ثنايا")
+  siteDescription String   @default("متجر عراقي للمستلزمات الطبية وطب الأسنان والأجهزة")
+  phone           String   @default("07822088894")
+  email           String   @default("info@thanaya.iq")
+  address         String   @default("البصرة - حي الخضراء - شارع مستشفى النفط")
+  workingHours    String   @default("السبت - الخميس: 12 ظهراً - 9 مساءً")
+  usdToIqdRate    Int?
+  showUsdApprox   Boolean  @default(false)
+  revision        Int      @default(0)
+  updatedAt       DateTime @updatedAt
+}
+
+// Audit who changed non-secret public settings, without changing past orders.
+model StoreSettingsChange {
+  id        String   @id @default(cuid())
+  actorId   String
+  before    String
+  after     String
+  createdAt DateTime @default(now())
+  actor     User     @relation("SettingsChangeActor", fields: [actorId], references: [id], onDelete: Restrict)
+
+  @@index([createdAt])
 }
