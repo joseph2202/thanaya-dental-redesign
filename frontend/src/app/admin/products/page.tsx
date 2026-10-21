@@ -5,6 +5,7 @@ import AdminLayout from '@/components/admin/AdminLayout';
 import { productsAPI, uploadAPI, settingsAPI, exportsAPI } from '@/lib/api';
 import { parseThousandsIqd,parseUsd,formatThousandsIqd,formatFullIqd } from '@/lib/money-entry';
 import ProductIcon from '@/components/ui/ProductIcon';
+import SiteActionDialog from '@/components/ui/SiteActionDialog';
 import { useAuth } from '@/context/AuthContext';
 import {saleUnitLabel,saleUnitOptions} from '@/lib/saleUnits';
 
@@ -45,6 +46,15 @@ export default function AdminProducts() {
   const [lotCostEdit,setLotCostEdit]=useState<string|null>(null);
   const [lotCostInput,setLotCostInput]=useState('');
   const [lotCostBusy,setLotCostBusy]=useState(false);
+  const [pendingAction,setPendingAction]=useState<
+    {kind:'adjustLot';lot:any}|{kind:'enableLots'}|{kind:'deleteProduct';product:any}|null
+  >(null);
+  const [actionDelta,setActionDelta]=useState('');
+  const [actionReason,setActionReason]=useState('');
+  const [actionBusy,setActionBusy]=useState(false);
+  const [actionError,setActionError]=useState('');
+  const closeAction=()=>{if(!actionBusy){setPendingAction(null);setActionError('')}};
+
 
   useEffect(() => {
     loadProducts();
@@ -86,13 +96,7 @@ export default function AdminProducts() {
     const inventory = await productsAPI.getInventory(id);
     setStockHistory(inventory.movements || []);
   };
-  const enableLots=async()=>{
-    if(!stockProduct||!confirm('تفعيل تتبع التشغيلات لهذا المنتج؟'))return;
-    setLotBusy(true);setLotError('');
-    try{await productsAPI.enableLots(stockProduct.id);await refreshLots(stockProduct.id);}
-    catch(e){setLotError(e instanceof Error?e.message:'تعذر التفعيل');}
-    finally{setLotBusy(false);}
-  };
+  const enableLots=()=>{if(stockProduct){setActionError('');setPendingAction({kind:'enableLots'})}};
   const receiveLot=async(e:React.FormEvent)=>{
     e.preventDefault();if(!stockProduct)return;
     setLotBusy(true);setLotError('');
@@ -100,15 +104,46 @@ export default function AdminProducts() {
     catch(e){setLotError(e instanceof Error?e.message:'تعذر تسجيل التشغيلة');}
     finally{setLotBusy(false);}
   };
-  const adjustLot=async(lot:any)=>{
+  const adjustLot=(lot:any)=>{
     if(!stockProduct)return;
-    const delta=Number(prompt('فرق الكمية (+ أو -):','-1'));
-    if(!Number.isSafeInteger(delta)||delta===0)return;
-    const reason=prompt('سبب التعديل');if(!reason?.trim())return;
-    setLotBusy(true);setLotError('');
-    try{await productsAPI.adjustLot(stockProduct.id,lot.id,{delta,reason:reason.trim()});await refreshLots(stockProduct.id);}
-    catch(e){setLotError(e instanceof Error?e.message:'تعذر تعديل التشغيلة');}
-    finally{setLotBusy(false);}
+    setActionDelta('');setActionReason('');setActionError('');
+    setPendingAction({kind:'adjustLot',lot});
+  };
+  const confirmAction=async()=>{
+    if(!pendingAction||actionBusy)return;
+    let delta=0;
+    if(pendingAction.kind==='adjustLot'){
+      const raw=actionDelta.trim();
+      delta=Number(raw);
+      if(!/^[+-]?\\d+$/.test(raw)||!Number.isSafeInteger(delta)||delta===0||Math.abs(delta)>1000000){
+        setActionError('أدخل فرق كمية صحيحاً مثل -1 أو +2، ولا يجوز صفر');return;
+      }
+      if(!actionReason.trim()||actionReason.trim().length>180){
+        setActionError('أدخل سبب التعديل، بحد أقصى 180 حرفاً');return;
+      }
+      if(pendingAction.lot.stock+delta<0||pendingAction.lot.stock+delta>1000000){
+        setActionError('التغيير خارج الكمية المسموحة للتشغيلة');return;
+      }
+    }
+    setActionBusy(true);setActionError('');
+    try{
+      if(pendingAction.kind==='adjustLot'){
+        if(!stockProduct)throw new Error('يرجى فتح المخزون من جديد');
+        await productsAPI.adjustLot(stockProduct.id,pendingAction.lot.id,{delta,reason:actionReason.trim()});
+        await refreshLots(stockProduct.id);
+      }else if(pendingAction.kind==='enableLots'){
+        if(!stockProduct)throw new Error('يرجى فتح المخزون من جديد');
+        await productsAPI.enableLots(stockProduct.id);
+        await refreshLots(stockProduct.id);
+      }else{
+        const target=pendingAction.product;
+        await productsAPI.delete(target.id);
+        setProductsList(current=>current.filter(p=>p.id!==target.id));
+        if(stockProduct?.id===target.id)setStockProduct(null);
+      }
+      setPendingAction(null);
+    }catch(e){setActionError(e instanceof Error?e.message:'تعذّر تنفيذ العملية؛ يرجى تحديث المخزون');}
+    finally{setActionBusy(false);}
   };
   const saveStock = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -183,16 +218,7 @@ export default function AdminProducts() {
     }
   };
 
-  const handleDelete = async (productId: string) => {
-    if (confirm('هل أنت متأكد من حذف هذا المنتج؟')) {
-      try {
-        await productsAPI.delete(productId);
-        setProductsList(productsList.filter(p => p.id !== productId));
-      } catch (error) {
-        alert('فشل حذف المنتج');
-      }
-    }
-  };
+  const handleDelete = (product:any) => {setActionError('');setPendingAction({kind:'deleteProduct',product})};
 
   const handleEdit = (product: any) => {
     setEditingProduct(product);
@@ -210,6 +236,8 @@ export default function AdminProducts() {
         delete data.lotTracking;
         delete data.published;
         delete data.lots;
+        delete data.purchaseCostIqd;
+        delete data.costRevision;
         delete data.id;
         delete data.createdAt;
         delete data.orderItems;
@@ -239,6 +267,42 @@ export default function AdminProducts() {
 
   return (
     <AdminLayout>
+      <SiteActionDialog
+        open={pendingAction!==null}
+        title={pendingAction?.kind==='adjustLot'?'تصحيح كمية التشغيلة':pendingAction?.kind==='enableLots'?'تفعيل تتبع التشغيلات':'تأكيد حذف المنتج'}
+        description={pendingAction?.kind==='adjustLot'
+          ? 'هذا الإجراء يغيّر المخزون الفعلي فقط، وليس عملية بيع أو مرتجع. سيُحفظ السبب في سجل حركات المخزون.'
+          : pendingAction?.kind==='enableLots'
+          ? 'تفعيل تتبع التشغيلات متاح للمنتجات بدون مخزون أو حركات سابقة أو طلبات؛ بعده تسجّل كل شحنة برقم تشغيلة وتاريخ صلاحية.'
+          : 'سيُحذف المنتج فقط إذا لم يكن مرتبطاً بطلب أو سجل مخزون. الحذف لا يمس الطلبات القديمة.'}
+        confirmLabel={pendingAction?.kind==='adjustLot'?'تأكيد تعديل المخزون':pendingAction?.kind==='enableLots'?'تفعيل التشغيلات':'حذف المنتج'}
+        destructive={pendingAction?.kind==='deleteProduct'||(pendingAction?.kind==='adjustLot'&&Number(actionDelta)<0)}
+        onConfirm={()=>void confirmAction()}
+        onClose={closeAction}
+        busy={actionBusy}
+        error={actionError}
+      >
+        {pendingAction?.kind==='adjustLot'&&<>
+          <div className="rounded-xl bg-[#f0f9fc] p-3 text-sm leading-7">
+            <p className="font-bold">التشغيلة: <span dir="ltr">{pendingAction.lot.code}</span></p>
+            <p>الكمية الحالية: <strong>{pendingAction.lot.stock.toLocaleString('en-US')}</strong></p>
+            {actionDelta.trim()&&Number.isSafeInteger(Number(actionDelta))&&
+              <p>الكمية المتوقعة بعد التعديل: <strong>{(pendingAction.lot.stock+Number(actionDelta)).toLocaleString('en-US')}</strong></p>}
+          </div>
+          <label className="block text-sm font-black">فرق الكمية (موجب للإضافة، سالب للنقصان)
+            <input autoFocus required type="text" inputMode="numeric" dir="ltr" placeholder="مثال: -1 أو +2" value={actionDelta}
+              onChange={e=>{setActionDelta(e.target.value);setActionError('')}}
+              className="mt-2 block w-full rounded-xl border border-brand/30 bg-white p-3 text-base"/>
+          </label>
+          <label className="block text-sm font-black">سبب التعديل
+            <textarea required maxLength={180} rows={2} placeholder="مثال: قطعة تالفة أثناء الجرد" value={actionReason}
+              onChange={e=>{setActionReason(e.target.value);setActionError('')}}
+              className="mt-2 block w-full resize-y rounded-xl border border-brand/30 bg-white p-3 text-base"/>
+          </label>
+          <p className="text-xs leading-6 text-[#6a8795]">تسجيل بيع للزبون ينقص المخزون تلقائياً؛ لا تستخدم هذه العملية بدلاً من الطلبات.</p>
+        </>}
+        {pendingAction?.kind==='deleteProduct'&&<p className="rounded-xl bg-red-50 p-3 text-sm font-bold text-red-800">{pendingAction.product.name}</p>}
+      </SiteActionDialog>
       <dialog
         ref={visibilityDialogRef}
         dir="rtl"
@@ -410,7 +474,7 @@ export default function AdminProducts() {
                     <button onClick={() => openInventory(p)} className="site-btn site-btn-outline site-btn-sm">المخزون</button>
                     {canEditProducts && <button type="button" disabled={visibilityBusy === p.id} onClick={() => toggleVisibility(p)} className="rounded-lg border border-brand/20 px-3 py-1 text-xs font-bold text-ink hover:bg-brand/10 disabled:opacity-50">{visibilityBusy === p.id ? 'جاري الحفظ...' : p.published === false ? 'إظهار بالمتجر' : 'إخفاء من المتجر'}</button>}
                     {canEditProducts && <button onClick={() => handleEdit(p)} className="text-xs bg-brand/10 text-brand rounded-lg px-3 py-1 font-bold hover:bg-brand/20">تعديل</button>}
-                    {canEditProducts && <button onClick={() => handleDelete(p.id)} className="text-xs bg-red-50 text-red-600 rounded-lg px-3 py-1 font-bold hover:bg-red-100">حذف</button>}
+                    {canEditProducts && <button onClick={() => handleDelete(p)} className="text-xs bg-red-50 text-red-600 rounded-lg px-3 py-1 font-bold hover:bg-red-100">حذف</button>}
                   </div>
                 </td>
               </tr>
@@ -459,7 +523,7 @@ function ProductForm({ product, existingCategories, onSave, onCancel, loading }:
       setTimeout(() => setSuccess(''), 3000);
     } catch (error: any) {
       setImagePreview(form.image || '');
-      alert(error.message || 'فشل رفع الصورة');
+      setSaveError(error.message || 'فشل رفع الصورة');
     } finally {
       setUploading(false);
     }
