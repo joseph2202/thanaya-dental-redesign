@@ -2,12 +2,17 @@
 import { useState, useEffect } from 'react';
 import AdminLayout from '@/components/admin/AdminLayout';
 import { categoriesAPI } from '@/lib/api';
+import SiteActionDialog from '@/components/ui/SiteActionDialog';
 
 export default function AdminCategories() {
   const [categories, setCategories] = useState<any[]>([]);
   const [newCategory, setNewCategory] = useState({ name: '', icon: '' });
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState('');
+  const [error,setError]=useState('');
+  const [pendingCategory,setPendingCategory]=useState<any>(null);
+  const [deleting,setDeleting]=useState(false);
+  const [deleteError,setDeleteError]=useState('');
 
   useEffect(() => {
     loadCategories();
@@ -34,27 +39,42 @@ export default function AdminCategories() {
       setSuccess('تم إضافة التصنيف بنجاح');
       setTimeout(() => setSuccess(''), 3000);
     } catch (error) {
-      alert('فشل إضافة التصنيف');
+      setError(error instanceof Error?error.message:'فشل إضافة التصنيف');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (confirm('هل أنت متأكد من حذف هذا التصنيف؟')) {
-      try {
-        await categoriesAPI.delete(id);
-        await loadCategories();
-      } catch (error) {
-        alert('فشل حذف التصنيف');
-      }
-    }
+  const handleDelete = (category:any)=>{setDeleteError('');setPendingCategory(category)};
+  const confirmDelete=async()=>{
+    if(!pendingCategory||deleting)return;
+    setDeleting(true);setDeleteError('');
+    try{
+      await categoriesAPI.delete(pendingCategory.id);
+      await loadCategories();
+      setPendingCategory(null);
+    }catch(e){setDeleteError(e instanceof Error?e.message:'تعذر حذف التصنيف')}
+    finally{setDeleting(false)}
   };
 
   return (
     <AdminLayout>
+      <SiteActionDialog
+        open={pendingCategory!==null}
+        title="حذف التصنيف؟"
+        description="يُحذف التصنيف فقط إن سمح النظام بذلك. تأكد أنك لا تحتاجه لتنظيم المنتجات."
+        confirmLabel="تأكيد الحذف"
+        destructive
+        busy={deleting}
+        error={deleteError}
+        onConfirm={()=>void confirmDelete()}
+        onClose={()=>{if(!deleting){setPendingCategory(null);setDeleteError('')}}}
+      >
+        {pendingCategory&&<p className="rounded-xl bg-red-50 p-3 text-sm font-bold">{pendingCategory.name}</p>}
+      </SiteActionDialog>
       <h2 className="text-3xl font-black mb-5 text-ink">إدارة التصنيفات</h2>
 
+      {error&&<p role="alert" className="mb-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700">{error}</p>}
       {success && (
         <div className="bg-green-50 border-2 border-green-200 rounded-xl p-4 mb-6 text-green-700 font-bold">
           ✅ {success}
@@ -107,7 +127,7 @@ export default function AdminCategories() {
                 <td className="px-4 py-3 font-bold text-ink">{cat.name}</td>
                 <td className="px-4 py-3">
                   <button
-                    onClick={() => handleDelete(cat.id)}
+                    onClick={() => handleDelete(cat)}
                     className="text-xs bg-red-50 text-red-600 rounded-lg px-3 py-1 font-bold hover:bg-red-100"
                   >
                     حذف
