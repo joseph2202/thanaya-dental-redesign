@@ -38,6 +38,9 @@ model Product {
   model       String? // Manufacturer model number
   size        String? // Size, variant or dimensions
   saleUnit    String? // piece, box, set, pack, pair, bottle, tube, carton, bag, roll
+  published   Boolean     @default(true) // Hidden products stay in inventory/history but cannot be newly ordered
+  lotTracking Boolean     @default(false) // Opt-in only for zero-stock products with no historical movements
+  lots        ProductLot[]
   badge       String?
   stock       Int         @default(0)
   createdAt   DateTime    @default(now())
@@ -91,6 +94,35 @@ model OrderItem {
   price     Int
   order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
   product   Product @relation(fields: [productId], references: [id])
+  lotAllocations OrderItemLot[]
+}
+
+// Each physical batch belongs to one product. Expiry is a date-only YYYY-MM-DD
+// in Iraq local calendar; remaining batch stock includes expired/non-sellable units.
+model ProductLot {
+  id         String   @id @default(cuid())
+  productId  String
+  code       String
+  expiryDate String
+  stock      Int      @default(0)
+  createdAt  DateTime @default(now())
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Restrict)
+  allocations OrderItemLot[]
+
+  @@unique([productId, code])
+  @@index([productId, expiryDate])
+}
+
+model OrderItemLot {
+  id          String    @id @default(cuid())
+  orderItemId String
+  lotId       String
+  quantity    Int
+  orderItem   OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Restrict)
+  lot         ProductLot @relation(fields: [lotId], references: [id], onDelete: Restrict)
+
+  @@unique([orderItemId, lotId])
+  @@index([lotId])
 }
 
 // Append-only record of every stock change. It is NOT a replacement for Product.stock;

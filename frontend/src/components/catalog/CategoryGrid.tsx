@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ArrowUpLeft } from 'lucide-react';
-import ProductMedia from '@/components/ui/ProductMedia';
+import ProductIcon from '@/components/ui/ProductIcon';
 import { productsAPI } from '@/lib/api';
 
 type CatalogProduct = { name: string; category: string; image?: string | null; icon?: string | null };
@@ -15,12 +15,8 @@ function groupProducts(products: CatalogProduct[]): CatalogCategory[] {
     const name = product.category?.trim();
     if (!name) continue;
     const group = groups.get(name);
-    if (group) {
-      group.count += 1;
-      if (!group.product.image && product.image) group.product = product;
-    } else {
-      groups.set(name, { name, count: 1, product });
-    }
+    if (group) group.count += 1;
+    else groups.set(name, { name, count: 1, product });
   }
   return [...groups.values()].sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, 'ar'));
 }
@@ -35,24 +31,35 @@ export default function CategoryGrid({ variant = 'home' }: { variant?: 'home' | 
       .catch(() => setStatus('error'));
   }, []);
 
-  if (status === 'loading') return <div className="site-surface p-10 text-center site-muted" role="status">جاري تحميل الأقسام...</div>;
-  if (status === 'error') return <div className="site-surface p-10 text-center site-muted" role="status">تعذّر تحميل الأقسام. تأكد من تشغيل خادم المتجر ثم حدّث الصفحة.</div>;
-  if (!categories.length) return <div className="site-surface p-10 text-center site-muted">ماكو أقسام فيها منتجات بعد. راح تظهر هنا أول ما تضيف منتجات للمتجر.</div>;
+  if (status === 'loading') return <div className="site-surface p-8 text-center site-muted" role="status">جاري تحميل الأقسام...</div>;
+  if (status === 'error') return <div className="site-surface p-8 text-center site-muted" role="status">تعذّر تحميل الأقسام. تأكد من تشغيل خادم المتجر ثم حدّث الصفحة.</div>;
+  if (!categories.length) return <div className="site-surface p-8 text-center site-muted">ماكو أقسام فيها منتجات بعد. راح تظهر هنا أول ما تضيف منتجات للمتجر.</div>;
 
-  return <div className={`grid gap-4 sm:gap-5 ${variant === 'page' ? 'md:grid-cols-2 xl:grid-cols-3' : 'md:grid-cols-2 lg:grid-cols-3'}`}>
+  // With one or two real categories, use all available horizontal space instead of
+  // leaving empty cells in a fixed three-column catalog grid.
+  const gridColumns = variant === 'page'
+    ? 'md:grid-cols-2 xl:grid-cols-3'
+    : categories.length === 1 ? 'grid-cols-1'
+    : categories.length === 2 ? 'md:grid-cols-2'
+    : 'md:grid-cols-2 lg:grid-cols-3';
+
+  return <div className={`grid gap-4 sm:gap-5 ${gridColumns}`}>
     {categories.map(category => <Link
       key={category.name}
       href={`/products?category=${encodeURIComponent(category.name)}`}
-      className="site-card group flex flex-col sm:flex-row min-h-[170px] border-[#c6e8f4] hover:border-brand"
+      className="site-card group flex min-h-[132px] items-center gap-4 border-[#c6e8f4] p-4 sm:gap-5 sm:p-5"
       aria-label={`${category.name}، ${category.count} منتج`}
     >
-      <ProductMedia name={category.product.name} image={category.product.image} icon={category.product.icon} size={54} className="h-32 sm:h-auto sm:w-2/5 shrink-0 m-3 rounded-xl" />
-      <span className="flex flex-1 flex-col justify-between gap-5 p-5 sm:pr-2">
+      <span className="grid h-[92px] w-[92px] shrink-0 place-items-center rounded-2xl bg-[linear-gradient(135deg,#dff5fb,#e9f0f8)] text-[#1687b2] sm:h-[106px] sm:w-[106px]" aria-hidden="true">
+        <ProductIcon name={category.product.icon || 'Package'} size={45} />
+      </span>
+      <span className="flex min-w-0 flex-1 flex-col gap-2">
         <span className="text-[11px] font-bold tracking-widest text-brand" dir="ltr">THANAYA / CATEGORY</span>
-        <span className="flex items-end justify-between gap-3">
-          <span><strong className="block text-lg leading-7 group-hover:text-brand transition-colors">{category.name}</strong><small className="site-muted text-xs">{category.count} منتج متوفر</small></span>
-          <ArrowUpLeft size={20} className="text-brand shrink-0" aria-hidden="true" />
-        </span>
+        <strong className="text-base leading-7 transition-colors group-hover:text-brand sm:text-lg">{category.name}</strong>
+        <span className="text-sm text-[#657b88]">{category.count} {category.count === 1 ? 'منتج' : 'منتجات'} في القسم</span>
+      </span>
+      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-[#b2dfef] bg-white text-brand transition-colors group-hover:bg-[#e6f7fc]" aria-hidden="true">
+        <ArrowUpLeft size={18} />
       </span>
     </Link>)}
   </div>;

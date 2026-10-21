@@ -233,11 +233,17 @@ router.post('/', async (req, res) => {
         shippingFee=rate.fee;
       }
       const products = await tx.product.findMany({
-        where: { id: { in: lines.map(item => item.productId) } },
-        select: { id: true, name: true, price: true }
+        where: { id: { in: lines.map(item => item.productId) }, published: true },
+        select: { id: true, name: true, price: true, lotTracking:true }
       });
       const byId = new Map(products.map(product => [product.id, product]));
       let total = 0;
+      const allocations:{productId:string;lotId:string;quantity:number}[]=[];
+      const iraqDate=()=>{
+        const parts=new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Baghdad',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());
+        const at=(key:string)=>parts.find(p=>p.type===key)?.value||'';
+        return at('year')+'-'+at('month')+'-'+at('day');
+      };
       for (const item of lines) {
         const product = byId.get(item.productId);
         if (!product) throw new OrderError(400, 'أحد المنتجات لم يعد متوفراً');
@@ -247,11 +253,29 @@ router.post('/', async (req, res) => {
         total += product.price * item.quantity;
         if (!Number.isSafeInteger(total)) throw new OrderError(400, 'إجمالي الطلب كبير جداً');
         const result = await tx.product.updateMany({
-          where: { id: item.productId, stock: { gte: item.quantity } },
+          where: { id: item.productId, published: true, stock: { gte: item.quantity } },
           data: { stock: { decrement: item.quantity } }
         });
         if (result.count !== 1) {
           throw new OrderError(409, `الكمية المطلوبة من "${product.name}" غير متوفرة حالياً`);
+        }
+        if(product.lotTracking){
+          const lots=await tx.productLot.findMany({
+            where:{productId:item.productId,stock:{gt:0},expiryDate:{gte:iraqDate()}},
+            orderBy:[{expiryDate:'asc'},{createdAt:'asc'},{id:'asc'}]
+          });
+          let remaining=item.quantity;
+          for(const lot of lots){
+            if(remaining<=0)break;
+            const taken=Math.min(remaining,lot.stock);
+            const changed=await tx.productLot.updateMany({
+              where:{id:lot.id,stock:{gte:taken}},data:{stock:{decrement:taken}}
+            });
+            if(changed.count!==1)throw new OrderError(409,'مخزون التشغيلة تغير؛ حدّث السلة');
+            allocations.push({productId:item.productId,lotId:lot.id,quantity:taken});
+            remaining-=taken;
+          }
+          if(remaining>0)throw new OrderError(409,`مخزون "${product.name}" الصالح للبيع غير كافٍ؛ توجد تشغيلات منتهية أو غير كافية`);
         }
       }
 
@@ -303,6 +327,13 @@ router.post('/', async (req, res) => {
         },
         include: { items: true }
       });
+      // Save exact lots per order line, so cancellations/returns restore the right batch.
+      if(allocations.length){
+        const itemMap=new Map(created.items.map(i=>[i.productId,i.id]));
+        await tx.orderItemLot.createMany({data:allocations.map(a=>({
+          orderItemId:itemMap.get(a.productId)!,lotId:a.lotId,quantity:a.quantity
+        }))});
+      }
       const staff=await tx.user.findMany({where:{role:{in:['owner','admin','sales']}},select:{id:true}});
       if(staff.length)await tx.notification.createMany({data:staff.map(u=>({
         recipientId:u.id,kind:'new_order',title:'طلب جديد',message:'وصل طلب من '+customer.name+' بقيمة '+total.toLocaleString('en-US')+' د.ع',orderId:created.id
@@ -352,7 +383,7 @@ router.patch('/:id/status', requireSales, async (req, res) => {
     const order = await prisma.$transaction(async (tx) => {
       const current = await tx.order.findUnique({
         where: { id: String(req.params.id) },
-        include: { items: true }
+        include: { items: { include: { lotAllocations:true } } }
       });
       if (!current) throw new OrderError(404, 'الطلب غير موجود');
       if (!(transitions[current.status] || []).includes(status)) {
@@ -366,6 +397,10 @@ router.patch('/:id/status', requireSales, async (req, res) => {
       if (changed.count !== 1) throw new OrderError(409, 'حالة الطلب تغيرت، حدّث الصفحة');
       if (status === 'cancelled' || status === 'returned') {
         for (const item of current.items) {
+          // An expired restored lot remains physically present, but not sellable.
+          for(const allocation of item.lotAllocations){
+            await tx.productLot.update({where:{id:allocation.lotId},data:{stock:{increment:allocation.quantity}}});
+          }
           const restored = await tx.product.update({
             where: { id: item.productId },
             data: { stock: { increment: item.quantity } },

@@ -1,5 +1,6 @@
 "use client";
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { Eye, EyeOff, ShieldCheck, X } from 'lucide-react';
 import AdminLayout from '@/components/admin/AdminLayout';
 import { productsAPI, uploadAPI, settingsAPI } from '@/lib/api';
 import { parseThousandsIqd,parseUsd,formatThousandsIqd,formatFullIqd } from '@/lib/money-entry';
@@ -15,7 +16,22 @@ export default function AdminProducts() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const [visibilityBusy, setVisibilityBusy] = useState<string | null>(null);
+  const [visibilityError, setVisibilityError] = useState('');
+  const [pendingVisibility, setPendingVisibility] = useState<any | null>(null);
+  const visibilityDialogRef = useRef<HTMLDialogElement>(null);
+
+  useEffect(() => {
+    const dialog = visibilityDialogRef.current;
+    if (!dialog) return;
+    if (pendingVisibility && !dialog.open) dialog.showModal();
+    if (!pendingVisibility && dialog.open) dialog.close();
+  }, [pendingVisibility]);
   const [stockProduct, setStockProduct] = useState<any>(null);
+  const [lotsData,setLotsData]=useState<any>(null);
+  const [lotError,setLotError]=useState('');
+  const [lotBusy,setLotBusy]=useState(false);
+  const [lotForm,setLotForm]=useState({code:'',expiryDate:'',quantity:''});
   const [stockDelta, setStockDelta] = useState('');
   const [stockReason, setStockReason] = useState('');
   const [stockError, setStockError] = useState('');
@@ -28,7 +44,7 @@ export default function AdminProducts() {
 
   const loadProducts = async () => {
     try {
-      const data = await productsAPI.getAll();
+      const data = await productsAPI.manage();
       setProductsList(data);
     } catch (error) {
       console.error('Failed to load products', error);
@@ -36,12 +52,54 @@ export default function AdminProducts() {
   };
 
   const openInventory = async (product: any) => {
-    setStockProduct(product);
+    setStockProduct(product);setLotsData(null);setLotError('');
+    productsAPI.getLots(product.id).then(data => {
+      setLotsData(data);
+      setStockProduct((current: any) => current?.id === product.id
+        ? {...current, stock: data.product.stock, lotTracking: data.product.lotTracking}
+        : current);
+    }).catch(e => setLotError(e instanceof Error ? e.message : 'تعذر تحميل التشغيلات'));
     setStockDelta(''); setStockReason(''); setStockError(''); setStockHistory([]);
     try { const data = await productsAPI.getInventory(product.id); setStockHistory(data.movements || []); }
     catch (error) { setStockError(error instanceof Error ? error.message : 'تعذر جلب السجل'); }
   };
 
+  const refreshLots = async (id: string) => {
+    const data = await productsAPI.getLots(id);
+    setLotsData(data);
+    // Keep the currently open inventory panel in sync with the audited database stock.
+    // Refreshing the table alone leaves stockProduct holding its initial zero-stock snapshot.
+    setStockProduct((current: any) => current?.id === id
+      ? {...current, stock: data.product.stock, lotTracking: data.product.lotTracking}
+      : current);
+    await loadProducts();
+    const inventory = await productsAPI.getInventory(id);
+    setStockHistory(inventory.movements || []);
+  };
+  const enableLots=async()=>{
+    if(!stockProduct||!confirm('تفعيل تتبع التشغيلات لهذا المنتج؟'))return;
+    setLotBusy(true);setLotError('');
+    try{await productsAPI.enableLots(stockProduct.id);await refreshLots(stockProduct.id);}
+    catch(e){setLotError(e instanceof Error?e.message:'تعذر التفعيل');}
+    finally{setLotBusy(false);}
+  };
+  const receiveLot=async(e:React.FormEvent)=>{
+    e.preventDefault();if(!stockProduct)return;
+    setLotBusy(true);setLotError('');
+    try{await productsAPI.receiveLot(stockProduct.id,{...lotForm,quantity:Number(lotForm.quantity)});await refreshLots(stockProduct.id);setLotForm({code:'',expiryDate:'',quantity:''});}
+    catch(e){setLotError(e instanceof Error?e.message:'تعذر تسجيل التشغيلة');}
+    finally{setLotBusy(false);}
+  };
+  const adjustLot=async(lot:any)=>{
+    if(!stockProduct)return;
+    const delta=Number(prompt('فرق الكمية (+ أو -):','-1'));
+    if(!Number.isSafeInteger(delta)||delta===0)return;
+    const reason=prompt('سبب التعديل');if(!reason?.trim())return;
+    setLotBusy(true);setLotError('');
+    try{await productsAPI.adjustLot(stockProduct.id,lot.id,{delta,reason:reason.trim()});await refreshLots(stockProduct.id);}
+    catch(e){setLotError(e instanceof Error?e.message:'تعذر تعديل التشغيلة');}
+    finally{setLotBusy(false);}
+  };
   const saveStock = async (e: React.FormEvent) => {
     e.preventDefault();
     const delta = Number(stockDelta);
@@ -58,6 +116,28 @@ export default function AdminProducts() {
       setStockDelta(''); setStockReason('');
     } catch (error) { setStockError(error instanceof Error ? error.message : 'فشل تعديل المخزون'); }
     finally { setStockBusy(false); }
+  };
+
+  const toggleVisibility = (product: any) => {
+    if (visibilityBusy) return;
+    setVisibilityError('');
+    setPendingVisibility(product);
+  };
+
+  const confirmVisibility = async () => {
+    const product = pendingVisibility;
+    if (!product || visibilityBusy) return;
+    setVisibilityBusy(product.id);
+    setVisibilityError('');
+    try {
+      await productsAPI.setVisibility(product.id, product.published === false);
+      await loadProducts();
+      setPendingVisibility(null);
+    } catch (error) {
+      setVisibilityError(error instanceof Error ? error.message : 'تعذّر تغيير ظهور المنتج');
+    } finally {
+      setVisibilityBusy(null);
+    }
   };
 
   const handleDelete = async (productId: string) => {
@@ -83,6 +163,10 @@ export default function AdminProducts() {
       if (editingProduct) {
         // Metadata updates cannot silently overwrite available stock.
         delete data.stock;
+        delete data.availableStock;
+        delete data.lotTracking;
+        delete data.published;
+        delete data.lots;
         delete data.id;
         delete data.createdAt;
         delete data.orderItems;
@@ -112,6 +196,69 @@ export default function AdminProducts() {
 
   return (
     <AdminLayout>
+      <dialog
+        ref={visibilityDialogRef}
+        dir="rtl"
+        aria-labelledby="visibility-dialog-title"
+        aria-describedby="visibility-dialog-description"
+        onClose={() => setPendingVisibility(null)}
+        onCancel={(event) => { if (visibilityBusy) event.preventDefault(); }}
+        onClick={(event) => { if (event.target === event.currentTarget && !visibilityBusy) setPendingVisibility(null); }}
+        className="fixed inset-0 z-[100] m-auto w-[calc(100%-2rem)] max-w-[460px] overflow-hidden rounded-[28px] border border-[#b8e2ef] bg-white p-0 text-[#233943] shadow-[0_30px_100px_rgba(13,45,65,.35)] backdrop:bg-[#102c3d]/60 backdrop:backdrop-blur-[5px]"
+      >
+        {pendingVisibility && (
+          <>
+            <div className="relative bg-[linear-gradient(125deg,#e7f8fd,#f7fcff)] px-6 pb-6 pt-7 sm:px-8">
+              <button
+                type="button"
+                aria-label="إغلاق نافذة التأكيد"
+                onClick={() => setPendingVisibility(null)}
+                disabled={Boolean(visibilityBusy)}
+                className="absolute left-5 top-5 grid h-9 w-9 place-items-center rounded-full border border-[#c4e5ef] bg-white text-[#4c6877] transition hover:bg-[#dff3fa] disabled:opacity-50"
+              >
+                <X size={18} aria-hidden="true" />
+              </button>
+              <div className="mb-4 grid h-14 w-14 place-items-center rounded-2xl border border-[#b4e0ec] bg-white text-[#038cb9] shadow-sm">
+                {pendingVisibility.published === false ? <Eye size={26} aria-hidden="true" /> : <EyeOff size={26} aria-hidden="true" />}
+              </div>
+              <h3 id="visibility-dialog-title" className="text-xl font-black leading-8 text-[#213b49]">
+                {pendingVisibility.published === false ? 'إظهار المنتج بالمتجر؟' : 'إخفاء المنتج عن الزبائن؟'}
+              </h3>
+              <p className="mt-2 break-words text-base font-bold text-[#087ba3]">{pendingVisibility.name}</p>
+              <p id="visibility-dialog-description" className="mt-3 text-sm leading-7 text-[#526e7b]">
+                {pendingVisibility.published === false
+                  ? 'راح يرجع المنتج للبحث وصفحات المتجر، ويصير ممكن طلبه إذا عنده مخزون متاح.'
+                  : 'راح يختفي من صفحات الزبائن والبحث، وما تنقبل عليه طلبات جديدة. مخزونه وسجل التشغيلات والطلبات القديمة تبقى محفوظة.'}
+              </p>
+            </div>
+            <div className="px-6 py-5 sm:px-8">
+              <div className="mb-5 flex items-start gap-2 rounded-xl bg-[#f1f9fc] px-3 py-3 text-xs font-semibold leading-6 text-[#456b7e]">
+                <ShieldCheck size={18} className="mt-0.5 shrink-0 text-[#058fba]" aria-hidden="true" />
+                <span>تگدر ترجع تغيّر حالة العرض بأي وقت من إدارة المنتجات.</span>
+              </div>
+              {visibilityError && <p role="alert" className="mb-4 rounded-xl bg-red-50 px-3 py-2 text-sm font-bold text-red-700">{visibilityError}</p>}
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setPendingVisibility(null)}
+                  disabled={Boolean(visibilityBusy)}
+                  className="min-h-12 rounded-full border-2 border-[#35515e] bg-white px-3 text-sm font-black text-[#263f4c] transition hover:bg-[#edf5f8] disabled:opacity-50"
+                >
+                  إلغاء
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmVisibility}
+                  disabled={Boolean(visibilityBusy)}
+                  className="min-h-12 rounded-full border-2 border-[#059bd0] bg-[#059bd0] px-3 text-sm font-black text-white shadow-[0_5px_0_#047ba8] transition hover:bg-[#008bbd] disabled:opacity-60 disabled:shadow-none"
+                >
+                  {visibilityBusy ? 'جاري الحفظ...' : pendingVisibility.published === false ? 'تأكيد الإظهار' : 'تأكيد الإخفاء'}
+                </button>
+              </div>
+            </div>
+          </>
+        )}
+      </dialog>
       <div className="flex items-center justify-between mb-8">
         <h2 className="text-3xl font-black text-ink">إدارة المنتجات</h2>
         {canEditProducts && <button onClick={() => { setShowAddForm(true); setEditingProduct(null); }} className="bg-brand text-white rounded-full px-6 py-2 font-bold hover:bg-brand-dark transition">
@@ -122,11 +269,28 @@ export default function AdminProducts() {
       {stockProduct && <section className="site-surface mb-7 p-6" aria-label="إدارة المخزون">
         <div className="flex items-center justify-between gap-3 mb-4"><h3 className="text-xl font-black">مخزون {stockProduct.name}</h3><button type="button" className="site-btn site-btn-outline site-btn-sm" onClick={() => setStockProduct(null)}>إغلاق</button></div>
         <p className="mb-4 text-sm">الكمية الحالية: <strong className="text-brand">{stockProduct.stock}</strong> {saleUnitLabel(stockProduct.saleUnit)}. للإضافة اكتب رقماً موجباً، وللتصحيح بالنقصان اكتب رقماً سالباً.</p>
-        <form onSubmit={saveStock} className="grid gap-3 sm:grid-cols-[130px_1fr_auto] items-end">
+        <div className="mb-5 rounded-xl border border-brand/20 bg-[#f4faff] p-4">
+          <h4 className="mb-3 font-black">التشغيلات وتواريخ الصلاحية</h4>
+          {lotsData?.product?.lotTracking ? <>
+            <p className="mb-3 text-xs text-neutral-600">تُباع التشغيلات الصالحة حسب الأقرب انتهاءً؛ المخزون المنتهي لا يدخل ضمن المتاح للبيع.</p>
+            <div className="mb-4 space-y-2">{lotsData.lots?.map((lot:any)=><div key={lot.id} className="flex flex-wrap justify-between gap-3 rounded-lg border bg-white p-3 text-sm">
+              <div><b dir="ltr">{lot.code}</b><p>الصلاحية: {lot.expiryDate} · الكمية: {lot.stock}</p><strong className={lot.status==='expired'?'text-red-700':lot.status==='soon'?'text-amber-700':'text-green-700'}>{lot.status==='expired'?'منتهية':lot.status==='soon'?'قريبة الانتهاء':'صالحة'}</strong></div>
+              <button type="button" disabled={lotBusy} onClick={()=>adjustLot(lot)} className="site-btn site-btn-outline site-btn-sm">تعديل الكمية</button>
+            </div>)}</div>
+            <form onSubmit={receiveLot} className="grid gap-3 sm:grid-cols-3">
+              <label className="text-sm font-bold">رقم التشغيلة<input required maxLength={80} value={lotForm.code} onChange={e=>setLotForm({...lotForm,code:e.target.value})} className="mt-1 w-full rounded-xl border p-3" placeholder="LOT-2026-A"/></label>
+              <label className="text-sm font-bold">تاريخ الصلاحية<input required type="date" value={lotForm.expiryDate} onChange={e=>setLotForm({...lotForm,expiryDate:e.target.value})} className="mt-1 w-full rounded-xl border p-3"/></label>
+              <label className="text-sm font-bold">الكمية المستلمة<input required type="number" min={1} max={1000000} value={lotForm.quantity} onChange={e=>setLotForm({...lotForm,quantity:e.target.value})} className="mt-1 w-full rounded-xl border p-3"/></label>
+              <button type="submit" disabled={lotBusy} className="site-btn site-btn-primary sm:col-span-3">تسجيل التشغيلة وإضافة المخزون</button>
+            </form>
+          </> : <><p className="mb-3 text-xs text-neutral-600">لتفعيلها بأمان، المنتج لازم يكون بدون مخزون وبدون حركات أو طلبات سابقة. المنتجات القديمة تبقى على النظام السابق.</p><button type="button" disabled={lotBusy||stockProduct.stock!==0} onClick={enableLots} className="site-btn site-btn-outline site-btn-sm">تفعيل تتبع التشغيلات</button></>}
+          {lotError&&<p role="alert" className="mt-3 font-bold text-red-700">{lotError}</p>}
+        </div>
+        {!lotsData?.product?.lotTracking && <form onSubmit={saveStock} className="grid gap-3 sm:grid-cols-[130px_1fr_auto] items-end">
           <label className="text-sm font-bold">فرق الكمية<input type="number" step="1" required value={stockDelta} onChange={e=>setStockDelta(e.target.value)} className="mt-1 block w-full rounded-xl border border-brand/30 p-3" placeholder="+5 أو -2" /></label>
           <label className="text-sm font-bold">سبب التعديل<input required maxLength={250} value={stockReason} onChange={e=>setStockReason(e.target.value)} className="mt-1 block w-full rounded-xl border border-brand/30 p-3" placeholder="توريد، جرد، تلف..." /></label>
           <button type="submit" disabled={stockBusy} className="site-btn site-btn-primary">{stockBusy ? 'جاري الحفظ...' : 'تسجيل الحركة'}</button>
-        </form>
+        </form>}
         {stockError && <p role="alert" className="mt-3 font-bold text-red-700">{stockError}</p>}
         <h4 className="font-black mt-6 mb-3">آخر حركات المخزون</h4>
         <div className="max-h-64 overflow-auto space-y-2 text-sm">{stockHistory.length === 0 ? <p className="text-neutral-500">ماكو حركات مخزون مسجلة بعد.</p> : stockHistory.map((entry: any)=><div key={entry.id} className="rounded-xl border border-brand/15 px-4 py-3 flex flex-wrap justify-between gap-3"><span>{entry.reason} — {entry.delta > 0 ? '+' : ''}{entry.delta}</span><span>{entry.before} ← {entry.after}</span><time>{new Date(entry.createdAt).toLocaleString('ar-IQ')}</time></div>)}</div>
@@ -136,6 +300,7 @@ export default function AdminProducts() {
         <ProductForm product={editingProduct} existingCategories={existingCategories} onSave={handleSave} onCancel={() => { setShowAddForm(false); setEditingProduct(null); }} loading={loading} />
       )}
 
+      {visibilityError && <p role="alert" className="mb-4 rounded-xl bg-red-50 p-4 font-bold text-red-700">{visibilityError}</p>}
       <div className="mb-6">
         <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="ابحث عن منتج..." className="w-full max-w-md border-2 border-brand/30 rounded-xl px-4 py-2 font-bold focus:outline-none focus:border-brand" />
       </div>
@@ -162,7 +327,7 @@ export default function AdminProducts() {
     <div className="text-brand"><ProductIcon name={p.icon || 'Package'} size={32} /></div>
   )}
                     <div>
-                      <p className="font-bold text-sm text-ink">{p.name}</p>
+                      <p className="font-bold text-sm text-ink">{p.name} {p.published === false && <span className="mr-2 rounded-full bg-amber-100 px-2 py-1 text-[10px] font-bold text-amber-900">مخفي عن الزبائن</span>}</p>
                       <p className="text-xs text-neutral-500">{p.brand}{p.sku ? ' · SKU: '+p.sku : ''}</p>
                     </div>
                   </div>
@@ -170,11 +335,12 @@ export default function AdminProducts() {
                 <td className="px-4 py-3 text-sm text-ink">{p.category}</td>
                 <td className="px-4 py-3 text-sm font-bold text-ink">{p.price.toLocaleString()} د.ع</td>
                 <td className="px-4 py-3">
-                  <span className={`text-sm font-bold ${p.stock > 10 ? 'text-green-600' : p.stock > 0 ? 'text-yellow-600' : 'text-red-600'}`}>{p.stock} {saleUnitLabel(p.saleUnit)}</span>
+                  <span className={`text-sm font-bold ${p.stock > 10 ? 'text-green-600' : p.stock > 0 ? 'text-yellow-600' : 'text-red-600'}`}>{p.lotTracking ? (p.availableStock??p.stock) : p.stock} {saleUnitLabel(p.saleUnit)}</span>
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex gap-2">
                     <button onClick={() => openInventory(p)} className="site-btn site-btn-outline site-btn-sm">المخزون</button>
+                    {canEditProducts && <button type="button" disabled={visibilityBusy === p.id} onClick={() => toggleVisibility(p)} className="rounded-lg border border-brand/20 px-3 py-1 text-xs font-bold text-ink hover:bg-brand/10 disabled:opacity-50">{visibilityBusy === p.id ? 'جاري الحفظ...' : p.published === false ? 'إظهار بالمتجر' : 'إخفاء من المتجر'}</button>}
                     {canEditProducts && <button onClick={() => handleEdit(p)} className="text-xs bg-brand/10 text-brand rounded-lg px-3 py-1 font-bold hover:bg-brand/20">تعديل</button>}
                     {canEditProducts && <button onClick={() => handleDelete(p.id)} className="text-xs bg-red-50 text-red-600 rounded-lg px-3 py-1 font-bold hover:bg-red-100">حذف</button>}
                   </div>
@@ -268,7 +434,20 @@ function ProductForm({ product, existingCategories, onSave, onCancel, loading }:
           <label className="block font-bold mb-2 text-sm text-ink">صورة المنتج</label>
           <div className="flex items-center gap-4">
             {imagePreview && (
-              <img src={imagePreview} alt="معاينة" className="w-24 h-24 object-cover rounded-xl border-2 border-brand/30" />
+              <div className="flex shrink-0 flex-col items-center gap-2">
+                <img src={imagePreview} alt="معاينة صورة المنتج" className="h-24 w-24 rounded-xl border-2 border-brand/30 object-contain" />
+                <button
+                  type="button"
+                  disabled={uploading}
+                  onClick={() => {
+                    setForm((current: any) => ({ ...current, image: '' }));
+                    setImagePreview('');
+                  }}
+                  className="max-w-36 rounded-lg border border-amber-300 bg-amber-50 px-2 py-1.5 text-xs font-bold text-amber-900 hover:bg-amber-100 disabled:opacity-50"
+                >
+                  إزالة الصورة واستخدام الأيقونة
+                </button>
+              </div>
             )}
             <label className="flex-1 cursor-pointer">
               <div className="border-2 border-dashed border-brand/30 rounded-xl p-6 text-center hover:border-brand transition">
