@@ -26,7 +26,7 @@
 ## معلومات المشروع
 
 - المستودع: `joseph2202/thanaya-dental-redesign`
-- فرع العمل الحالي: `feature/purchase-cost-foundation`؛ **ليس `main`**. طلب السحب #28 ما يزال مسودة، وفروع الميزات السابقة متسلسلة.
+- فرع العمل الحالي للمهمة الجديدة: `feature/partial-returns-order-item-snapshots` (PR #29 Draft)؛ متفرع من `feature/purchase-cost-foundation` (PR #28 Draft)؛ **ليس `main`**. فروع الميزات متسلسلة.
 - البيئة: Mac محلي في `~/Documents/thanaya-dental-redesign`.
 - التقنيات: واجهة Next.js / React / Tailwind، باك إند Express / TypeScript، Prisma وSQLite محلي.
 - تشغيل: نافذتا Terminal، `cd backend && npm run dev` ثم `cd frontend && npm run dev`.
