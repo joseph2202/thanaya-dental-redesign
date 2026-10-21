@@ -134,7 +134,7 @@ router.get('/manage',requireSales,async(req,res)=>{
     ]}:{};
     const where:Prisma.OrderWhereInput={...searchWhere,...(status==='all'?{}:{status})};
     const [rows,total,states]=await Promise.all([
-      prisma.order.findMany({where,include:{items:{include:{product:{select:{name:true}},returnLines:{select:{quantity:true}}}},returns:{orderBy:{createdAt:'desc'},include:{lines:true}}},
+      prisma.order.findMany({where,include:{items:{include:{product:{select:{name:true}},returnLines:{select:{quantity:true,lotId:true}},lotAllocations:{include:{lot:{select:{code:true,expiryDate:true}}}}}},returns:{orderBy:{createdAt:'desc'},include:{lines:true}}},
         orderBy:[{createdAt:'desc'},{id:'desc'}],skip:(page-1)*limit,take:limit}),
       prisma.order.count({where}),
       prisma.order.groupBy({by:['status'],_count:{_all:true},where:searchWhere})
@@ -415,8 +415,15 @@ router.patch('/:id/status', requireSales, async (req, res) => {
       if(status==='returned'){
         if(!['owner','admin'].includes(res.locals.staffRole as string))
           throw new ReturnError(403,'استلام المرتجعات يتطلب صلاحية الإدارة');
-        const rest=current.items.map(item=>({orderItemId:item.id,quantity:item.quantity-returnedCount(item)}))
-          .filter(item=>item.quantity>0);
+        const rest=current.items.map(item=>{
+          const quantity=item.quantity-returnedCount(item);
+          const lots=item.lotAllocations.map(allocation=>({
+            lotId:allocation.lotId,
+            quantity:allocation.quantity-item.returnLines.filter(line=>line.lotId===allocation.lotId)
+              .reduce((sum,line)=>sum+line.quantity,0)
+          })).filter(line=>line.quantity>0);
+          return {orderItemId:item.id,quantity,...(lots.length?{lots}:{})};
+        }).filter(item=>item.quantity>0);
         if(!rest.length)throw new ReturnError(409,'جميع القطع مسجلة كمرتجعة');
         await applyOrderReturn(tx,current,rest,'full_status',
           'استلام كامل الكمية المتبقية عبر تغيير الحالة',res.locals.adminUserId as string);
