@@ -45,9 +45,12 @@ export default function AdminUsers() {
     setRoleBusy(pendingRole.id);setRoleError('');setConfirmError('');
     try{
       await usersAPI.updateRole(pendingRole.id,pendingRole.to);
-      await loadUsers();
-      setRoleHistory(await usersAPI.roleHistory());
+      // Commit succeeded: close the approval before optional list refreshes.
       setPendingRole(null);
+      await loadUsers();
+      try{setRoleHistory(await usersAPI.roleHistory())}
+      catch{setRoleError('تم حفظ الصلاحية، لكن تعذر تحديث سجل التغييرات. حدّث الصفحة.')}
+
     }catch(error){setConfirmError(error instanceof Error?error.message:'تعذر تغيير الصلاحية')}
     finally{setRoleBusy(null)}
   };
