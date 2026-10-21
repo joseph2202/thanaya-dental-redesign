@@ -95,7 +95,7 @@ function reportError(res: import('express').Response, error: unknown, context: s
     return;
   }
   if (error instanceof Prisma.PrismaClientKnownRequestError &&
-      ['P2034', 'P1008', 'P2028', 'P2010'].includes(error.code)) {
+      ['P2034', 'P1008', 'P2028', 'P2010', 'P2002', 'P2025'].includes(error.code)) {
     res.status(409).json({ error: 'تغير المخزون أو يوجد طلب متزامن، يرجى المحاولة مجدداً' });
     return;
   }
