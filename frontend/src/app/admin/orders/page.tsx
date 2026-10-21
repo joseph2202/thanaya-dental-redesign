@@ -5,9 +5,13 @@ import Link from 'next/link';
 import {Printer,FileSpreadsheet} from 'lucide-react';
 import {ordersAPI,exportsAPI} from '@/lib/api';
 import SiteActionDialog from '@/components/ui/SiteActionDialog';
+import PartialReturnDialog from '@/components/admin/PartialReturnDialog';
+import {useAuth} from '@/context/AuthContext';
 
-type Line={id:string;quantity:number;price:number;product?:{name:string}};
-type Order={id:string;customerName:string;customerPhone:string;customerAddress:string;customerCity:string;total:number;subtotal:number|null;shippingFee:number|null;couponCode:string|null;discountAmount:number|null;status:string;createdAt:string;items:Line[]};
+type Line={id:string;quantity:number;price:number;productName?:string|null;product?:{name:string};returnLines?:{quantity:number}[]};
+type ReturnEvent={id:string;createdAt:string;reason:string;lines:{orderItemId:string;quantity:number;lotId:string|null}[]};
+const returnedCount=(line:Line)=>(line.returnLines||[]).reduce((total,r)=>total+r.quantity,0);
+type Order={id:string;customerName:string;customerPhone:string;customerAddress:string;customerCity:string;total:number;subtotal:number|null;shippingFee:number|null;couponCode:string|null;discountAmount:number|null;status:string;createdAt:string;items:Line[];returns?:ReturnEvent[]};
 type Result={orders:Order[];total:number;page:number;pageSize:number;totalPages:number;statusCounts:Record<string,number>;matchingSearchTotal:number};
 const statuses=[['all','الكل'],['pending','جديد'],['confirmed','مؤكد'],['shipped','بالطريق'],['delivered','مُسلّم'],['cancelled','ملغي'],['returned','مرتجع']] as const;
 const transitions:Record<string,string[]>={pending:['confirmed','cancelled'],confirmed:['shipped','cancelled'],shipped:['delivered'],delivered:['returned'],cancelled:[],returned:[]};
@@ -16,11 +20,14 @@ const format=(n:number)=>n.toLocaleString('en-US')+' د.ع';
 const colors:Record<string,string>={pending:'bg-amber-100 text-amber-800',confirmed:'bg-sky-100 text-sky-800',shipped:'bg-violet-100 text-violet-800',delivered:'bg-emerald-100 text-emerald-800',cancelled:'bg-red-100 text-red-800',returned:'bg-gray-200 text-gray-700'};
 
 export default function AdminOrders(){
+ const {user}=useAuth();
+ const canReceiveReturns=user?.role==='owner'||user?.role==='admin';
  const [data,setData]=useState<Result|null>(null),[status,setStatus]=useState('all'),[search,setSearch]=useState(''),[query,setQuery]=useState(''),[page,setPage]=useState(1);
  const [loading,setLoading]=useState(true),[error,setError]=useState(''),[notice,setNotice]=useState(''),[busy,setBusy]=useState<string|null>(null);
  const [expanded,setExpanded]=useState<string|null>(null);
  const [exportBusy,setExportBusy]=useState(false);
  const [pendingChange,setPendingChange]=useState<{order:Order;next:string}|null>(null);
+ const [returnOrder,setReturnOrder]=useState<Order|null>(null);
  const [changeError,setChangeError]=useState('');
  const load=useCallback(async()=>{
   setLoading(true);setError('');
@@ -44,6 +51,11 @@ export default function AdminOrders(){
  }
  function submitSearch(e:React.FormEvent){e.preventDefault();setPage(1);setQuery(search.trim());}
  return <AdminLayout>
+  <PartialReturnDialog order={returnOrder} onClose={()=>setReturnOrder(null)}
+    onComplete={message=>{
+      setReturnOrder(null);setNotice(message);
+      void load();
+    }}/>
   <SiteActionDialog
    open={pendingChange!==null}
    title={pendingChange?.next==='returned'?'تأكيد استلام المرتجع':pendingChange?.next==='cancelled'?'تأكيد إلغاء الطلب':'تأكيد تغيير حالة الطلب'}
@@ -90,30 +102,59 @@ export default function AdminOrders(){
   {data?.orders.map(o=>{
    const open=expanded===o.id;
    const productsSum=o.items.reduce((sum,item)=>sum+item.price*item.quantity,0);
+   const hasReturnable=o.status==='delivered'&&o.items.some(line=>line.quantity>returnedCount(line));
    return <article key={o.id} className="overflow-hidden rounded-2xl border border-brand/20 bg-white">
     <div className="flex flex-wrap items-start justify-between gap-4 p-5">
      <div className="min-w-0"><p className="text-xs text-neutral-500">{new Date(o.createdAt).toLocaleString('ar-IQ')}</p><h2 className="mt-1 break-all font-extrabold text-brand">{o.id}</h2>
       <p className="mt-2 font-bold text-ink">{o.customerName} <span className="text-sm font-normal text-neutral-500">· {o.customerCity}</span></p>
+      <div className="mt-3 rounded-xl border border-[#d6ebf3] bg-[#f6fbfd] p-3 text-sm">
+        <p className="mb-1 text-xs font-bold text-[#4b7788]">المنتجات المشتراة ({o.items.length} نوع)</p>
+        {o.items.map(item=><p key={item.id} className="break-words text-[#304e5b]">
+          {item.productName||item.product?.name||'منتج من الطلب'} × {item.quantity}
+          {returnedCount(item)>0&&<span className="mr-2 text-xs font-bold text-amber-700">(مرجع {returnedCount(item)})</span>}
+        </p>)}
+      </div>
      </div>
      <div className="text-left"><span className={`inline-block rounded-full px-3 py-1 text-xs font-bold ${colors[o.status]||'bg-gray-100'}`}>{labels[o.status]||o.status}</span>
       <p className="mt-3 text-xl font-black text-ink">{format(o.total)}</p></div>
     </div>
     <div className="flex flex-wrap items-center justify-between gap-3 border-t border-brand/10 px-5 py-3">
      <button type="button" aria-expanded={open} onClick={()=>setExpanded(open?null:o.id)} className="font-bold text-sm text-brand">{open?'إخفاء التفاصيل ↑':'عرض الفاتورة والتفاصيل ↓'}</button>
-     <div className="flex flex-wrap gap-2">{(transitions[o.status]||[]).map(next=><button key={next} type="button" disabled={busy!==null} onClick={()=>change(o,next)}
+     <div className="flex flex-wrap gap-2">
+      {canReceiveReturns&&hasReturnable&&<button type="button" disabled={busy!==null} onClick={()=>setReturnOrder(o)}
+        className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs font-bold text-amber-900 hover:bg-amber-100 disabled:opacity-50">استلام مرتجع جزئي</button>}
+      {(transitions[o.status]||[]).filter(next=>next!=='returned'||canReceiveReturns).map(next=><button key={next} type="button" disabled={busy!==null} onClick={()=>change(o,next)}
       className={`rounded-lg border px-3 py-2 text-xs font-bold disabled:opacity-50 ${next==='cancelled'||next==='returned'?'border-red-200 text-red-700':'border-brand/20 text-brand'}`}>{busy===o.id?'جاري التحديث...':labels[next]}</button>)}</div>
     </div>
     {open&&<div className="grid gap-5 border-t border-brand/10 bg-paper2/30 p-5 md:grid-cols-2">
      <section><h3 className="mb-3 font-black">معلومات التوصيل</h3><p className="font-bold">{o.customerName}</p><a className="block text-brand underline" href={`tel:${o.customerPhone}`} dir="ltr">{o.customerPhone}</a>
       <p className="mt-2 text-sm">{o.customerCity}، {o.customerAddress}</p><p className="mt-2 text-xs text-neutral-500">الدفع عند الاستلام</p></section>
      <section><div className="mb-3 flex flex-wrap items-center justify-between gap-2"><h3 className="font-black">تفاصيل المبالغ</h3><Link href={"/order/invoice?id="+encodeURIComponent(o.id)} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 rounded-full border border-brand/30 bg-white px-3 py-2 text-xs font-black text-brand hover:bg-[#eaf9fc]"><Printer size={15}/> طباعة / حفظ PDF</Link></div>
-      {o.items.map(i=><div key={i.id} className="mb-2 flex justify-between gap-3 text-sm"><span>{i.product?.name||'منتج'} × {i.quantity}</span><strong className="whitespace-nowrap">{format(i.price*i.quantity)}</strong></div>)}
+      {o.items.map(i=><div key={i.id} className="mb-2 flex justify-between gap-3 text-sm">
+        <span className="break-words">{i.productName||i.product?.name||'منتج من الطلب'} × {i.quantity}
+          {returnedCount(i)>0&&<small className="mr-1 text-amber-700">({returnedCount(i)} مرجع)</small>}
+        </span>
+        <strong className="whitespace-nowrap">{format(i.price*i.quantity)}</strong>
+      </div>)}
       <div className="mt-3 space-y-2 border-t border-brand/20 pt-3 text-sm">
        <div className="flex justify-between"><span>المنتجات</span><strong>{format(o.subtotal??productsSum)}</strong></div>
        {o.discountAmount!=null&&<div className="flex justify-between text-green-700"><span>خصم ({o.couponCode})</span><strong>-{format(o.discountAmount)}</strong></div>}
        <div className="flex justify-between"><span>التوصيل</span><strong>{o.shippingFee===null?'يحدد لاحقاً':format(o.shippingFee)}</strong></div>
        <div className="flex justify-between border-t border-brand/20 pt-2 text-lg font-black"><span>الإجمالي المحفوظ</span><strong>{format(o.total)}</strong></div>
-      </div></section>
+      </div>
+      {(o.returns?.length??0)>0&&<div className="mt-4 border-t border-brand/20 pt-3">
+        <h4 className="mb-2 font-black">سجل استلام المرتجعات</h4>
+        {o.returns?.map(entry=><div key={entry.id} className="mb-2 rounded-xl border border-[#d4e7ef] bg-white p-3 text-xs">
+          <p className="font-bold text-[#345968]">{new Date(entry.createdAt).toLocaleString('ar-IQ')} — {entry.reason}</p>
+          {Array.from(entry.lines.reduce((totals,line)=>{
+            totals.set(line.orderItemId,(totals.get(line.orderItemId)||0)+line.quantity);return totals;
+          },new Map<string,number>())).map(([itemId,qty])=><p key={itemId} className="mt-1">
+            {o.items.find(i=>i.id===itemId)?.productName||o.items.find(i=>i.id===itemId)?.product?.name||'منتج'} × {qty}
+          </p>)}
+          <p className="mt-1 text-amber-800">سجل مخزني فقط؛ مو إثبات استرداد مبلغ.</p>
+        </div>)}
+      </div>}
+      </section>
     </div>}
    </article>
   })}
