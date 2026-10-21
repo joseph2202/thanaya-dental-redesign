@@ -10,7 +10,7 @@ import {ordersAPI} from '@/lib/api';
 import AddressBook from '@/components/account/AddressBook';
 import {orderStatusColors,orderStatusLabels,shortOrderCode} from '@/lib/orderPresentation';
 
-type CustomerOrder={id:string;status:string;total:number;createdAt:string;items:{quantity:number;product?:{name:string}}[]};
+type CustomerOrder={id:string;status:string;total:number;createdAt:string;items:{quantity:number;productName?:string|null;product?:{name:string}}[]};
 const options=[
  {value:'all',label:'كل الطلبات'},
  {value:'pending',label:'قيد المعالجة'},
@@ -79,7 +79,7 @@ export default function AccountPage(){
  const filtered=orders.filter(order=>
   (statusFilter==='all'||order.status===statusFilter) &&
   (!q||order.id.toLowerCase().includes(q)||shortOrderCode(order.id).toLowerCase().includes(q)||
-    order.items.some(i=>(i.product?.name||'').toLowerCase().includes(q)))
+    order.items.some(i=>(i.productName||i.product?.name||'').toLowerCase().includes(q)))
  );
 
  return <><Header/><main className="site-container site-main py-5 md:py-8">
@@ -149,6 +149,7 @@ export default function AccountPage(){
              <div className="mt-4 flex flex-wrap items-end justify-between gap-3 border-t border-[#e8f0f4] pt-3">
                <div><p className="text-base font-black">{order.total.toLocaleString('en-US')} د.ع</p>
                  <p className="mt-1 text-xs text-neutral-500">{order.items.length} نوع · {units} قطعة</p>
+                 <p className="mt-2 line-clamp-2 text-xs font-semibold text-[#436b7b]">{order.items.map(i=>(i.productName||i.product?.name||'منتج')+' × '+i.quantity).join('، ')}</p>
                  <p className="mt-1 inline-flex items-center gap-1.5 text-xs text-neutral-500"><CalendarDays size={14}/>{new Date(order.createdAt).toLocaleDateString('ar-IQ')}</p>
                </div>
                <span className="inline-flex items-center gap-1 text-sm font-bold text-brand group-hover:underline">تتبع وتفاصيل الطلب <ArrowUpLeft size={16}/></span>
