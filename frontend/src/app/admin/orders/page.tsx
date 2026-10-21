@@ -4,6 +4,7 @@ import AdminLayout from '@/components/admin/AdminLayout';
 import Link from 'next/link';
 import {Printer,FileSpreadsheet} from 'lucide-react';
 import {ordersAPI,exportsAPI} from '@/lib/api';
+import SiteActionDialog from '@/components/ui/SiteActionDialog';
 
 type Line={id:string;quantity:number;price:number;product?:{name:string}};
 type Order={id:string;customerName:string;customerPhone:string;customerAddress:string;customerCity:string;total:number;subtotal:number|null;shippingFee:number|null;couponCode:string|null;discountAmount:number|null;status:string;createdAt:string;items:Line[]};
@@ -19,6 +20,8 @@ export default function AdminOrders(){
  const [loading,setLoading]=useState(true),[error,setError]=useState(''),[notice,setNotice]=useState(''),[busy,setBusy]=useState<string|null>(null);
  const [expanded,setExpanded]=useState<string|null>(null);
  const [exportBusy,setExportBusy]=useState(false);
+ const [pendingChange,setPendingChange]=useState<{order:Order;next:string}|null>(null);
+ const [changeError,setChangeError]=useState('');
  const load=useCallback(async()=>{
   setLoading(true);setError('');
   try{setData(await ordersAPI.manage({page,status,search:query}))}
@@ -26,16 +29,38 @@ export default function AdminOrders(){
   finally{setLoading(false)}
  },[page,status,query]);
  useEffect(()=>{load()},[load]);
- async function change(order:Order,next:string){
-  const phrase=next==='cancelled'?'إلغاء الطلب وإرجاع بضاعته للمخزون؟':next==='returned'?'هل استلمت المنتجات المرتجعة فعلياً؟ سترجع للمخزون.':`تغيير حالة الطلب إلى «${labels[next]}»؟`;
-  if(!window.confirm(phrase))return;
-  setBusy(order.id);setError('');setNotice('');
-  try{await ordersAPI.updateStatus(order.id,next);setNotice('تم تحديث حالة الطلب '+order.id);await load();}
-  catch(e){setError(e instanceof Error?e.message:'تعذر تغيير الحالة. يرجى تحديث الصفحة.')}
+ function change(order:Order,next:string){setChangeError('');setPendingChange({order,next});}
+ async function confirmChange(){
+  if(!pendingChange||busy)return;
+  const {order,next}=pendingChange;
+  setBusy(order.id);setError('');setNotice('');setChangeError('');
+  try{
+   await ordersAPI.updateStatus(order.id,next);
+   setPendingChange(null);
+   setNotice('تم تحديث حالة الطلب '+order.id);
+   await load();
+  }catch(e){setChangeError(e instanceof Error?e.message:'تعذر تغيير الحالة. يرجى تحديث الصفحة.')}
   finally{setBusy(null)}
  }
  function submitSearch(e:React.FormEvent){e.preventDefault();setPage(1);setQuery(search.trim());}
  return <AdminLayout>
+  <SiteActionDialog
+   open={pendingChange!==null}
+   title={pendingChange?.next==='returned'?'تأكيد استلام المرتجع':pendingChange?.next==='cancelled'?'تأكيد إلغاء الطلب':'تأكيد تغيير حالة الطلب'}
+   description={pendingChange?.next==='returned'
+    ? 'هل تم استلام كامل المنتجات فعلياً؟ تأكيد الحالة يعيد كل الكميات إلى المخزون. لا تستخدم هذا الإجراء لمرتجع جزئي.'
+    : pendingChange?.next==='cancelled'
+      ? 'سوف يُلغى الطلب وتُعاد كل القطع للمخزون تلقائياً. تأكد من قرار الإلغاء قبل المتابعة.'
+      : 'ستتغيّر حالة الطلب إلى «'+(labels[pendingChange?.next||'']||'')+'» ويتم تسجيل التحديث وإخطار العميل.'}
+   confirmLabel={pendingChange?.next==='returned'?'تأكيد استلام كل المرتجع':pendingChange?.next==='cancelled'?'إلغاء الطلب وإرجاع المخزون':'تأكيد تغيير الحالة'}
+   onConfirm={()=>void confirmChange()}
+   onClose={()=>{if(!busy){setPendingChange(null);setChangeError('')}}}
+   busy={Boolean(busy)}
+   error={changeError}
+   destructive={pendingChange?.next==='returned'||pendingChange?.next==='cancelled'}
+  >
+   {pendingChange&&<p className="break-all rounded-xl bg-[#f0f9fc] p-3 text-sm font-bold">رقم الطلب: <span dir="ltr">{pendingChange.order.id}</span></p>}
+  </SiteActionDialog>
   <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
    <div><h1 className="text-3xl font-black text-ink">إدارة الطلبات</h1><p className="mt-2 text-sm text-neutral-600">بحث سريع، متابعة الحالات، وتفاصيل فاتورة محفوظة من السيرفر.</p></div>
    <div className="flex flex-wrap gap-2">
