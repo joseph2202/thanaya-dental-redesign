@@ -50,6 +50,11 @@ export const productsAPI = {
   delete: (id: string) => apiRequest(`/products/${id}`, { method: 'DELETE' }),
   getInventory: (id: string) => apiRequest(`/products/${id}/inventory`),
   getLots: (id: string) => apiRequest(`/products/${encodeURIComponent(id)}/lots`),
+  savePurchaseCost:(id:string,purchaseCostIqd:number|null,expectedRevision:number):Promise<{purchaseCostIqd:number|null;costRevision:number}>=>
+    apiRequest(`/products/${encodeURIComponent(id)}/purchase-cost`,{method:'PATCH',body:JSON.stringify({purchaseCostIqd,expectedRevision})}),
+  saveLotPurchaseCost:(id:string,lotId:string,purchaseCostIqd:number|null,expectedRevision:number):Promise<{purchaseCostIqd:number|null;costRevision:number}>=>
+    apiRequest(`/products/${encodeURIComponent(id)}/lots/${encodeURIComponent(lotId)}/purchase-cost`,{method:'PATCH',body:JSON.stringify({purchaseCostIqd,expectedRevision})}),
+  purchaseCostHistory:(id:string)=>apiRequest(`/products/${encodeURIComponent(id)}/purchase-cost/history`),
   enableLots: (id: string) => apiRequest(`/products/${encodeURIComponent(id)}/enable-lots`, { method: 'POST', body: '{}' }),
   receiveLot: (id: string, data: { code: string; expiryDate: string; quantity: number }) =>
     apiRequest(`/products/${encodeURIComponent(id)}/lots`, { method: 'POST', body: JSON.stringify(data) }),

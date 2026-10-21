@@ -8,10 +8,12 @@ import {useEffect,useState} from 'react';
 import {productsAPI,CartQuote} from '@/lib/api';
 import {Trash2,Minus,Plus,ArrowUpLeft,ShieldCheck} from 'lucide-react';
 import {saleUnitLabel} from '@/lib/saleUnits';
+import SiteActionDialog from '@/components/ui/SiteActionDialog';
 
 export default function CartPage() {
   const { items, removeFromCart, updateQuantity, totalPrice, clearCart } = useCart();
   const [message,setMessage]=useState('');
+  const [confirmClear,setConfirmClear]=useState(false);
   const [quote,setQuote]=useState<CartQuote|null>(null);
   const [quoteError,setQuoteError]=useState('');
   const [quoteLoading,setQuoteLoading]=useState(false);
@@ -55,6 +57,15 @@ export default function CartPage() {
   return (
     <>
       <Header />
+      <SiteActionDialog
+        open={confirmClear}
+        title="إفراغ سلة التسوق؟"
+        description="راح تنحذف كل المنتجات من سلتك، لكن ما راح يتغير مخزون المتجر أو أي طلب سابق."
+        confirmLabel="إفراغ السلة"
+        destructive
+        onConfirm={()=>{setConfirmClear(false);clearCart()}}
+        onClose={()=>setConfirmClear(false)}
+      />
       <main className="site-container site-main py-5 md:py-8">
         <div className="mb-5 rounded-[24px] border border-[#cce7f1] bg-[linear-gradient(100deg,#e6f7fd,#fff)] px-5 py-5 md:px-7"><span className="site-eyebrow">THANAYA / CART</span><h1 className="mt-2 text-3xl font-black text-ink md:text-4xl">سلة التسوق</h1><p className="site-muted mt-2 text-sm">راجع منتجاتك وكمياتها قبل تأكيد الطلب.</p></div>
 
@@ -108,7 +119,7 @@ export default function CartPage() {
           <p className="mb-4 text-xs text-neutral-600">المجموع قبل الكوبون وأجور التوصيل. يتم احتساب المبلغ النهائي والتحقق من المخزون مجدداً عند تأكيد الطلب.</p>
           <div className="flex flex-col sm:flex-row gap-3">
             {quote?.canCheckout&&!quoteLoading?<Link href="/checkout" className="site-btn site-btn-primary flex-1">إتمام الطلب</Link>:<span aria-disabled="true" className="site-btn site-btn-primary flex-1 opacity-50 cursor-not-allowed">راجع السلة قبل إتمام الطلب</span>}
-            <button onClick={() => {if(window.confirm("تريد تفرّغ السلة بالكامل؟"))clearCart()}} className="site-btn site-btn-outline">
+            <button onClick={() => setConfirmClear(true)} className="site-btn site-btn-outline">
               إفراغ السلة
             </button>
           </div>

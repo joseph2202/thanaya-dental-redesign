@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import AdminLayout from '@/components/admin/AdminLayout';
 import { usersAPI } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
+import SiteActionDialog from '@/components/ui/SiteActionDialog';
 
 export default function AdminUsers() {
   const { user: currentUser } = useAuth();
@@ -13,6 +14,8 @@ export default function AdminUsers() {
   const [roleHistory, setRoleHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [pendingRole,setPendingRole]=useState<{id:string;name:string;from:string;to:string}|null>(null);
+  const [confirmError,setConfirmError]=useState('');
 
   useEffect(() => {
     loadUsers();
@@ -32,16 +35,24 @@ export default function AdminUsers() {
     }
   };
 
-  const changeRole = async (id: string, role: string) => {
-    const target = users.find(u => u.id === id);
-    if (!target || !window.confirm(`تغيير صلاحية ${target.name} من ${target.role} إلى ${role}؟`)) return;
-    setRoleBusy(id); setRoleError('');
-    try {
-      await usersAPI.updateRole(id, role);
+  const changeRole = (id:string, role:string)=>{
+    const target=users.find(u=>u.id===id);
+    if(!target||target.role===role)return;
+    setConfirmError('');setPendingRole({id,name:target.name,from:target.role,to:role});
+  };
+  const confirmRole=async()=>{
+    if(!pendingRole||roleBusy)return;
+    setRoleBusy(pendingRole.id);setRoleError('');setConfirmError('');
+    try{
+      await usersAPI.updateRole(pendingRole.id,pendingRole.to);
+      // Commit succeeded: close the approval before optional list refreshes.
+      setPendingRole(null);
       await loadUsers();
-      setRoleHistory(await usersAPI.roleHistory());
-    } catch (error) { setRoleError(error instanceof Error ? error.message : 'تعذر التغيير'); }
-    finally { setRoleBusy(null); }
+      try{setRoleHistory(await usersAPI.roleHistory())}
+      catch{setRoleError('تم حفظ الصلاحية، لكن تعذر تحديث سجل التغييرات. حدّث الصفحة.')}
+
+    }catch(error){setConfirmError(error instanceof Error?error.message:'تعذر تغيير الصلاحية')}
+    finally{setRoleBusy(null)}
   };
 
   useEffect(() => {
@@ -66,6 +77,21 @@ export default function AdminUsers() {
 
   return (
     <AdminLayout>
+      <SiteActionDialog
+        open={pendingRole!==null}
+        title="تأكيد تعديل الصلاحيات"
+        description="تغيير الصلاحيات يعطي المستخدم إمكانية الوصول إلى أقسام مختلفة في الإدارة. تأكد من الدور الجديد قبل الموافقة."
+        confirmLabel="حفظ الصلاحية الجديدة"
+        onConfirm={()=>void confirmRole()}
+        onClose={()=>{if(!roleBusy){setPendingRole(null);setConfirmError('')}}}
+        busy={Boolean(roleBusy)}
+        error={confirmError}
+      >
+        {pendingRole&&<div className="rounded-xl bg-[#f0f9fc] p-3 text-sm leading-7">
+          <p className="font-black">{pendingRole.name}</p>
+          <p>{roleLabel[pendingRole.from]||pendingRole.from} ← {roleLabel[pendingRole.to]||pendingRole.to}</p>
+        </div>}
+      </SiteActionDialog>
       <h2 className="text-3xl font-black mb-3 text-ink">إدارة المستخدمين والصلاحيات</h2>
       <p className="text-sm text-neutral-600 mb-4">المالك فقط يغيّر صلاحيات الموظفين المسجلين. لا تشارك كلمة مرورك مع أي موظف.</p>
       {roleError && <p className="mb-4 rounded-xl bg-red-50 p-3 text-red-700" role="alert">{roleError}</p>}

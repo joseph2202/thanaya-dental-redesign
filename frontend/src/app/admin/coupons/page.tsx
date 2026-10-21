@@ -2,6 +2,7 @@
 import {useEffect,useState} from 'react';
 import AdminLayout from '@/components/admin/AdminLayout';
 import {couponsAPI} from '@/lib/api';
+import SiteActionDialog from '@/components/ui/SiteActionDialog';
 import {parseThousandsIqd,formatThousandsIqd} from '@/lib/money-entry';
 
 type Coupon={id:string;code:string;kind:string;discount:number;active:boolean;minSubtotal:number;maxUses:number|null;usedCount:number;expiresAt:string|null};
@@ -10,6 +11,9 @@ export default function AdminCoupons(){
  const [form,setForm]=useState({code:'',kind:'percent',discount:'10',minSubtotal:'0',maxUses:'',expiresAt:''});
  const [busy,setBusy]=useState(false),[error,setError]=useState(''),[success,setSuccess]=useState('');
  const [loading,setLoading]=useState(true);
+ const [pendingDelete,setPendingDelete]=useState<Coupon|null>(null);
+ const [deleteBusy,setDeleteBusy]=useState(false);
+ const [deleteError,setDeleteError]=useState('');
  async function load(){setLoading(true);try{setRows(await couponsAPI.getAll());setError('')}catch(e){setError(e instanceof Error?e.message:'تعذر تحميل الكوبونات')}finally{setLoading(false)}}
  useEffect(()=>{load()},[]);
  async function add(e:React.FormEvent){
@@ -23,8 +27,26 @@ export default function AdminCoupons(){
   }catch(e){setError(e instanceof Error?e.message:'تعذر إضافة الكوبون')}finally{setBusy(false)}
  }
  async function toggle(c:Coupon){setError('');try{await couponsAPI.toggle(c.id);await load()}catch(e){setError(e instanceof Error?e.message:'فشل تغيير الحالة')}}
- async function remove(c:Coupon){if(!confirm('حذف الكوبون غير المستخدم؟'))return;setError('');try{await couponsAPI.delete(c.id);await load()}catch(e){setError(e instanceof Error?e.message:'تعذر الحذف')}}
+ function remove(c:Coupon){setDeleteError('');setPendingDelete(c)}
+ async function confirmDelete(){
+  if(!pendingDelete||deleteBusy)return;
+  setDeleteBusy(true);setDeleteError('');
+  try{await couponsAPI.delete(pendingDelete.id);await load();setPendingDelete(null)}
+  catch(e){setDeleteError(e instanceof Error?e.message:'تعذر حذف الكوبون')}
+  finally{setDeleteBusy(false)}
+ }
  return <AdminLayout>
+ <SiteActionDialog
+  open={pendingDelete!==null}
+  title="تأكيد حذف الكوبون"
+  description="هذا الإجراء للكوبونات غير المستخدمة فقط. الكوبونات المستخدمة يمكن تعطيلها، ولا يجوز حذف سجل استخدامها."
+  confirmLabel="حذف الكوبون"
+  destructive
+  busy={deleteBusy}
+  error={deleteError}
+  onConfirm={()=>void confirmDelete()}
+  onClose={()=>{if(!deleteBusy){setPendingDelete(null);setDeleteError('')}}}
+ >{pendingDelete&&<p className="rounded-xl bg-red-50 p-3 text-sm font-bold">{pendingDelete.code}</p>}</SiteActionDialog>
  <h1 className="mb-2 text-3xl font-black text-ink">كوبونات الخصم</h1>
  <p className="mb-6 text-sm text-neutral-600">تحتسب الخصومات من السيرفر على مجموع المنتجات قبل الشحن. الكوبونات المستخدمة يمكن تعطيلها ولا تُحذف من السجل.</p>
  {error&&<p role="alert" className="mb-4 rounded-xl bg-red-50 p-4 font-bold text-red-700">{error}</p>}
