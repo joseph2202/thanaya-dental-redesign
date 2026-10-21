@@ -1,8 +1,8 @@
 "use client";
 import { useState, useEffect, useRef } from 'react';
-import { Eye, EyeOff, ShieldCheck, X } from 'lucide-react';
+import { Eye, EyeOff, ShieldCheck, X, FileSpreadsheet } from 'lucide-react';
 import AdminLayout from '@/components/admin/AdminLayout';
-import { productsAPI, uploadAPI, settingsAPI } from '@/lib/api';
+import { productsAPI, uploadAPI, settingsAPI, exportsAPI } from '@/lib/api';
 import { parseThousandsIqd,parseUsd,formatThousandsIqd,formatFullIqd } from '@/lib/money-entry';
 import ProductIcon from '@/components/ui/ProductIcon';
 import { useAuth } from '@/context/AuthContext';
@@ -17,6 +17,8 @@ export default function AdminProducts() {
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [visibilityBusy, setVisibilityBusy] = useState<string | null>(null);
+  const [exportBusy,setExportBusy]=useState(false);
+  const [exportError,setExportError]=useState('');
   const [visibilityError, setVisibilityError] = useState('');
   const [pendingVisibility, setPendingVisibility] = useState<any | null>(null);
   const visibilityDialogRef = useRef<HTMLDialogElement>(null);
@@ -261,11 +263,15 @@ export default function AdminProducts() {
       </dialog>
       <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
         <h2 className="text-3xl font-black text-ink">إدارة المنتجات</h2>
-        {canEditProducts && <button onClick={() => { setShowAddForm(true); setEditingProduct(null); }} className="bg-brand text-white rounded-full px-6 py-2 font-bold hover:bg-brand-dark transition">
-          + إضافة منتج
-        </button>}
+        {canEditProducts&&<div className="flex flex-wrap gap-2">
+          <button type="button" disabled={exportBusy} onClick={async()=>{setExportBusy(true);setExportError('');try{await exportsAPI.download('inventory')}catch(e){setExportError(e instanceof Error?e.message:'تعذّر التصدير')}finally{setExportBusy(false)}}} className="site-btn site-btn-outline site-btn-sm">
+            <FileSpreadsheet size={16}/>{exportBusy?'جاري تجهيز Excel...':'تصدير المخزون Excel'}
+          </button>
+          <button onClick={() => { setShowAddForm(true); setEditingProduct(null); }} className="bg-brand text-white rounded-full px-6 py-2 font-bold hover:bg-brand-dark transition">+ إضافة منتج</button>
+        </div>}
       </div>
 
+      {exportError&&<p role="alert" className="mb-4 rounded-xl bg-red-50 p-3 text-sm font-bold text-red-700">{exportError}</p>}
       {stockProduct && <section className="site-surface mb-5 p-4 md:p-5" aria-label="إدارة المخزون">
         <div className="flex items-center justify-between gap-3 mb-4"><h3 className="text-xl font-black">مخزون {stockProduct.name}</h3><button type="button" className="site-btn site-btn-outline site-btn-sm" onClick={() => setStockProduct(null)}>إغلاق</button></div>
         <p className="mb-4 text-sm">الكمية الحالية: <strong className="text-brand">{stockProduct.stock}</strong> {saleUnitLabel(stockProduct.saleUnit)}. للإضافة اكتب رقماً موجباً، وللتصحيح بالنقصان اكتب رقماً سالباً.</p>

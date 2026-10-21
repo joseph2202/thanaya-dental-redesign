@@ -68,6 +68,29 @@ export const addressesAPI = {
   delete: (id:string):Promise<{deleted:boolean}> => apiRequest('/addresses/'+encodeURIComponent(id),{method:'DELETE'}),
 };
 
+// Downloads real XLSX archives. Authorization travels in the request header rather
+// than an exposed query parameter, and is checked again by the server.
+export const exportsAPI={
+  download:async (kind:'orders'|'inventory',range:'7'|'30'|'90'|'all'='30')=>{
+    const token=localStorage.getItem('thanaya-token');
+    if(!token)throw new Error('سجّل دخولك أولاً');
+    const pathname=kind==='orders'?'/exports/orders?range='+range:'/exports/inventory';
+    const response=await fetch(API_BASE+pathname,{headers:{Authorization:'Bearer '+token}});
+    if(!response.ok){
+      const data=await response.json().catch(()=>({}));
+      throw new Error(data.error||'تعذّر تصدير البيانات');
+    }
+    const data=await response.blob();
+    const url=URL.createObjectURL(data);
+    const link=document.createElement('a');
+    link.href=url;
+    const filename=response.headers.get('Content-Disposition')?.match(/filename="([^"]+)"/)?.[1];
+    link.download=filename||'thanaya-export.xlsx';
+    document.body.appendChild(link);link.click();link.remove();
+    window.setTimeout(()=>URL.revokeObjectURL(url),5000);
+  }
+};
+
 // Orders API
 export const ordersAPI = {
   getAll: () => apiRequest('/orders'),

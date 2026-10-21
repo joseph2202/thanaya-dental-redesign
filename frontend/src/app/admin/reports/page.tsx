@@ -2,8 +2,8 @@
 import {useCallback,useEffect,useState} from 'react';
 import Link from 'next/link';
 import AdminLayout from '@/components/admin/AdminLayout';
-import {reportsAPI,SalesReport} from '@/lib/api';
-import {ArrowUpRight,Package,ShoppingCart,TrendingUp,AlertTriangle} from 'lucide-react';
+import {reportsAPI,exportsAPI,SalesReport} from '@/lib/api';
+import {ArrowUpRight,Package,ShoppingCart,TrendingUp,AlertTriangle,FileSpreadsheet} from 'lucide-react';
 
 const money=(v:number)=>v.toLocaleString('en-US')+' د.ع';
 const periods:[SalesReport['range'],string][]=[['7','7 أيام'],['30','30 يوم'],['90','90 يوم'],['all','كل الفترة']];
@@ -17,6 +17,7 @@ function Metric({label,value,note}:{label:string;value:string;note?:string}){
 }
 export default function Reports(){
  const [range,setRange]=useState<'7'|'30'|'90'|'all'>('30'),[report,setReport]=useState<SalesReport|null>(null),[busy,setBusy]=useState(true),[error,setError]=useState('');
+ const [exportBusy,setExportBusy]=useState(false);
  const load=useCallback(async()=>{setBusy(true);setError('');try{setReport(await reportsAPI.overview(range))}catch(e){setError(e instanceof Error?e.message:'تعذر تحميل التقرير')}finally{setBusy(false)}},[range]);
  useEffect(()=>{load()},[load]);
  const stats=report?.stats;
@@ -24,7 +25,10 @@ export default function Reports(){
  return <AdminLayout>
   <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
    <div><h1 className="text-3xl font-black text-ink">تقارير المبيعات والمخزون</h1><p className="mt-2 text-sm text-neutral-600">أرقام من قاعدة البيانات، حسب حالة الطلب الفعلية.</p></div>
-   <button disabled={busy} onClick={load} className="site-btn site-btn-outline site-btn-sm">تحديث البيانات</button>
+   <div className="flex flex-wrap gap-2">
+     <button type="button" disabled={exportBusy} onClick={async()=>{setExportBusy(true);setError('');try{await exportsAPI.download('orders',range)}catch(e){setError(e instanceof Error?e.message:'تعذّر تصدير Excel')}finally{setExportBusy(false)}}} className="site-btn site-btn-outline site-btn-sm"><FileSpreadsheet size={16}/>{exportBusy?'جاري التحضير...':'تصدير الطلبات Excel'}</button>
+     <button disabled={busy} onClick={load} className="site-btn site-btn-outline site-btn-sm">تحديث البيانات</button>
+   </div>
   </div>
   <div className="mb-6 flex flex-wrap gap-2">{periods.map(([key,label])=><button key={key} onClick={()=>setRange(key as '7'|'30'|'90'|'all')} aria-pressed={range===key} className={`rounded-full border px-4 py-2 text-sm font-bold ${range===key?'border-brand bg-brand text-white':'border-brand/20 bg-white text-ink'}`}>{label}</button>)}</div>
   {error&&<p role="alert" className="mb-5 rounded-xl bg-red-50 p-4 font-bold text-red-700">{error}</p>}

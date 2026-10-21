@@ -6,7 +6,7 @@ import Footer from '@/components/layout/Footer';
 import Link from 'next/link';
 import { ordersAPI, productsAPI } from '@/lib/api';
 import {useCart, Product} from '@/context/CartContext';
-import {RefreshCw,ShoppingBag,ShieldCheck} from 'lucide-react';
+import {RefreshCw,ShoppingBag,ShieldCheck,Printer} from 'lucide-react';
 import OrderProgress from '@/components/orders/OrderProgress';
 import {orderPresentation,orderStatusLabels,orderStatusColors,shortOrderCode} from '@/lib/orderPresentation';
 
@@ -118,6 +118,7 @@ function ConfirmationContent() {
       <main className="mx-auto max-w-4xl px-4 py-6 md:py-8" dir="rtl">
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
           <Link href="/account" className="text-sm font-black text-[#507282] hover:text-brand">← الرجوع إلى حسابي</Link>
+          {order&&<Link href={"/order/invoice?id="+encodeURIComponent(order.id)} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-10 items-center gap-1.5 rounded-full border border-brand/30 bg-white px-3 text-xs font-black text-brand hover:bg-[#eaf8fc]"><Printer size={15}/> طباعة / حفظ PDF</Link>}
           {order&&<button type="button" onClick={refreshStatus} disabled={refreshBusy} className="inline-flex items-center gap-2 rounded-full border border-[#bcdce8] bg-white px-4 py-2.5 text-sm font-bold text-[#335c6e] transition hover:border-brand disabled:opacity-60"><RefreshCw size={16} className={refreshBusy?'animate-spin':''}/>{refreshBusy?'جاري التحديث...':'تحديث حالة الطلب'}</button>}
         </div>
         {refreshError&&<p role="alert" className="mb-4 rounded-xl bg-amber-50 p-3 text-sm text-amber-900">{refreshError}</p>}

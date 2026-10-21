@@ -1,7 +1,9 @@
 "use client";
 import {useCallback,useEffect,useState} from 'react';
 import AdminLayout from '@/components/admin/AdminLayout';
-import {ordersAPI} from '@/lib/api';
+import Link from 'next/link';
+import {Printer,FileSpreadsheet} from 'lucide-react';
+import {ordersAPI,exportsAPI} from '@/lib/api';
 
 type Line={id:string;quantity:number;price:number;product?:{name:string}};
 type Order={id:string;customerName:string;customerPhone:string;customerAddress:string;customerCity:string;total:number;subtotal:number|null;shippingFee:number|null;couponCode:string|null;discountAmount:number|null;status:string;createdAt:string;items:Line[]};
@@ -16,6 +18,7 @@ export default function AdminOrders(){
  const [data,setData]=useState<Result|null>(null),[status,setStatus]=useState('all'),[search,setSearch]=useState(''),[query,setQuery]=useState(''),[page,setPage]=useState(1);
  const [loading,setLoading]=useState(true),[error,setError]=useState(''),[notice,setNotice]=useState(''),[busy,setBusy]=useState<string|null>(null);
  const [expanded,setExpanded]=useState<string|null>(null);
+ const [exportBusy,setExportBusy]=useState(false);
  const load=useCallback(async()=>{
   setLoading(true);setError('');
   try{setData(await ordersAPI.manage({page,status,search:query}))}
@@ -35,7 +38,10 @@ export default function AdminOrders(){
  return <AdminLayout>
   <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
    <div><h1 className="text-3xl font-black text-ink">إدارة الطلبات</h1><p className="mt-2 text-sm text-neutral-600">بحث سريع، متابعة الحالات، وتفاصيل فاتورة محفوظة من السيرفر.</p></div>
-   <button onClick={()=>load()} disabled={loading} className="site-btn site-btn-outline site-btn-sm">تحديث الطلبات</button>
+   <div className="flex flex-wrap gap-2">
+     <button type="button" disabled={exportBusy} onClick={async()=>{setExportBusy(true);setError('');try{await exportsAPI.download('orders','all')}catch(e){setError(e instanceof Error?e.message:'تعذّر التصدير')}finally{setExportBusy(false)}}} className="site-btn site-btn-outline site-btn-sm"><FileSpreadsheet size={16}/>{exportBusy?'جاري تجهيز Excel...':'تصدير كل الطلبات Excel'}</button>
+     <button onClick={()=>load()} disabled={loading} className="site-btn site-btn-outline site-btn-sm">تحديث الطلبات</button>
+   </div>
   </div>
   {error&&<p className="mb-4 rounded-xl bg-red-50 p-4 text-red-700 font-bold" role="alert">{error}</p>}
   {notice&&<p className="mb-4 rounded-xl bg-green-50 p-4 text-green-700 font-bold" role="status">{notice}</p>}
@@ -75,7 +81,7 @@ export default function AdminOrders(){
     {open&&<div className="grid gap-5 border-t border-brand/10 bg-paper2/30 p-5 md:grid-cols-2">
      <section><h3 className="mb-3 font-black">معلومات التوصيل</h3><p className="font-bold">{o.customerName}</p><a className="block text-brand underline" href={`tel:${o.customerPhone}`} dir="ltr">{o.customerPhone}</a>
       <p className="mt-2 text-sm">{o.customerCity}، {o.customerAddress}</p><p className="mt-2 text-xs text-neutral-500">الدفع عند الاستلام</p></section>
-     <section><h3 className="mb-3 font-black">الفاتورة</h3>
+     <section><div className="mb-3 flex flex-wrap items-center justify-between gap-2"><h3 className="font-black">تفاصيل المبالغ</h3><Link href={"/order/invoice?id="+encodeURIComponent(o.id)} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 rounded-full border border-brand/30 bg-white px-3 py-2 text-xs font-black text-brand hover:bg-[#eaf9fc]"><Printer size={15}/> طباعة / حفظ PDF</Link></div>
       {o.items.map(i=><div key={i.id} className="mb-2 flex justify-between gap-3 text-sm"><span>{i.product?.name||'منتج'} × {i.quantity}</span><strong className="whitespace-nowrap">{format(i.price*i.quantity)}</strong></div>)}
       <div className="mt-3 space-y-2 border-t border-brand/20 pt-3 text-sm">
        <div className="flex justify-between"><span>المنتجات</span><strong>{format(o.subtotal??productsSum)}</strong></div>

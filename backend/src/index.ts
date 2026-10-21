@@ -12,6 +12,7 @@ import settingsRoutes from './routes/settings';
 import deliveryRoutes from './routes/delivery';
 import notificationsRoutes from './routes/notifications';
 import reportsRoutes from './routes/reports';
+import exportsRoutes from './routes/exports';
 import addressesRoutes from './routes/addresses';
 
 // استيراد مكتبات رفع الصور
@@ -122,6 +123,7 @@ app.use('/api/settings', settingsRoutes);
 app.use('/api/delivery', deliveryRoutes);
 app.use('/api/notifications', notificationsRoutes);
 app.use('/api/reports', reportsRoutes);
+app.use('/api/exports', exportsRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Thanaya API is running' });
