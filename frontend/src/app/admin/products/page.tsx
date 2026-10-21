@@ -38,7 +38,6 @@ export default function AdminProducts() {
   const [stockDelta, setStockDelta] = useState('');
   const [stockReason, setStockReason] = useState('');
   const [stockError, setStockError] = useState('');
-  const [stockBusy, setStockBusy] = useState(false);
   const [stockHistory, setStockHistory] = useState<any[]>([]);
   const [unitCostInput,setUnitCostInput]=useState('');
   const [unitCostBusy,setUnitCostBusy]=useState(false);
@@ -47,7 +46,7 @@ export default function AdminProducts() {
   const [lotCostInput,setLotCostInput]=useState('');
   const [lotCostBusy,setLotCostBusy]=useState(false);
   const [pendingAction,setPendingAction]=useState<
-    {kind:'adjustLot';lot:any}|{kind:'enableLots'}|{kind:'deleteProduct';product:any}|null
+    {kind:'adjustLot';lot:any}|{kind:'adjustStock';productId:string;productName:string;before:number;delta:number;reason:string}|{kind:'enableLots'}|{kind:'deleteProduct';product:any}|null
   >(null);
   const [actionDelta,setActionDelta]=useState('');
   const [actionReason,setActionReason]=useState('');
@@ -133,6 +132,20 @@ export default function AdminProducts() {
         // Success is final even if reloading fails; never offer a double adjustment.
         setPendingAction(null);
         try{await refreshLots(stockProduct.id);}catch{setLotError('تم تعديل المخزون، لكن تعذر تحديث البيانات. أغلق قسم المخزون وافتحه مجدداً.');}
+      }else if(pendingAction.kind==='adjustStock'){
+        if(!stockProduct||stockProduct.id!==pendingAction.productId)throw new Error('يرجى فتح مخزون المنتج من جديد');
+        const updated=await productsAPI.adjustStock(pendingAction.productId,pendingAction.delta,pendingAction.reason);
+        // The stock mutation is already committed. Close confirmation before any follow-up reads.
+        setPendingAction(null);
+        setStockProduct(updated);
+        setStockDelta('');setStockReason('');
+        try{
+          await loadProducts();
+          const data=await productsAPI.getInventory(updated.id);
+          setStockHistory(data.movements||[]);
+        }catch{
+          setStockError('تم تصحيح المخزون، لكن تعذر تحديث السجل. أغلق قسم المخزون وافتحه مجدداً؛ لا تعيد تسجيل الحركة.');
+        }
       }else if(pendingAction.kind==='enableLots'){
         if(!stockProduct)throw new Error('يرجى فتح المخزون من جديد');
         await productsAPI.enableLots(stockProduct.id);
@@ -148,22 +161,18 @@ export default function AdminProducts() {
     }catch(e){setActionError(e instanceof Error?e.message:'تعذّر تنفيذ العملية؛ يرجى تحديث المخزون');}
     finally{setActionBusy(false);}
   };
-  const saveStock = async (e: React.FormEvent) => {
+  const saveStock = (e: React.FormEvent) => {
     e.preventDefault();
-    const delta = Number(stockDelta);
-    if (!stockProduct || !Number.isSafeInteger(delta) || delta === 0 || !stockReason.trim()) {
-      setStockError('أدخل فرق كمية صحيح وسبب التعديل'); return;
+    const raw=stockDelta.trim();
+    const delta=Number(raw);
+    if(!stockProduct||!/^[+-]?\d+$/.test(raw)||!Number.isSafeInteger(delta)||delta===0||Math.abs(delta)>1000000||!stockReason.trim()){
+      setStockError('أدخل فرق كمية صحيحاً مثل +5 أو -2، مع سبب التصحيح');return;
     }
-    setStockBusy(true); setStockError('');
-    try {
-      const updated = await productsAPI.adjustStock(stockProduct.id, delta, stockReason.trim());
-      setStockProduct(updated);
-      await loadProducts();
-      const data = await productsAPI.getInventory(updated.id);
-      setStockHistory(data.movements || []);
-      setStockDelta(''); setStockReason('');
-    } catch (error) { setStockError(error instanceof Error ? error.message : 'فشل تعديل المخزون'); }
-    finally { setStockBusy(false); }
+    if(stockProduct.stock+delta<0||stockProduct.stock+delta>1000000){
+      setStockError('التصحيح سيجعل المخزون خارج الكمية المسموحة');return;
+    }
+    setStockError('');setActionError('');
+    setPendingAction({kind:'adjustStock',productId:stockProduct.id,productName:stockProduct.name,before:stockProduct.stock,delta,reason:stockReason.trim()});
   };
 
   const validCost=(value:string):number|null|undefined=>{
@@ -272,19 +281,27 @@ export default function AdminProducts() {
     <AdminLayout>
       <SiteActionDialog
         open={pendingAction!==null}
-        title={pendingAction?.kind==='adjustLot'?'تصحيح كمية التشغيلة':pendingAction?.kind==='enableLots'?'تفعيل تتبع التشغيلات':'تأكيد حذف المنتج'}
-        description={pendingAction?.kind==='adjustLot'
+        title={pendingAction?.kind==='adjustLot'?'تصحيح مخزون التشغيلة':pendingAction?.kind==='adjustStock'?'تأكيد تصحيح المخزون':pendingAction?.kind==='enableLots'?'تفعيل تتبع التشغيلات':'تأكيد حذف المنتج'}
+        description={pendingAction?.kind==='adjustLot'||pendingAction?.kind==='adjustStock'
           ? 'هذا الإجراء يغيّر المخزون الفعلي فقط، وليس عملية بيع أو مرتجع. سيُحفظ السبب في سجل حركات المخزون.'
           : pendingAction?.kind==='enableLots'
           ? 'تفعيل تتبع التشغيلات متاح للمنتجات بدون مخزون أو حركات سابقة أو طلبات؛ بعده تسجّل كل شحنة برقم تشغيلة وتاريخ صلاحية.'
           : 'سيُحذف المنتج فقط إذا لم يكن مرتبطاً بطلب أو سجل مخزون. الحذف لا يمس الطلبات القديمة.'}
-        confirmLabel={pendingAction?.kind==='adjustLot'?'تأكيد تعديل المخزون':pendingAction?.kind==='enableLots'?'تفعيل التشغيلات':'حذف المنتج'}
-        destructive={pendingAction?.kind==='deleteProduct'||(pendingAction?.kind==='adjustLot'&&Number(actionDelta)<0)}
+        confirmLabel={pendingAction?.kind==='adjustLot'||pendingAction?.kind==='adjustStock'?'تأكيد تصحيح المخزون':pendingAction?.kind==='enableLots'?'تفعيل التشغيلات':'حذف المنتج'}
+        destructive={pendingAction?.kind==='deleteProduct'||(pendingAction?.kind==='adjustLot'&&Number(actionDelta)<0)||(pendingAction?.kind==='adjustStock'&&pendingAction.delta<0)}
         onConfirm={()=>void confirmAction()}
         onClose={closeAction}
         busy={actionBusy}
         error={actionError}
       >
+        {pendingAction?.kind==='adjustStock'&&<div className="rounded-xl bg-[#f0f9fc] p-3 text-sm leading-7">
+          <p className="font-bold">المنتج: {pendingAction.productName}</p>
+          <p>المخزون الحالي: <strong>{pendingAction.before.toLocaleString('en-US')}</strong></p>
+          <p>فرق الكمية: <strong dir="ltr">{pendingAction.delta>0?'+':''}{pendingAction.delta.toLocaleString('en-US')}</strong></p>
+          <p>المخزون المتوقع: <strong>{(pendingAction.before+pendingAction.delta).toLocaleString('en-US')}</strong></p>
+          <p>السبب: <strong>{pendingAction.reason}</strong></p>
+          <p className="mt-2 text-xs text-[#4f7180]">المتوقع مبني على آخر قراءة للمخزون؛ الخادم يتحقق عند الحفظ. هذه حركة توريد أو جرد أو تلف، مو بيع للزبون أو مرتجع.</p>
+        </div>}
         {pendingAction?.kind==='adjustLot'&&<>
           <div className="rounded-xl bg-[#f0f9fc] p-3 text-sm leading-7">
             <p className="font-bold">التشغيلة: <span dir="ltr">{pendingAction.lot.code}</span></p>
@@ -410,7 +427,7 @@ export default function AdminProducts() {
                   </div>:<button type="button" onClick={()=>{setLotCostEdit(lot.id);setLotCostInput(lot.purchaseCostIqd==null?'':String(lot.purchaseCostIqd));}} className="mt-1 rounded-lg border border-brand/20 px-2 py-1 text-xs font-bold text-brand">تعديل تكلفة التشغيلة</button>}
                 </div>}
                 <strong className={lot.status==='expired'?'text-red-700':lot.status==='soon'?'text-amber-700':'text-green-700'}>{lot.status==='expired'?'منتهية':lot.status==='soon'?'قريبة الانتهاء':'صالحة'}</strong></div>
-              <button type="button" disabled={lotBusy} onClick={()=>adjustLot(lot)} className="site-btn site-btn-outline site-btn-sm self-start shrink-0">تعديل الكمية</button>
+              <button type="button" disabled={lotBusy} onClick={()=>adjustLot(lot)} className="site-btn site-btn-outline site-btn-sm self-start shrink-0">تصحيح المخزون</button>
             </div>)}</div>
             <form onSubmit={receiveLot} className="grid gap-3 sm:grid-cols-3">
               <label className="text-sm font-bold">رقم التشغيلة<input required maxLength={80} value={lotForm.code} onChange={e=>setLotForm({...lotForm,code:e.target.value})} className="mt-1 w-full rounded-xl border p-3" placeholder="LOT-2026-A"/></label>
@@ -424,8 +441,9 @@ export default function AdminProducts() {
         {!lotsData?.product?.lotTracking && <form onSubmit={saveStock} className="grid gap-3 sm:grid-cols-[130px_1fr_auto] items-end">
           <label className="text-sm font-bold">فرق الكمية<input type="number" step="1" required value={stockDelta} onChange={e=>setStockDelta(e.target.value)} className="mt-1 block w-full rounded-xl border border-brand/30 p-3" placeholder="+5 أو -2" /></label>
           <label className="text-sm font-bold">سبب التعديل<input required maxLength={250} value={stockReason} onChange={e=>setStockReason(e.target.value)} className="mt-1 block w-full rounded-xl border border-brand/30 p-3" placeholder="توريد، جرد، تلف..." /></label>
-          <button type="submit" disabled={stockBusy} className="site-btn site-btn-primary">{stockBusy ? 'جاري الحفظ...' : 'تسجيل الحركة'}</button>
+          <button type="submit" disabled={actionBusy} className="site-btn site-btn-primary">مراجعة تصحيح المخزون</button>
         </form>}
+        <p className="mt-2 text-xs text-neutral-600">لإضافة توريد أو توثيق تلف أو فرق جرد. مبيعات الزبائن والمرتجعات تغيّر المخزون تلقائياً.</p>
         {stockError && <p role="alert" className="mt-3 font-bold text-red-700">{stockError}</p>}
         <h4 className="font-black mt-6 mb-3">آخر حركات المخزون</h4>
         <div className="max-h-64 overflow-auto space-y-2 text-sm">{stockHistory.length === 0 ? <p className="text-neutral-500">ماكو حركات مخزون مسجلة بعد.</p> : stockHistory.map((entry: any)=><div key={entry.id} className="rounded-xl border border-brand/15 px-4 py-3 flex flex-wrap justify-between gap-3"><span>{entry.reason} — {entry.delta > 0 ? '+' : ''}{entry.delta}</span><span>{entry.before} ← {entry.after}</span><time>{new Date(entry.createdAt).toLocaleString('ar-IQ')}</time></div>)}</div>
