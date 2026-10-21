@@ -130,11 +130,14 @@ export default function AdminProducts() {
       if(pendingAction.kind==='adjustLot'){
         if(!stockProduct)throw new Error('يرجى فتح المخزون من جديد');
         await productsAPI.adjustLot(stockProduct.id,pendingAction.lot.id,{delta,reason:actionReason.trim()});
-        await refreshLots(stockProduct.id);
+        // Success is final even if reloading fails; never offer a double adjustment.
+        setPendingAction(null);
+        try{await refreshLots(stockProduct.id);}catch{setLotError('تم تعديل المخزون، لكن تعذر تحديث البيانات. أغلق قسم المخزون وافتحه مجدداً.');}
       }else if(pendingAction.kind==='enableLots'){
         if(!stockProduct)throw new Error('يرجى فتح المخزون من جديد');
         await productsAPI.enableLots(stockProduct.id);
-        await refreshLots(stockProduct.id);
+        setPendingAction(null);
+        try{await refreshLots(stockProduct.id);}catch{setLotError('تم تفعيل التشغيلات، لكن تعذر تحديث البيانات. أغلق قسم المخزون وافتحه مجدداً.');}
       }else{
         const target=pendingAction.product;
         await productsAPI.delete(target.id);
