@@ -115,7 +115,7 @@ export default function AdminProducts() {
     if(pendingAction.kind==='adjustLot'){
       const raw=actionDelta.trim();
       delta=Number(raw);
-      if(!/^[+-]?\\d+$/.test(raw)||!Number.isSafeInteger(delta)||delta===0||Math.abs(delta)>1000000){
+      if(!/^[+-]?\d+$/.test(raw)||!Number.isSafeInteger(delta)||delta===0||Math.abs(delta)>1000000){
         setActionError('أدخل فرق كمية صحيحاً مثل -1 أو +2، ولا يجوز صفر');return;
       }
       if(!actionReason.trim()||actionReason.trim().length>180){
