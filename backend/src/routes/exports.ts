@@ -42,8 +42,8 @@ router.get('/orders',requireAdmin,async(req,res)=>{
    o.subtotal??o.items.reduce((s,i)=>s+i.price*i.quantity,0),o.discountAmount??0,
    o.shippingFee??null,o.total,safe(o.couponCode),o.paymentMethod
   ])};
-  const details:Sheet={name:'بنود الطلبات',headers:['رقم الطلب','اسم المنتج الحالي','معرّف المنتج','الكمية','سعر الوحدة المحفوظ - د.ع','مجموع البند - د.ع'],
-   rows:rows.flatMap(o=>o.items.map(i=>[o.id,title(i.product?.name),i.productId,i.quantity,i.price,i.quantity*i.price]))};
+  const details:Sheet={name:'بنود الطلبات',headers:['رقم الطلب','اسم المنتج وقت الطلب (إن توفر)','معرّف المنتج','الكمية','سعر الوحدة المحفوظ - د.ع','مجموع البند - د.ع'],
+   rows:rows.flatMap(o=>o.items.map(i=>[o.id,title(i.productName||i.product?.name),i.productId,i.quantity,i.price,i.quantity*i.price]))};
   const buf=createXlsx([orders,details]);
   send(res,buf,'thanaya-orders-'+date(new Date())+'.xlsx');
  }catch(e){console.error('export orders',e);res.status(500).json({error:'تعذّر تصدير الطلبات'})}
