@@ -45,6 +45,11 @@ export default function AdminProducts() {
   const [lotCostEdit,setLotCostEdit]=useState<string|null>(null);
   const [lotCostInput,setLotCostInput]=useState('');
   const [lotCostBusy,setLotCostBusy]=useState(false);
+  const [costHistoryOpen,setCostHistoryOpen]=useState(false);
+  const [costHistory,setCostHistory]=useState<any[]>([]);
+  const [costHistoryBusy,setCostHistoryBusy]=useState(false);
+  const [costHistoryError,setCostHistoryError]=useState('');
+  const costHistoryRequest=useRef(0);
   const [pendingAction,setPendingAction]=useState<
     {kind:'adjustLot';lot:any}|{kind:'adjustStock';productId:string;productName:string;before:number;delta:number;reason:string}|{kind:'enableLots'}|{kind:'deleteProduct';product:any}|null
   >(null);
@@ -72,6 +77,8 @@ export default function AdminProducts() {
     setStockProduct(product);setLotsData(null);setLotError('');
     setUnitCostInput(product.purchaseCostIqd==null?'':String(product.purchaseCostIqd));
     setUnitCostMessage('');setLotCostEdit(null);
+    costHistoryRequest.current++;
+    setCostHistoryOpen(false);setCostHistory([]);setCostHistoryError('');setCostHistoryBusy(false);
     productsAPI.getLots(product.id).then(data => {
       setLotsData(data);
       setStockProduct((current: any) => current?.id === product.id
@@ -195,16 +202,34 @@ export default function AdminProducts() {
     }catch(e){setUnitCostMessage(e instanceof Error?e.message:'تعذّر حفظ تكلفة الشراء');}
     finally{setUnitCostBusy(false);}
   };
+  const loadCostHistory=async(productId:string)=>{
+    const requestId=++costHistoryRequest.current;
+    setCostHistoryBusy(true);setCostHistoryError('');
+    try{
+      const changes=await productsAPI.purchaseCostHistory(productId);
+      if(requestId===costHistoryRequest.current)setCostHistory(Array.isArray(changes)?changes:[]);
+    }catch(e){
+      if(requestId===costHistoryRequest.current)setCostHistoryError(e instanceof Error?e.message:'تعذر عرض سجل تغييرات التكلفة');
+    }finally{
+      if(requestId===costHistoryRequest.current)setCostHistoryBusy(false);
+    }
+  };
   const saveLotCost=async(lot:any)=>{
     if(!stockProduct||lotCostBusy)return;
     const cost=validCost(lotCostInput);
     if(cost===undefined){setLotError('أدخل تكلفة صحيحة بالدينار أو اتركها فارغة');return;}
     setLotCostBusy(true);setLotError('');
     try{
-      await productsAPI.saveLotPurchaseCost(stockProduct.id,lot.id,cost,lot.costRevision||0);
+      const saved=await productsAPI.saveLotPurchaseCost(stockProduct.id,lot.id,cost,lot.costRevision||0);
+      // Committed on the server: reflect the exact revision before attempting a secondary reload.
       setLotCostEdit(null);setLotCostInput('');
-      await refreshLots(stockProduct.id);
-      setUnitCostMessage('انحفظت تكلفة التشغيلة بسجل المراجعات، من دون تغيير مخزونها');
+      setLotsData((current:any)=>current?{...current,lots:current.lots?.map((item:any)=>
+        item.id===lot.id?{...item,purchaseCostIqd:saved.purchaseCostIqd,costRevision:saved.costRevision}:item
+      )}:current);
+      setUnitCostMessage('انحفظت تكلفة شراء التشغيلة بنجاح، وما تغيّر سعر البيع أو المخزون.');
+      try{await refreshLots(stockProduct.id);}
+      catch{setLotError('تم حفظ التكلفة بنجاح لكن تعذر تحديث البيانات. افتح المخزون من جديد؛ لا تكرر عملية الحفظ.');}
+      if(costHistoryOpen)void loadCostHistory(stockProduct.id);
     }catch(e){setLotError(e instanceof Error?e.message:'تعذّر حفظ تكلفة التشغيلة');}
     finally{setLotCostBusy(false);}
   };
@@ -402,31 +427,76 @@ export default function AdminProducts() {
         <p className="mb-4 text-sm">الكمية الحالية: <strong className="text-brand">{stockProduct.stock}</strong> {saleUnitLabel(stockProduct.saleUnit)}. للإضافة اكتب رقماً موجباً، وللتصحيح بالنقصان اكتب رقماً سالباً.</p>
         {canEditProducts&&<div className="mb-4 rounded-2xl border border-[#c6e4ed] bg-white p-4">
           <h4 className="mb-2 text-base font-black text-[#28505f]">تكلفة الشراء <span className="mr-2 rounded-full bg-[#e9f6fb] px-2 py-1 text-[10px] font-bold text-[#127ea3]">معلومات داخلية</span></h4>
-          <p className="mb-3 text-xs leading-6 text-neutral-600">التكلفة بالدينار لكل وحدة بيع. هذه بيانات شراء مرجعية وليست صافي الربح أو تكلفة الطلبات القديمة؛ لا تتغير أسعار الزبائن أو الكميات.</p>
+          <p className="mb-3 text-sm leading-7 text-[#476b7a]">هنا تسجّل <strong>سعر شراء وحدة البيع من المورد</strong> بالدينار العراقي؛ مو سعر بيعها للزبون. إذا المنتج إله أكثر من شحنة (تشغيلة)، كل شحنة ممكن تكون إلها تكلفة مختلفة. التسجيل ما يغيّر الكمية أو السعر المعروض للزبون، وما يمثل صافي الربح.</p>
           {!stockProduct.lotTracking?<form onSubmit={saveUnitCost} className="flex flex-wrap items-end gap-3">
             <label className="min-w-[190px] flex-1 text-sm font-bold">تكلفة شراء الوحدة (د.ع)
               <input type="text" inputMode="numeric" dir="ltr" value={unitCostInput} onChange={e=>setUnitCostInput(e.target.value)} placeholder="اترك فارغاً إذا غير معروف" className="mt-2 w-full rounded-xl border border-brand/25 p-3" />
             </label>
             <button disabled={unitCostBusy} type="submit" className="site-btn site-btn-primary site-btn-sm">{unitCostBusy?'جاري الحفظ...':'حفظ تكلفة الشراء'}</button>
             {stockProduct.purchaseCostIqd!=null&&<p className="w-full text-xs font-bold text-[#327583]">الفرق المبدئي للوحدة قبل الخصومات والمصاريف: {(stockProduct.price-stockProduct.purchaseCostIqd).toLocaleString('en-US')} د.ع</p>}
-          </form>:<p className="rounded-xl bg-[#f0f9fc] p-3 text-sm text-[#346d83]">هذا المنتج يستخدم التشغيلات. سجّل تكلفة شراء كل تشغيلة بشكل مستقل بالأسفل حتى تظل البيانات دقيقة.</p>}
+          </form>:<div className="rounded-xl border border-[#c7e4ef] bg-[#f0f9fc] p-3 text-sm leading-7 text-[#346d83]">
+            <p className="font-black">ليش تكلفة الشراء تختلف بين التشغيلات؟</p>
+            <p>مثال: اشتريت 20 وحدة بسعر 5,000 د.ع للوحدة؛ تكلفة الشراء الكلية للشحنة 100,000 د.ع. إذا وصلتك شحنة ثانية بسعر مختلف، تسجّل تكلفتها بشكل منفصل.</p>
+            <p className="mt-1 text-xs">لا تدخل مجموع الشحنة بحقل تكلفة الوحدة. بعد وجود مبيعات للتشغيلة يمنع الخادم تعديل تكلفتها حفاظاً على دقة السجل.</p>
+          </div>}
           {unitCostMessage&&<p role="status" className="mt-3 text-sm font-bold text-[#416477]">{unitCostMessage}</p>}
+          <div className="mt-4 border-t border-[#d9eaf0] pt-3">
+            <button type="button" className="rounded-lg border border-[#b7dce8] px-3 py-2 text-sm font-bold text-[#18789a] hover:bg-[#eff8fc]"
+              onClick={()=>{
+                if(costHistoryOpen){costHistoryRequest.current++;setCostHistoryOpen(false);setCostHistoryBusy(false);}
+                else{setCostHistoryOpen(true);void loadCostHistory(stockProduct.id);}
+              }}>
+              {costHistoryOpen?'إخفاء سجل تغييرات التكلفة':'عرض سجل تغييرات التكلفة'}
+            </button>
+            {costHistoryOpen&&<div className="mt-3 rounded-xl bg-[#f6fbfd] p-3 text-sm">
+              {costHistoryBusy?<p role="status">جاري تحميل سجل التكلفة...</p>:
+                costHistoryError?<p role="alert" className="text-red-700">{costHistoryError} <button type="button" className="underline" onClick={()=>void loadCostHistory(stockProduct.id)}>إعادة المحاولة</button></p>:
+                costHistory.length===0?<p className="text-[#506e7b]">ماكو تغييرات تكلفة مسجّلة لهذا المنتج بعد.</p>:
+                <div className="max-h-64 space-y-2 overflow-y-auto">
+                  {costHistory.map((change:any)=><div key={change.id} className="rounded-lg border border-[#e0edf2] bg-white p-3">
+                    <p className="font-bold">{change.lotId?'تشغيلة: '+(lotsData?.lots?.find((lot:any)=>lot.id===change.lotId)?.code||'محددة'):'تكلفة المنتج المباشرة'}</p>
+                    <p className="mt-1 text-[#4c6a76]">
+                      {change.beforeCostIqd==null?'غير مسجلة':change.beforeCostIqd.toLocaleString('en-US')+' د.ع'}
+                      {' ← '}
+                      {change.afterCostIqd==null?'غير مسجلة':change.afterCostIqd.toLocaleString('en-US')+' د.ع'}
+                    </p>
+                    <time className="mt-1 block text-xs text-[#64828e]">{new Date(change.createdAt).toLocaleString('ar-IQ')}</time>
+                  </div>)}
+                  <p className="text-xs text-[#64828e]">يعرض آخر 50 تغيير مسجّل، مو سجلات عمليات البيع.</p>
+                </div>}
+            </div>}
+          </div>
         </div>}
         <div className="mb-5 rounded-xl border border-brand/20 bg-[#f4faff] p-4">
           <h4 className="mb-3 font-black">التشغيلات وتواريخ الصلاحية</h4>
           {lotsData?.product?.lotTracking ? <>
             <p className="mb-3 text-xs text-neutral-600">تُباع التشغيلات الصالحة حسب الأقرب انتهاءً؛ المخزون المنتهي لا يدخل ضمن المتاح للبيع.</p>
             <div className="mb-4 space-y-2">{lotsData.lots?.map((lot:any)=><div key={lot.id} className="flex flex-wrap items-start justify-between gap-3 rounded-xl border border-brand/15 bg-white p-3 text-sm">
-              <div><b dir="ltr">{lot.code}</b><p>الصلاحية: {lot.expiryDate} · الكمية: {lot.stock}</p>
-                {canEditProducts&&<div className="mt-1">
-                  <p className="text-xs font-bold text-[#457486]">تكلفة الوحدة: {lot.purchaseCostIqd==null?'غير مسجلة':lot.purchaseCostIqd.toLocaleString('en-US')+' د.ع'}</p>
-                  {lotCostEdit===lot.id?<div className="mt-2 flex flex-wrap items-center gap-2">
-                    <input aria-label="تكلفة شراء التشغيلة بالدينار" inputMode="numeric" dir="ltr" value={lotCostInput} onChange={e=>setLotCostInput(e.target.value)} className="w-40 rounded-lg border p-2" placeholder="التكلفة د.ع"/>
-                    <button type="button" disabled={lotCostBusy} onClick={()=>void saveLotCost(lot)} className="rounded-lg bg-brand px-3 py-2 text-xs font-bold text-white">حفظ</button>
-                    <button type="button" disabled={lotCostBusy} onClick={()=>setLotCostEdit(null)} className="rounded-lg border px-3 py-2 text-xs font-bold">إلغاء</button>
-                  </div>:<button type="button" onClick={()=>{setLotCostEdit(lot.id);setLotCostInput(lot.purchaseCostIqd==null?'':String(lot.purchaseCostIqd));}} className="mt-1 rounded-lg border border-brand/20 px-2 py-1 text-xs font-bold text-brand">تعديل تكلفة التشغيلة</button>}
+              <div className="min-w-0 flex-1">
+                <b dir="ltr" className="inline-block break-all">{lot.code}</b>
+                <p className="mt-1 break-words text-[#526975]">الصلاحية: {lot.expiryDate} · الكمية: {lot.stock} {saleUnitLabel(stockProduct.saleUnit)}</p>
+                {canEditProducts&&<div className="mt-2">
+                  <p className="text-sm font-bold text-[#457486]">تكلفة شراء {saleUnitLabel(stockProduct.saleUnit)} واحدة: <strong className={lot.purchaseCostIqd==null?'text-[#956c20]':'text-[#256c83]'}>{lot.purchaseCostIqd==null?'غير محددة بعد (اختيارية)':lot.purchaseCostIqd.toLocaleString('en-US')+' د.ع'}</strong></p>
+                  {lot.purchaseCostIqd!=null&&<p className="mt-1 text-xs text-[#557987]">فرق سعر البيع الحالي عن سعر الشراء، قبل المصاريف: {(stockProduct.price-lot.purchaseCostIqd).toLocaleString('en-US')} د.ع للوحدة (مو صافي ربح).</p>}
+                  {lotCostEdit===lot.id?<div className="mt-2 rounded-xl border border-[#c2dfeb] bg-[#f6fbff] p-3">
+                    <label className="block text-sm font-bold text-[#345968]">تكلفة شراء وحدة البيع بالدينار العراقي
+                      <input aria-label="تكلفة شراء وحدة البيع للتشغيلة بالدينار" type="text" inputMode="numeric" dir="ltr" value={lotCostInput}
+                        onChange={e=>{setLotCostInput(e.target.value);setLotError('')}} className="mt-2 block w-full max-w-[250px] rounded-lg border border-[#b8dce8] bg-white p-3 text-base"
+                        placeholder="مثلاً 5000"/>
+                    </label>
+                    <p className="mt-2 text-xs leading-6 text-[#4d7080]">اكتب تكلفة الوحدة، مو مجموع الشحنة. تركها فارغة يعني غير معروفة؛ كتابة 0 تعني الشحنة مجانية فعلاً.</p>
+                    {lotCostInput.trim()!==''&&validCost(lotCostInput)!=null&&<p className="mt-2 text-xs font-bold text-[#24728d]">فرق سعر البيع الحالي قبل المصاريف: {(stockProduct.price-Number(validCost(lotCostInput))).toLocaleString('en-US')} د.ع للوحدة</p>}
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <button type="button" disabled={lotCostBusy} onClick={()=>void saveLotCost(lot)} className="rounded-lg bg-brand px-4 py-2 text-sm font-bold text-white disabled:opacity-50">{lotCostBusy?'جاري الحفظ...':'حفظ تكلفة الشراء'}</button>
+                      <button type="button" disabled={lotCostBusy} onClick={()=>setLotCostEdit(null)} className="rounded-lg border border-[#afccda] bg-white px-4 py-2 text-sm font-bold text-[#345968]">إلغاء</button>
+                    </div>
+                  </div>:<button type="button" onClick={()=>{setLotError('');setLotCostEdit(lot.id);setLotCostInput(lot.purchaseCostIqd==null?'':String(lot.purchaseCostIqd));}}
+                    className="mt-2 rounded-lg border border-brand/20 bg-white px-3 py-2 text-sm font-bold text-brand hover:bg-[#f1fbff]">
+                    {lot.purchaseCostIqd==null?'تسجيل تكلفة الشراء':'تعديل تكلفة الشراء'}
+                  </button>}
                 </div>}
-                <strong className={lot.status==='expired'?'text-red-700':lot.status==='soon'?'text-amber-700':'text-green-700'}>{lot.status==='expired'?'منتهية':lot.status==='soon'?'قريبة الانتهاء':'صالحة'}</strong></div>
+                <strong className={'mt-2 block '+(lot.status==='expired'?'text-red-700':lot.status==='soon'?'text-amber-700':'text-green-700')}>{lot.status==='expired'?'منتهية':lot.status==='soon'?'قريبة الانتهاء':'صالحة'}</strong>
+              </div>
               <button type="button" disabled={lotBusy} onClick={()=>adjustLot(lot)} className="site-btn site-btn-outline site-btn-sm self-start shrink-0">تصحيح المخزون</button>
             </div>)}</div>
             <form onSubmit={receiveLot} className="grid gap-3 sm:grid-cols-3">
