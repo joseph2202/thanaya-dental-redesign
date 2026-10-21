@@ -259,14 +259,14 @@ export default function AdminProducts() {
           </>
         )}
       </dialog>
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
         <h2 className="text-3xl font-black text-ink">إدارة المنتجات</h2>
         {canEditProducts && <button onClick={() => { setShowAddForm(true); setEditingProduct(null); }} className="bg-brand text-white rounded-full px-6 py-2 font-bold hover:bg-brand-dark transition">
           + إضافة منتج
         </button>}
       </div>
 
-      {stockProduct && <section className="site-surface mb-7 p-6" aria-label="إدارة المخزون">
+      {stockProduct && <section className="site-surface mb-5 p-4 md:p-5" aria-label="إدارة المخزون">
         <div className="flex items-center justify-between gap-3 mb-4"><h3 className="text-xl font-black">مخزون {stockProduct.name}</h3><button type="button" className="site-btn site-btn-outline site-btn-sm" onClick={() => setStockProduct(null)}>إغلاق</button></div>
         <p className="mb-4 text-sm">الكمية الحالية: <strong className="text-brand">{stockProduct.stock}</strong> {saleUnitLabel(stockProduct.saleUnit)}. للإضافة اكتب رقماً موجباً، وللتصحيح بالنقصان اكتب رقماً سالباً.</p>
         <div className="mb-5 rounded-xl border border-brand/20 bg-[#f4faff] p-4">

@@ -82,8 +82,8 @@ export default function AccountPage(){
     order.items.some(i=>(i.product?.name||'').toLowerCase().includes(q)))
  );
 
- return <><Header/><main className="site-container site-main py-7 md:py-10">
-   <header className="relative overflow-hidden rounded-[28px] border border-[#cce8f1] bg-[linear-gradient(115deg,#e0f5fb_0%,#f4fbfe_66%,#fff_100%)] px-5 py-7 sm:px-8 sm:py-9">
+ return <><Header/><main className="site-container site-main py-5 md:py-8">
+   <header className="relative overflow-hidden rounded-[28px] border border-[#cce8f1] bg-[linear-gradient(115deg,#e0f5fb_0%,#f4fbfe_66%,#fff_100%)] px-5 py-6 sm:px-7 sm:py-7">
      <div className="absolute -left-8 -top-16 h-44 w-44 rounded-full border-[30px] border-[#9bdcec]/15" aria-hidden="true"/>
      <div className="relative flex flex-wrap items-center justify-between gap-4">
        <div><span className="site-eyebrow">THANAYA / MY ACCOUNT</span>
@@ -92,7 +92,7 @@ export default function AccountPage(){
        </div>
        <Link href="/products" className="site-btn site-btn-primary site-btn-sm"><ShoppingBag size={17}/> تسوّق المنتجات</Link>
      </div>
-     <div className="relative mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
+     <div className="relative mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
        <div className="rounded-2xl border border-white/90 bg-white/85 p-4">
          <ClipboardList size={19} className="text-brand"/><p className="mt-3 text-2xl font-black">{loading?'—':orders.length}</p><p className="text-xs font-bold text-[#678190]">جميع طلباتي</p>
        </div>
@@ -104,20 +104,20 @@ export default function AccountPage(){
        </div>
      </div>
    </header>
-   <div className="my-5 flex flex-wrap items-center gap-3">
+   <div className="my-3 flex flex-wrap items-center gap-3">
      <a href="#my-orders" className="inline-flex items-center gap-2 rounded-full border border-[#bedfeb] bg-white px-4 py-2.5 text-sm font-bold text-[#275466] hover:border-brand"><ClipboardList size={16}/> طلباتي</a>
      <a href="#saved-addresses" className="inline-flex items-center gap-2 rounded-full border border-[#bedfeb] bg-white px-4 py-2.5 text-sm font-bold text-[#275466] hover:border-brand"><MapPinned size={16}/> العناوين المحفوظة</a>
      <Link href="/notifications" className="inline-flex items-center gap-2 rounded-full border border-[#bedfeb] bg-white px-4 py-2.5 text-sm font-bold text-[#275466] hover:border-brand">إشعاراتي <ArrowUpLeft size={15}/></Link>
    </div>
-   <div className="grid items-start gap-5 lg:grid-cols-[minmax(220px,1fr)_minmax(0,2.35fr)]">
-     <aside className="site-surface p-5 sm:p-6">
-       <h2 className="mb-5 flex items-center gap-2 text-lg font-black"><UserRound size={19} className="text-brand"/> معلومات حسابي</h2>
-       <dl className="space-y-4 text-sm">
+   <div className="flex flex-col gap-4">
+     <aside className="site-surface p-4 sm:p-5">
+       <h2 className="mb-3 flex items-center gap-2 text-lg font-black"><UserRound size={19} className="text-brand"/> معلومات حسابي</h2>
+       <dl className="grid gap-3 text-sm sm:grid-cols-3 sm:gap-6">
          <div><dt className="text-neutral-500">الاسم</dt><dd className="mt-1 font-bold">{user.name}</dd></div>
          <div><dt className="text-neutral-500">البريد الإلكتروني</dt><dd className="mt-1 break-all font-bold" dir="ltr">{user.email}</dd></div>
          <div><dt className="text-neutral-500">الهاتف</dt><dd className="mt-1 font-bold" dir="ltr">{user.phone}</dd></div>
        </dl>
-       <div className="mt-6 rounded-xl bg-[#eef8fb] p-4 text-xs leading-7 text-[#5c7b89]">تكدر تحفظ عنوان البيت أو العيادة حتى ما تحتاج تعيد بيانات التوصيل بكل طلب.</div>
+       <div className="mt-3 rounded-xl bg-[#eef8fb] px-3 py-2 text-xs leading-6 text-[#5c7b89]">احفظ عناوين توصيلك للطلبات القادمة. <a href="#saved-addresses" className="font-bold text-[#047ba8] underline">إدارة العناوين</a></div>
      </aside>
      <section id="my-orders" className="site-surface min-w-0 scroll-mt-28 p-5 sm:p-6" aria-labelledby="orders-title">
        <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
@@ -139,9 +139,9 @@ export default function AccountPage(){
         :loadError?<p role="alert" className="rounded-xl bg-red-50 p-4 text-sm font-bold text-red-700">{loadError}</p>
         :orders.length===0?<div className="flex flex-col items-center gap-4 py-10 text-center"><PackageOpen size={40} className="text-brand"/><p className="text-neutral-600">ما عندك طلبات بعد.</p><Link href="/products" className="site-btn site-btn-primary site-btn-sm">تسوّق الآن</Link></div>
         :filtered.length===0?<div className="rounded-2xl bg-[#f4fafc] p-8 text-center"><p className="font-bold">ماكو طلبات تطابق بحثك.</p><button type="button" onClick={()=>{setStatusFilter('all');setSearch('')}} className="mt-3 text-sm font-bold text-brand underline">عرض كل طلباتي</button></div>
-        :<div className="space-y-3">{filtered.map(order=>{
+        :<div className="grid gap-3 lg:grid-cols-2">{filtered.map((order,index)=>{
            const units=order.items.reduce((sum,item)=>sum+item.quantity,0);
-           return <Link href={'/order/confirmation?id='+encodeURIComponent(order.id)} key={order.id} className="group block rounded-2xl border border-[#d5e9f2] bg-white p-4 transition-colors hover:border-brand hover:bg-[#f8fdff] sm:p-5" aria-label={'تفاصيل الطلب '+shortOrderCode(order.id)}>
+           return <Link href={'/order/confirmation?id='+encodeURIComponent(order.id)} key={order.id} className={`group block rounded-2xl border border-[#d5e9f2] bg-white p-4 transition-colors hover:border-brand hover:bg-[#f8fdff] sm:p-5 ${filtered.length%2===1 && index===filtered.length-1 ? "lg:col-span-2" : ""}`} aria-label={'تفاصيل الطلب '+shortOrderCode(order.id)}>
              <div className="flex flex-wrap items-center justify-between gap-3">
                <div><span className="block text-[11px] font-bold text-neutral-500">رقم الطلب</span><strong className="mt-1 block text-base font-black text-brand sm:text-lg" dir="ltr">#{shortOrderCode(order.id)}</strong></div>
                <span className={`inline-flex rounded-full px-3 py-1.5 text-xs font-bold ${orderStatusColors[order.status]||'bg-neutral-100 text-neutral-800'}`}>{orderStatusLabels[order.status]||'حالة غير معروفة'}</span>

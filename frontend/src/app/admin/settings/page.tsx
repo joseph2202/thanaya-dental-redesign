@@ -34,13 +34,13 @@ export default function AdminSettings(){
   }
   if(user?.role!=='owner')return <AdminLayout><p className="site-surface p-6">تعديل إعدادات المتجر الرئيسية متاح للمالك فقط.</p></AdminLayout>;
   return <AdminLayout>
-    <div className="mb-7"><span className="site-eyebrow">THANAYA / SETTINGS</span>
+    <div className="mb-4"><span className="site-eyebrow">THANAYA / SETTINGS</span>
       <h1 className="mt-2 text-3xl font-black text-ink">إعدادات ثنايا</h1>
       <p className="mt-2 text-sm text-neutral-600">تنحفظ الإعدادات على السيرفر، وتكون متاحة على الأجهزة الأخرى. سعر الطلبات القديمة لا يتغيّر.</p>
     </div>
     {error&&<div role="alert" className="mb-5 rounded-xl border border-red-200 bg-red-50 p-4 font-bold text-red-700">{error}<button type="button" onClick={load} className="mr-4 underline">إعادة التحميل</button></div>}
     {success&&<div role="status" className="mb-5 rounded-xl bg-green-50 p-4 font-bold text-green-700">{success}</div>}
-    {loading?<p>جاري تحميل الإعدادات...</p>:settings&&<form onSubmit={save} className="grid gap-6">
+    {loading?<p>جاري تحميل الإعدادات...</p>:settings&&<form onSubmit={save} className="grid gap-4">
       <section className="site-surface p-6"><h2 className="mb-5 text-xl font-black">معلومات المتجر</h2>
         <div className="grid gap-5 md:grid-cols-2">{fields.map(field=><label key={field.key} className={field.multiline?'md:col-span-2':''}>
           <span className="mb-2 block text-sm font-bold">{field.label}</span>

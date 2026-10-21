@@ -39,10 +39,10 @@ export default function CartPage() {
     return (
       <>
         <Header />
-        <main className="max-w-4xl mx-auto px-4 py-20 text-center">
-          <div className="text-8xl mb-6">🛒</div>
+        <main className="max-w-4xl mx-auto px-4 py-9 text-center">
+          <div className="text-6xl mb-4">🛒</div>
           <h1 className="text-4xl font-black mb-4 text-ink">سلتك فارغة</h1>
-          <p className="text-neutral-600 mb-8">لم تضف أي منتج بعد. تسوق الآن!</p>
+          <p className="text-neutral-600 mb-5">لم تضف أي منتج بعد. تسوق الآن!</p>
           <Link href="/products" className="site-btn site-btn-primary">
             تصفح المنتجات
           </Link>
@@ -55,10 +55,10 @@ export default function CartPage() {
   return (
     <>
       <Header />
-      <main className="site-container site-main py-9 md:py-12">
-        <div className="mb-8 rounded-[24px] border border-[#cce7f1] bg-[linear-gradient(100deg,#e6f7fd,#fff)] px-7 py-8"><span className="site-eyebrow">THANAYA / CART</span><h1 className="mt-2 text-3xl font-black text-ink md:text-4xl">سلة التسوق</h1><p className="site-muted mt-2 text-sm">راجع منتجاتك وكمياتها قبل تأكيد الطلب.</p></div>
+      <main className="site-container site-main py-5 md:py-8">
+        <div className="mb-5 rounded-[24px] border border-[#cce7f1] bg-[linear-gradient(100deg,#e6f7fd,#fff)] px-5 py-5 md:px-7"><span className="site-eyebrow">THANAYA / CART</span><h1 className="mt-2 text-3xl font-black text-ink md:text-4xl">سلة التسوق</h1><p className="site-muted mt-2 text-sm">راجع منتجاتك وكمياتها قبل تأكيد الطلب.</p></div>
 
-        <div className="space-y-4 mb-8">
+        <div className="space-y-3 mb-5">
           {items.map((item) => (
             <div key={item.product.id} className="bg-white border border-[#dfe8f2] rounded-2xl p-4 sm:p-5 shadow-sm grid grid-cols-[72px_minmax(0,1fr)] sm:grid-cols-[90px_minmax(0,1fr)_auto] gap-4 items-start">
               <ProductMedia name={item.product.name} image={item.product.image} icon={item.product.icon} size={40} className="rounded-xl w-[72px] h-[72px] sm:w-[90px] sm:h-[90px] shrink-0" />

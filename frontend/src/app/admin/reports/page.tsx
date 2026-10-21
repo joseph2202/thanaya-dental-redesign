@@ -22,7 +22,7 @@ export default function Reports(){
  const stats=report?.stats;
  const maxValue=Math.max(1,...(report?.trend.map(x=>x.value)??[0]));
  return <AdminLayout>
-  <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+  <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
    <div><h1 className="text-3xl font-black text-ink">تقارير المبيعات والمخزون</h1><p className="mt-2 text-sm text-neutral-600">أرقام من قاعدة البيانات، حسب حالة الطلب الفعلية.</p></div>
    <button disabled={busy} onClick={load} className="site-btn site-btn-outline site-btn-sm">تحديث البيانات</button>
   </div>

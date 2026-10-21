@@ -78,8 +78,9 @@ export default function AddressBook(){
     {success&&<p role="status" className="mb-4 rounded-xl bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-800">{success}</p>}
     {loading?<p role="status" className="py-5 text-sm text-neutral-600">جاري تحميل العناوين...</p>:
       addresses.length===0&&!showForm?<p className="rounded-2xl bg-[#f3fafd] p-5 text-sm text-[#536f7f]">ما عندك عنوان محفوظ بعد. ضيف عنوان البيت أو العيادة حتى ما تعيد كتابة تفاصيله بكل طلب.</p>:
-      <div className="grid gap-3 md:grid-cols-2">
-        {addresses.map(a=><div key={a.id} className="rounded-2xl border border-[#d3e9f1] bg-[#fbfdfe] p-4">
+      <div className={`grid gap-3 ${addresses.length===1 ? "grid-cols-1" : "md:grid-cols-2"}`}>
+        {addresses.map(a=><div key={a.id} className={`rounded-2xl border border-[#d3e9f1] bg-[#fbfdfe] p-4 ${addresses.length===1 ? "sm:flex sm:items-center sm:justify-between sm:gap-5" : ""}`}>
+          <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-wrap items-center gap-2"><strong className="text-base">{a.label}</strong>
               {a.isDefault&&<span className="rounded-full bg-[#dcf5ec] px-2 py-1 text-[11px] font-bold text-[#15745c]">افتراضي</span>}
@@ -88,7 +89,8 @@ export default function AddressBook(){
           </div>
           <p className="mt-2 text-sm font-semibold">{a.name} · <span dir="ltr">{a.phone}</span></p>
           <p className="mt-1 break-words text-sm leading-7 text-[#567481]">{a.city} — {a.address}</p>
-          <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-[#e0edf2] pt-3">
+          </div>
+          <div className={`mt-4 flex flex-wrap items-center gap-2 border-t border-[#e0edf2] pt-3 ${addresses.length===1 ? "sm:mt-0 sm:shrink-0 sm:border-t-0 sm:border-r sm:pr-5 sm:pt-0" : ""}`}>
             <button type="button" disabled={busy} onClick={()=>startEdit(a)} className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-bold hover:bg-[#eaf7fc]"><Pencil size={14}/> تعديل</button>
             {!a.isDefault&&<button type="button" disabled={busy} onClick={()=>makeDefault(a.id)} className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-bold hover:bg-[#eaf7fc]"><Star size={14}/> اجعله الافتراضي</button>}
             {deleteId===a.id?<span className="flex flex-wrap items-center gap-2 rounded-lg bg-red-50 px-2 py-1 text-xs font-bold">متأكد؟

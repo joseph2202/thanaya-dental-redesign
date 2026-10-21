@@ -21,15 +21,15 @@ function groupProducts(products: CatalogProduct[]): CatalogCategory[] {
   return [...groups.values()].sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, 'ar'));
 }
 
-export default function CategoryGrid({ variant = 'home' }: { variant?: 'home' | 'page' }) {
+export default function CategoryGrid({ variant = 'home', onCountChange }: { variant?: 'home' | 'page'; onCountChange?: (count: number) => void }) {
   const [categories, setCategories] = useState<CatalogCategory[]>([]);
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
 
   useEffect(() => {
     productsAPI.getAll()
-      .then((products: CatalogProduct[]) => { setCategories(groupProducts(products)); setStatus('ready'); })
+      .then((products: CatalogProduct[]) => { const groups=groupProducts(products); setCategories(groups); onCountChange?.(groups.length); setStatus('ready'); })
       .catch(() => setStatus('error'));
-  }, []);
+  }, [onCountChange]);
 
   if (status === 'loading') return <div className="site-surface p-8 text-center site-muted" role="status">جاري تحميل الأقسام...</div>;
   if (status === 'error') return <div className="site-surface p-8 text-center site-muted" role="status">تعذّر تحميل الأقسام. تأكد من تشغيل خادم المتجر ثم حدّث الصفحة.</div>;
@@ -37,20 +37,22 @@ export default function CategoryGrid({ variant = 'home' }: { variant?: 'home' | 
 
   // With one or two real categories, use all available horizontal space instead of
   // leaving empty cells in a fixed three-column catalog grid.
-  const gridColumns = variant === 'page'
+  const gridColumns = categories.length === 1
+    ? 'grid-cols-1'
+    : categories.length === 2
+    ? 'md:grid-cols-2'
+    : variant === 'page'
     ? 'md:grid-cols-2 xl:grid-cols-3'
-    : categories.length === 1 ? 'grid-cols-1'
-    : categories.length === 2 ? 'md:grid-cols-2'
     : 'md:grid-cols-2 lg:grid-cols-3';
 
   return <div className={`grid gap-4 sm:gap-5 ${gridColumns}`}>
     {categories.map(category => <Link
       key={category.name}
       href={`/products?category=${encodeURIComponent(category.name)}`}
-      className="site-card group flex min-h-[132px] items-center gap-4 border-[#c6e8f4] p-4 sm:gap-5 sm:p-5"
+      className="site-card group flex min-h-[112px] items-center gap-4 border-[#c6e8f4] p-3 sm:gap-4 sm:p-4"
       aria-label={`${category.name}، ${category.count} منتج`}
     >
-      <span className="grid h-[92px] w-[92px] shrink-0 place-items-center rounded-2xl bg-[linear-gradient(135deg,#dff5fb,#e9f0f8)] text-[#1687b2] sm:h-[106px] sm:w-[106px]" aria-hidden="true">
+      <span className="grid h-[80px] w-[80px] shrink-0 place-items-center rounded-2xl bg-[linear-gradient(135deg,#dff5fb,#e9f0f8)] text-[#1687b2] sm:h-[92px] sm:w-[92px]" aria-hidden="true">
         <ProductIcon name={category.product.icon || 'Package'} size={45} />
       </span>
       <span className="flex min-w-0 flex-1 flex-col gap-2">

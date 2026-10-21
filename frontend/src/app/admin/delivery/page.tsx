@@ -17,7 +17,7 @@ export default function AdminDelivery(){
  if(user?.role!=='owner')return <AdminLayout><p className="site-surface p-6">إعدادات التوصيل متاحة للمالك فقط.</p></AdminLayout>;
  return <AdminLayout>
  <h1 className="text-3xl font-black mb-3 text-ink">التوصيل للمحافظات العراقية</h1>
- <p className="text-sm text-neutral-600 mb-6">حدد المحافظات المتاحة وأجورها بالدينار. الأسعار أدناه ليست أسعاراً افتراضية: تبدأ بصفر والتوصيل مغلق حتى تضبطه وتفعّله بنفسك.</p>
+ <p className="text-sm text-neutral-600 mb-4">حدد المحافظات المتاحة وأجورها بالدينار. الأسعار أدناه ليست أسعاراً افتراضية: تبدأ بصفر والتوصيل مغلق حتى تضبطه وتفعّله بنفسك.</p>
  {error&&<div role="alert" className="rounded-xl bg-red-50 text-red-700 p-4 mb-5">{error} <button onClick={load} className="underline">إعادة التحميل</button></div>}
  {success&&<p role="status" className="rounded-xl bg-green-50 text-green-700 p-4 mb-5">{success}</p>}
  {loading?<p>جاري تحميل المحافظات...</p>:config&&<form onSubmit={save} className="space-y-6">

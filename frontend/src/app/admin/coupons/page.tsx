@@ -29,7 +29,7 @@ export default function AdminCoupons(){
  <p className="mb-6 text-sm text-neutral-600">تحتسب الخصومات من السيرفر على مجموع المنتجات قبل الشحن. الكوبونات المستخدمة يمكن تعطيلها ولا تُحذف من السجل.</p>
  {error&&<p role="alert" className="mb-4 rounded-xl bg-red-50 p-4 font-bold text-red-700">{error}</p>}
  {success&&<p role="status" className="mb-4 rounded-xl bg-green-50 p-4 font-bold text-green-700">{success}</p>}
- <form onSubmit={add} className="mb-8 grid gap-4 rounded-2xl border border-brand/20 bg-white p-6 md:grid-cols-2">
+ <form onSubmit={add} className="mb-5 grid gap-3 rounded-2xl border border-brand/20 bg-white p-4 sm:p-5 md:grid-cols-2">
  <h2 className="md:col-span-2 text-xl font-black">إضافة كوبون</h2>
  <label className="text-sm font-bold">رمز الكوبون<input required minLength={3} maxLength={32} pattern="[a-zA-Z0-9_-]+" value={form.code} onChange={e=>setForm({...form,code:e.target.value.toUpperCase()})} placeholder="THANAYA10" className="mt-2 w-full rounded-xl border border-brand/30 p-3" /></label>
  <label className="text-sm font-bold">نوع الخصم<select value={form.kind} onChange={e=>setForm({...form,kind:e.target.value,discount:'10'})} className="mt-2 w-full rounded-xl border border-brand/30 bg-white p-3"><option value="percent">نسبة مئوية %</option><option value="fixed">مبلغ ثابت (بالألف دينار)</option></select></label>

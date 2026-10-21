@@ -117,7 +117,7 @@ export default function CheckoutPage() {
     return (
       <>
         <Header />
-        <main className="max-w-4xl mx-auto px-4 py-20 text-center">
+        <main className="max-w-4xl mx-auto px-4 py-9 text-center">
           <h1 className="text-4xl font-black mb-4 text-ink">السلة فارغة</h1>
           <p className="text-neutral-600 mb-8">أضف منتجات قبل إتمام الطلب.</p>
           <Link href="/products" className="site-btn site-btn-primary">
@@ -199,11 +199,11 @@ export default function CheckoutPage() {
   return (
     <>
       <Header />
-      <main className="max-w-6xl mx-auto px-4 py-12">
-        <h1 className="text-4xl font-black mb-8 text-ink">إتمام الطلب</h1>
+      <main className="site-container py-5 md:py-8">
+        <h1 className="text-3xl font-black mb-5 text-ink">إتمام الطلب</h1>
 
-        <div className="grid md:grid-cols-2 gap-8">
-          <form onSubmit={handleSubmit} className="bg-white border border-[#d4eaf2] rounded-2xl p-6 space-y-5 h-fit">
+        <div className="grid md:grid-cols-2 gap-5">
+          <form onSubmit={handleSubmit} className="bg-white border border-[#d4eaf2] rounded-2xl p-4 sm:p-5 space-y-4 h-fit">
             <h2 className="text-2xl font-black mb-4 text-ink">بيانات التوصيل</h2>
             {addressesLoading&&<p role="status" className="text-sm text-neutral-600">جاري تحميل عناوينك المحفوظة...</p>}
             {addressesError&&<p className="rounded-xl bg-amber-50 p-3 text-sm text-amber-900">العناوين المحفوظة غير متاحة حالياً؛ تكدر تدخل العنوان يدوياً. {addressesError}</p>}
@@ -307,7 +307,7 @@ export default function CheckoutPage() {
             </button>
           </form>
 
-          <div className="site-surface !bg-paper2 p-6 h-fit">
+          <div className="site-surface !bg-paper2 p-4 sm:p-5 h-fit">
             <h2 className="text-2xl font-black mb-4 text-ink">ملخص الطلب</h2>
 
             <div className="space-y-3 mb-6">

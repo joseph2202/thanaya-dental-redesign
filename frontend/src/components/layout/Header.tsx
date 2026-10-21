@@ -58,7 +58,7 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-50 border-b border-[#dceaf1] border-t-[3px] border-t-[#059BD0] bg-white/95 shadow-[0_4px_22px_rgba(5,64,102,.035)] backdrop-blur-xl">
       <div className="site-container">
-        <div className="flex min-h-[72px] items-center gap-4 py-2 xl:gap-6">
+        <div className="flex min-h-[64px] items-center gap-3 py-1.5 xl:gap-5">
           <Link href="/" aria-label="ثنايا — الصفحة الرئيسية" className="flex shrink-0 items-center gap-2">
             <Image src="/logo-icon.png" width={42} height={42} priority alt="" className="h-11 w-11 object-contain" />
             <span className="leading-tight">
@@ -119,7 +119,7 @@ export default function Header() {
           </div>
         </div>
 
-        <div className="pb-3 xl:hidden">{search(true)}</div>
+        <div className="pb-2 xl:hidden">{search(true)}</div>
       </div>
 
       {menuOpen && (
