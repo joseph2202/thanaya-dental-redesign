@@ -695,7 +695,17 @@ async function main() {
         const x=await request(base,statusUrl,'PATCH',{status},adminToken);assert.equal(x.status,200,JSON.stringify(x));
       }
       const returnUrl='/api/orders/'+placed.body.id+'/returns';
-      const b={reason:'استلام فعلي من التشغيلات',items:[{orderItemId:placed.body.items[0].id,quantity:3}]};
+      const b={reason:'استلام فعلي من التشغيلات',items:[{orderItemId:placed.body.items[0].id,quantity:3,lots:[{lotId:lotA.body.id,quantity:2},{lotId:lotB.body.id,quantity:1}]}]};
+      const wrongBatch=await request(base,returnUrl,'POST',{
+        reason:'تشغيلة غير صحيحة',requestId:randomUUID(),
+        items:[{orderItemId:placed.body.items[0].id,quantity:1,lots:[{lotId:'wrong-lot',quantity:1}]}]
+      },adminToken);
+      assert.equal(wrongBatch.status,400);
+      const noBatch=await request(base,returnUrl,'POST',{
+        reason:'بدون رقم تشغيلة',requestId:randomUUID(),
+        items:[{orderItemId:placed.body.items[0].id,quantity:1}]
+      },adminToken);
+      assert.equal(noBatch.status,400);
       const [a,c]=await Promise.all([
         request(base,returnUrl,'POST',{...b,requestId:randomUUID()},adminToken),
         request(base,returnUrl,'POST',{...b,requestId:randomUUID()},adminToken)
@@ -706,7 +716,7 @@ async function main() {
       assert.equal((await prisma.productLot.findUniqueOrThrow({where:{id:lotB.body.id}})).stock,2);
       const last=await request(base,returnUrl,'POST',{
         reason:'استلام القطعة الأخيرة',requestId:randomUUID(),
-        items:[{orderItemId:placed.body.items[0].id,quantity:1}]
+        items:[{orderItemId:placed.body.items[0].id,quantity:1,lots:[{lotId:lotB.body.id,quantity:1}]}]
       },adminToken);
       assert.equal(last.status,201,JSON.stringify(last));
       assert.equal(last.body.orderStatus,'returned');
