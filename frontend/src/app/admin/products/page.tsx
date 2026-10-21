@@ -455,11 +455,8 @@ export default function AdminProducts() {
                 <div className="max-h-64 space-y-2 overflow-y-auto">
                   {costHistory.map((change:any)=><div key={change.id} className="rounded-lg border border-[#e0edf2] bg-white p-3">
                     <p className="font-bold">{change.lotId?'تشغيلة: '+(lotsData?.lots?.find((lot:any)=>lot.id===change.lotId)?.code||'محددة'):'تكلفة المنتج المباشرة'}</p>
-                    <p className="mt-1 text-[#4c6a76]">
-                      {change.beforeCostIqd==null?'غير مسجلة':change.beforeCostIqd.toLocaleString('en-US')+' د.ع'}
-                      {' ← '}
-                      {change.afterCostIqd==null?'غير مسجلة':change.afterCostIqd.toLocaleString('en-US')+' د.ع'}
-                    </p>
+                    <p className="mt-1 text-[#4c6a76]">قبل: {change.beforeCostIqd==null?'غير مسجلة':change.beforeCostIqd.toLocaleString('en-US')+' د.ع'}</p>
+                    <p className="text-[#24728d]">بعد: {change.afterCostIqd==null?'غير مسجلة':change.afterCostIqd.toLocaleString('en-US')+' د.ع'}</p>
                     <time className="mt-1 block text-xs text-[#64828e]">{new Date(change.createdAt).toLocaleString('ar-IQ')}</time>
                   </div>)}
                   <p className="text-xs text-[#64828e]">يعرض آخر 50 تغيير مسجّل، مو سجلات عمليات البيع.</p>
@@ -476,7 +473,7 @@ export default function AdminProducts() {
                 <b dir="ltr" className="inline-block break-all">{lot.code}</b>
                 <p className="mt-1 break-words text-[#526975]">الصلاحية: {lot.expiryDate} · الكمية: {lot.stock} {saleUnitLabel(stockProduct.saleUnit)}</p>
                 {canEditProducts&&<div className="mt-2">
-                  <p className="text-sm font-bold text-[#457486]">تكلفة شراء {saleUnitLabel(stockProduct.saleUnit)} واحدة: <strong className={lot.purchaseCostIqd==null?'text-[#956c20]':'text-[#256c83]'}>{lot.purchaseCostIqd==null?'غير محددة بعد (اختيارية)':lot.purchaseCostIqd.toLocaleString('en-US')+' د.ع'}</strong></p>
+                  <p className="text-sm font-bold text-[#457486]">تكلفة شراء وحدة البيع ({saleUnitLabel(stockProduct.saleUnit)}): <strong className={lot.purchaseCostIqd==null?'text-[#956c20]':'text-[#256c83]'}>{lot.purchaseCostIqd==null?'غير محددة بعد (اختيارية)':lot.purchaseCostIqd.toLocaleString('en-US')+' د.ع'}</strong></p>
                   {lot.purchaseCostIqd!=null&&<p className="mt-1 text-xs text-[#557987]">فرق سعر البيع الحالي عن سعر الشراء، قبل المصاريف: {(stockProduct.price-lot.purchaseCostIqd).toLocaleString('en-US')} د.ع للوحدة (مو صافي ربح).</p>}
                   {lotCostEdit===lot.id?<div className="mt-2 rounded-xl border border-[#c2dfeb] bg-[#f6fbff] p-3">
                     <label className="block text-sm font-bold text-[#345968]">تكلفة شراء وحدة البيع بالدينار العراقي
