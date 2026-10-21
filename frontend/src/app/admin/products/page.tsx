@@ -1,7 +1,8 @@
 "use client";
 import { useState, useEffect } from 'react';
 import AdminLayout from '@/components/admin/AdminLayout';
-import { productsAPI, uploadAPI } from '@/lib/api';
+import { productsAPI, uploadAPI, settingsAPI } from '@/lib/api';
+import { parseThousandsIqd,parseUsd,formatThousandsIqd,formatFullIqd } from '@/lib/money-entry';
 import ProductIcon from '@/components/ui/ProductIcon';
 import { useAuth } from '@/context/AuthContext';
 
@@ -192,6 +193,15 @@ function ProductForm({ product, existingCategories, onSave, onCancel, loading }:
   const [saveError, setSaveError] = useState('');
   const [imagePreview, setImagePreview] = useState(product?.image || '');
   const [uploading, setUploading] = useState(false);
+  const [priceUnit,setPriceUnit]=useState<'thousands'|'usd'>('thousands');
+  const [priceText,setPriceText]=useState(product?formatThousandsIqd(product.price):'');
+  const [exchangeRate,setExchangeRate]=useState<number|null>(null);
+  useEffect(()=>{settingsAPI.getPublic().then((d:any)=>setExchangeRate(d.usdToIqdRate??null)).catch(()=>{})},[]);
+  const parsed=priceUnit==='thousands'?parseThousandsIqd(priceText):parseUsd(priceText);
+  const resolvedPrice=parsed===null?null:priceUnit==='thousands'?parsed:exchangeRate&&exchangeRate>0?Math.round(parsed*exchangeRate):null;
+  const rateValid=exchangeRate!==null&&Number.isSafeInteger(exchangeRate)&&exchangeRate>=1&&exchangeRate<=1_000_000;
+  const priceValid=resolvedPrice!==null&&Number.isSafeInteger(resolvedPrice)&&resolvedPrice>=0&&resolvedPrice<=1_000_000_000&&(priceUnit!=='usd'||rateValid);
+
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -222,7 +232,9 @@ function ProductForm({ product, existingCategories, onSave, onCancel, loading }:
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaveError('');
-    if (!await onSave(form)) setSaveError('ما انحفظ المنتج. تأكد من اتصال خادم المتجر وحاول مرة ثانية.');
+    if (!priceValid || resolvedPrice === null) {setSaveError('راجع السعر وسعر الصرف قبل الحفظ');return;}
+    const usdPrice = exchangeRate && exchangeRate>0 ? Math.round(resolvedPrice / exchangeRate) : form.usdPrice;
+    if (!await onSave({...form,price:resolvedPrice,usdPrice})) setSaveError('ما انحفظ المنتج. تأكد من اتصال خادم المتجر وحاول مرة ثانية.');
   };
 
   return (
@@ -296,30 +308,28 @@ function ProductForm({ product, existingCategories, onSave, onCancel, loading }:
           <p className="text-xs text-neutral-500 mt-1">اختَر الاسم الموجود إذا المنتج من نفس القسم؛ اختلاف الكتابة ينشئ قسمًا ثانيًا بالمتجر.</p>
         </div>
 
-        {/* السعر بالدينار */}
-        <div>
-          <label className="block font-bold mb-2 text-sm text-ink">السعر (دينار عراقي) *</label>
-          <input 
-            type="number" 
-            placeholder="مثال: 25000"
-            value={form.price || ''} 
-            onChange={(e) => setForm({ ...form, price: Number(e.target.value) })} 
-            className="w-full border-2 border-brand/30 rounded-xl px-4 py-3 focus:outline-none focus:border-brand" 
-            required 
-          />
-        </div>
-
-        {/* السعر بالدولار */}
-        <div>
-          <label className="block font-bold mb-2 text-sm text-ink">السعر (دولار أمريكي) *</label>
-          <input 
-            type="number" 
-            placeholder="مثال: 20"
-            value={form.usdPrice || ''} 
-            onChange={(e) => setForm({ ...form, usdPrice: Number(e.target.value) })} 
-            className="w-full border-2 border-brand/30 rounded-xl px-4 py-3 focus:outline-none focus:border-brand" 
-            required 
-          />
+        <div className="md:col-span-2 rounded-xl border border-brand/20 bg-paper2/30 p-4 space-y-3">
+          <label className="block font-bold text-sm">وحدة إدخال السعر</label>
+          <select value={priceUnit} onChange={e=>{
+            const unit=e.target.value as 'thousands'|'usd';
+            setPriceUnit(unit);
+            setPriceText(unit==='thousands'?formatThousandsIqd(resolvedPrice??form.price):exchangeRate?String(Number(((resolvedPrice??form.price)/exchangeRate).toFixed(2))):'');
+          }} className="w-full rounded-xl border border-brand/30 bg-white px-4 py-3">
+            <option value="thousands">بالألف دينار العراقي (25 = 25,000 د.ع)</option>
+            <option value="usd">دولار أمريكي ($10 = عشرة دولارات)</option>
+          </select>
+          <label className="block font-bold text-sm">
+            {priceUnit==='thousands'?'السعر بالألف دينار':'السعر بالدولار'}
+            <input required type="text" inputMode="decimal" value={priceText} placeholder={priceUnit==='thousands'?'مثال: 25 أو 12.5':'مثال: 10 أو 12.50'}
+              onChange={e=>setPriceText(e.target.value)}
+              className="mt-2 w-full rounded-xl border border-brand/30 bg-white px-4 py-3" />
+          </label>
+          {priceUnit==='usd'&&<p className={rateValid?'text-sm font-bold text-ink':'text-sm font-bold text-red-700'}>{rateValid?`سعر الصرف المعتمد: 1 دولار = ${exchangeRate.toLocaleString('en-US')} د.ع. الحسبة: ${priceText||'0'} × ${exchangeRate.toLocaleString('en-US')}`:'حدد سعر صرف موجب في إعدادات ثنايا قبل حفظ السعر.'}</p>}
+          {priceUnit==='usd'&&rateValid&&exchangeRate!==null&&(exchangeRate<1000||exchangeRate>3000)&&<p className="text-sm text-amber-700">تنبيه: سعر الصرف غير معتاد، راجع الحسبة قبل الحفظ.</p>}
+          <p className={priceValid?'text-sm font-bold text-brand':'text-sm font-bold text-red-700'} role="status">
+            {priceValid&&resolvedPrice!==null?'السعر النهائي: '+formatFullIqd(resolvedPrice):'أدخل سعراً صالحاً قبل الحفظ.'}
+          </p>
+          <p className="text-xs text-neutral-600">السعر ينحفظ بالدينار الكامل. الطلبات القديمة ما تتغير.</p>
         </div>
 
         {/* الماركة */}
