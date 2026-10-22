@@ -47,16 +47,13 @@ export default function CatalogProductCard({product}: {product: CatalogCardProdu
           <strong className="text-lg font-black tracking-tight text-[#16384a] sm:text-[22px]">{product.price.toLocaleString('en-US')}</strong>
           <span className="text-[10px] font-bold text-[#748a97] sm:text-xs">د.ع / {saleUnitLabel(product.saleUnit)}</span>
         </div>
-        <div className="mt-3 grid grid-cols-[minmax(0,1fr)_42px] gap-2">
+        <div className="mt-3">
           <button type="button" onClick={handleAdd} disabled={!hasStock}
-            className="site-btn site-btn-primary site-btn-sm !min-h-[42px] min-w-0 !px-2 !text-xs"
+            className="site-btn site-btn-primary site-btn-sm !min-h-[42px] w-full min-w-0 !px-2 !text-xs"
             aria-label={`إضافة ${product.name} للسلة`}>
             {feedback?.success ? <Check size={17} aria-hidden="true"/> : <ShoppingBag size={17} aria-hidden="true"/>}
             <span>{!hasStock ? 'غير متوفر' : feedback?.success ? 'تمت الإضافة' : 'أضف للسلة'}</span>
           </button>
-          <Link href={`/product/${product.id}`}
-            className="grid h-[42px] w-[42px] place-items-center rounded-full border-2 border-[#d0e5ed] text-brand transition hover:bg-[#edf9fd]"
-            aria-label={`تفاصيل ${product.name}`}><ArrowUpLeft size={18} aria-hidden="true"/></Link>
         </div>
         {feedback && <div role="status" aria-live="polite" className={`mt-2 text-[11px] font-bold ${feedback.success ? 'text-emerald-700' : 'text-red-700'}`}>
           {feedback.success ? <Link href="/cart" className="underline underline-offset-2">عرض السلة <ArrowUpLeft size={12} className="inline"/></Link> : feedback.message}
