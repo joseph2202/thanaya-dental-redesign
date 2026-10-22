@@ -1,14 +1,14 @@
 import ProductIcon from '@/components/ui/ProductIcon';
 
-type Props = { image?: string | null; icon?: string | null; name: string; size?: number; className?: string };
+type Props = { image?: string | null; icon?: string | null; name: string; size?: number; className?: string; priority?: boolean };
 
-export default function ProductMedia({ image, icon, name, size = 58, className = '' }: Props) {
+export default function ProductMedia({ image, icon, name, size = 58, className = '', priority = false }: Props) {
   return (
     <div className={`site-product-visual ${className}`}>
       {image ? (
         // Image URLs are supplied by the existing product API and may point to the local upload server.
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={image.replace(/https?:\/\/(?:localhost|127\.0\.0\.1):4000\/uploads\//gi, '/uploads/')} alt={name} loading="lazy" />
+        <img src={image.replace(/https?:\/\/(?:localhost|127\.0\.0\.1):4000\/uploads\//gi, '/uploads/')} alt={name} loading={priority ? "eager" : "lazy"} decoding="async" />
       ) : (
         <ProductIcon name={icon || 'Package'} size={size} className="opacity-80" />
       )}

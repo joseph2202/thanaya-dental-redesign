@@ -1,11 +1,9 @@
 import { productsAPI } from '@/lib/api';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
-import ProductMedia from '@/components/ui/ProductMedia';
+import CatalogProductCard from '@/components/catalog/CatalogProductCard';
 import Link from 'next/link';
-import { ArrowUpLeft } from 'lucide-react';
 import CatalogFilters from '@/components/catalog/CatalogFilters';
-import {saleUnitLabel} from '@/lib/saleUnits';
 
 export const instant = false;
 
@@ -23,10 +21,17 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
   if (params.minPrice) apiParams.minPrice = params.minPrice;
   if (params.maxPrice) apiParams.maxPrice = params.maxPrice;
 
-  const [fetchedProducts, allProducts] = await Promise.all([
-    productsAPI.getAll(apiParams) as Promise<CatalogProduct[]>,
-    productsAPI.getAll() as Promise<CatalogProduct[]>,
-  ]);
+  // When no backend filter is active, one catalog fetch is enough for both
+  // the cards and the filter sidebar (previously fetched the same list twice).
+  const hasApiFilters = Object.values(apiParams).some(Boolean);
+  const [fetchedProducts, allProducts] = hasApiFilters
+    ? await Promise.all([
+        productsAPI.getAll(apiParams) as Promise<CatalogProduct[]>,
+        productsAPI.getAll() as Promise<CatalogProduct[]>,
+      ])
+    : await (productsAPI.getAll() as Promise<CatalogProduct[]>).then(
+        items => [items, items] as const
+      );
   const stockOnly = params.inStock === '1';
   // availableStock excludes expired batches, while stock also includes those physically held.
   const products = stockOnly ? fetchedProducts.filter(p => (p.availableStock ?? p.stock) > 0) : fetchedProducts;
@@ -45,8 +50,8 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
       <div>
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3"><p className="text-sm font-bold text-[#587484]">{products.length} منتج مطابق</p>{(Object.values(apiParams).some(Boolean)||stockOnly)&&<Link href="/products" className="text-sm font-bold text-brand underline">إزالة الفلاتر</Link>}</div>
         {products.length === 0 ? <div className="site-surface text-center py-9 px-5"><h2 className="site-heading">ماكو منتجات تطابق اختيارك.</h2><p className="site-muted mt-2 mb-6">{stockOnly ? 'ماكو منتجات متوفرة تطابق اختيارك حالياً. جرّب إلغاء خيار المتوفر فقط.' : 'جرّب قسمًا آخر أو امسح الفلاتر.'}</p><Link href="/products" className="site-btn site-btn-primary">كل المنتجات</Link></div> :
-          <div className={`grid gap-5 ${products.length === 1 ? "grid-cols-1 max-w-2xl" : products.length === 2 ? "sm:grid-cols-2" : "sm:grid-cols-2 xl:grid-cols-3"}`}>
-            {products.map(p => <Link key={p.id} href={`/product/${p.id}`} className="site-card group block"><div className="relative"><ProductMedia name={p.name} image={p.image} icon={p.icon} className="h-48 m-3 rounded-xl sm:h-52" size={60} /><span className={`absolute top-5 right-5 rounded-full px-3 py-1 text-xs font-bold ${(p.availableStock ?? p.stock) > 0 ? "bg-white text-emerald-700" : "bg-red-50 text-red-700"}`}>{(p.availableStock ?? p.stock) > 0 ? "متوفر" : "غير متوفر"}</span></div><div className="px-5 pb-5"><span className="text-[11px] font-bold text-brand">{p.category}</span><h2 className="font-bold text-sm leading-7 mt-1 group-hover:text-brand line-clamp-2">{p.name}</h2><p className="text-xs text-[#8b99a8] mt-1">{p.brand}</p><div className="flex justify-between items-end mt-5"><strong className="text-lg">{p.price.toLocaleString()} <small className="text-xs font-normal">د.ع / {saleUnitLabel(p.saleUnit)}</small></strong><ArrowUpLeft size={18} className="text-brand" /></div></div></Link>)}
+          <div className={`grid gap-3 min-[390px]:grid-cols-2 sm:gap-4 ${products.length === 1 ? 'max-w-sm' : products.length === 2 ? 'max-w-[820px]' : 'xl:grid-cols-3'}`}>
+            {products.map(p => <CatalogProductCard key={p.id} product={p} />)}
           </div>}
       </div>
     </div>
