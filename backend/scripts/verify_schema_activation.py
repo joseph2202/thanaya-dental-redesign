@@ -25,7 +25,10 @@ def rows_digest(conn: sqlite3.Connection, table: str, fields: list[str]) -> str:
     identifier = '"' + table.replace('"', '""') + '"'
     cols = ",".join('"' + f.replace('"', '""') + '"' for f in fields)
     h = sha256()
-    for row in conn.execute("SELECT " + cols + " FROM " + identifier + " ORDER BY rowid"):
+    pragma = list(conn.execute('PRAGMA table_info(' + identifier + ')'))
+    key_columns = [column[1] for column in sorted(pragma, key=lambda column: column[5]) if column[5] > 0]
+    order = ",".join('"' + key.replace('"', '""') + '"' for key in key_columns) if key_columns else "rowid"
+    for row in conn.execute("SELECT " + cols + " FROM " + identifier + " ORDER BY " + order):
         # repr is deterministic across both SQLite connections and avoids printing PII.
         h.update(repr(tuple(row)).encode("utf-8", "surrogatepass"))
         h.update(b"\n")
