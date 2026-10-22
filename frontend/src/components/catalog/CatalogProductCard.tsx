@@ -24,11 +24,14 @@ export default function CatalogProductCard({product}:{product:CatalogCardProduct
   <div className="relative m-2.5 mb-0 sm:m-3 sm:mb-0">
    <Link href={url} className="signature-card-media block focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand" aria-label={`تفاصيل ${product.name}`}>
     <ProductMedia name={product.name} image={product.image} icon={product.icon} size={58}
-      className="aspect-[1.08] w-full sm:aspect-[1.15]"/>
+      className={product.image?'aspect-[4/3] w-full':'aspect-[1.55] w-full'}/>
    </Link>
    <span className={`pointer-events-none absolute right-2.5 top-2.5 inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[10px] font-black shadow-sm ${hasStock?'border-[#c4eddc] bg-white/95 text-[#137958]':'border-red-200 bg-red-50 text-red-700'}`}>
     <span aria-hidden="true" className={`h-1.5 w-1.5 rounded-full ${hasStock?'bg-emerald-500':'bg-red-500'}`}/>{hasStock?'متوفر':'غير متوفر'}
    </span>
+   {!product.image&&<span className="pointer-events-none absolute bottom-3 right-3 max-w-[65%] rounded-full border border-[#d1e4ee] bg-white/85 px-2.5 py-1.5 text-[10px] font-bold text-[#638695]">
+     لا توجد صورة مرفوعة بعد
+   </span>}
    <Link href={url} aria-label={`استكشف ${product.name}`} className="absolute bottom-3 left-3 grid h-9 w-9 place-items-center rounded-full border border-white/80 bg-white/95 text-[#267992] shadow-sm transition hover:bg-[#e7f9ff] focus-visible:outline-brand">
     <ArrowUpLeft size={17} aria-hidden="true"/>
    </Link>
