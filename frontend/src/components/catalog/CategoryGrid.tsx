@@ -31,7 +31,17 @@ export default function CategoryGrid({ variant = 'home', onCountChange }: { vari
       .catch(() => setStatus('error'));
   }, [onCountChange]);
 
-  if (status === 'loading') return <div className="site-surface p-8 text-center site-muted" role="status">جاري تحميل الأقسام...</div>;
+  if (status === 'loading') return <div className="grid gap-4 md:grid-cols-2" role="status" aria-label="جاري تحميل الأقسام">
+    {[0, 1].map(key => <div key={key} className="site-card flex animate-pulse items-center gap-4 p-4" aria-hidden="true">
+      <div className="h-[88px] w-[88px] shrink-0 rounded-2xl bg-[#dcecf2]" />
+      <div className="flex-1">
+        <div className="h-3 w-1/3 rounded-full bg-[#dcecf2]" />
+        <div className="mt-4 h-5 w-3/4 rounded-full bg-[#dcecf2]" />
+        <div className="mt-3 h-3 w-1/2 rounded-full bg-[#dcecf2]" />
+      </div>
+    </div>)}
+    <span className="sr-only">جاري تحميل الأقسام...</span>
+  </div>;
   if (status === 'error') return <div className="site-surface p-8 text-center site-muted" role="status">تعذّر تحميل الأقسام. تأكد من تشغيل خادم المتجر ثم حدّث الصفحة.</div>;
   if (!categories.length) return <div className="site-surface p-8 text-center site-muted">ماكو أقسام فيها منتجات بعد. راح تظهر هنا أول ما تضيف منتجات للمتجر.</div>;
 
