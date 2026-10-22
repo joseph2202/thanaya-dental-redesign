@@ -1,4 +1,24 @@
-const API_BASE = 'http://localhost:4000/api';
+// One origin for local browsers and private remote previews. Next.js rewrites
+// /api/* to this Mac's Express server; remote devices never use localhost:4000.
+const API_BASE = '/api';
+
+// Older products/banners already store absolute localhost upload URLs.
+// Rewrite only those local image paths to the shared /uploads/* route.
+// This also handles gallery URLs inside serialized JSON strings.
+function normalizeLegacyUploadLinks<T>(value: T): T {
+  if (typeof value === 'string') {
+    return value.replace(/https?:\/\/(?:localhost|127\.0\.0\.1):4000\/uploads\//gi, '/uploads/') as T;
+  }
+  if (Array.isArray(value)) {
+    return value.map(normalizeLegacyUploadLinks) as T;
+  }
+  if (value !== null && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, item]) => [key, normalizeLegacyUploadLinks(item)])
+    ) as T;
+  }
+  return value;
+}
 
 export async function apiRequest(endpoint: string, options: RequestInit = {}) {
   const token = typeof window !== 'undefined' ? localStorage.getItem('thanaya-token') : null;
@@ -18,7 +38,7 @@ export async function apiRequest(endpoint: string, options: RequestInit = {}) {
     throw apiError;
   }
 
-  return response.json();
+  return normalizeLegacyUploadLinks(await response.json());
 }
 
 // Auth API
@@ -142,7 +162,7 @@ export const uploadAPI = {
     formData.append('image', file);
     const token = localStorage.getItem('thanaya-token');
     
-    const response = await fetch('http://localhost:4000/api/upload', {
+    const response = await fetch(API_BASE + '/upload', {
       method: 'POST',
       body: formData,
       headers: token ? { Authorization: `Bearer ${token}` } : undefined,
@@ -153,7 +173,7 @@ export const uploadAPI = {
       throw new Error(error.error || 'فشل رفع الصورة');
     }
 
-    return response.json();
+    return normalizeLegacyUploadLinks(await response.json());
   },
 };
 
