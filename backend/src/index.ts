@@ -94,7 +94,13 @@ function hasImageSignature(filePath: string, type: string): boolean {
 }
 
 // جعل مجلد uploads متاحاً للوصول للصور عبر المتصفح
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+// Uploaded media uses unique, never-overwritten filenames (timestamp + random suffix).
+// Let repeat visitors reuse thumbnails/product photos instead of downloading them
+// from the Mac again through a temporary tunnel on every page navigation.
+app.use('/uploads', express.static(path.join(__dirname, '../uploads'), {
+  maxAge: '7d',
+  immutable: true,
+}));
 
 // نقطة نهاية (Endpoint) لرفع الصورة
 app.post('/api/upload', requireAdmin, uploadImage, (req, res) => {
