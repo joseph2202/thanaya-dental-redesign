@@ -9,11 +9,16 @@ import SiteActionDialog from '@/components/ui/SiteActionDialog';
 import { useAuth } from '@/context/AuthContext';
 import {saleUnitLabel,saleUnitOptions} from '@/lib/saleUnits';
 
+type InventoryView='all'|'low'|'out'|'hidden';
+const sellableStock=(p:any):number=>Math.max(0,Number(p.lotTracking?(p.availableStock??p.stock):p.stock)||0);
+const availabilityColor=(n:number)=>n===0?'text-red-700':n<=5?'text-amber-700':'text-emerald-700';
+
 export default function AdminProducts() {
   const { user } = useAuth();
   const canEditProducts = user?.role === 'owner' || user?.role === 'admin';
   const [productsList, setProductsList] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [inventoryView,setInventoryView]=useState<InventoryView>('all');
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [loading, setLoading] = useState(false);
@@ -298,9 +303,22 @@ export default function AdminProducts() {
 
   const existingCategories = [...new Set(productsList.map(p => p.category?.trim()).filter(Boolean))] as string[];
 
-  const filteredProducts = productsList.filter((p) =>
-    p.name.toLowerCase().includes(searchQuery.toLowerCase()) || (p.sku||'').toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const inventorySummary={
+    all:productsList.length,
+    low:productsList.filter(p=>sellableStock(p)>0&&sellableStock(p)<=5).length,
+    out:productsList.filter(p=>sellableStock(p)===0).length,
+    hidden:productsList.filter(p=>p.published===false).length
+  };
+  const normalizedQuery=searchQuery.trim().toLocaleLowerCase();
+  const filteredProducts=productsList.filter(p=>{
+    const matches=!normalizedQuery||[p.name,p.sku,p.brand,p.category].some(
+      value=>typeof value==='string'&&value.toLocaleLowerCase().includes(normalizedQuery));
+    const available=sellableStock(p);
+    return matches&&(inventoryView==='all'||
+      (inventoryView==='low'&&available>0&&available<=5)||
+      (inventoryView==='out'&&available===0)||
+      (inventoryView==='hidden'&&p.published===false));
+  });
 
   return (
     <AdminLayout>
@@ -525,8 +543,8 @@ export default function AdminProducts() {
         <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="ابحث عن منتج..." className="w-full max-w-md border-2 border-brand/30 rounded-xl px-4 py-2 font-bold focus:outline-none focus:border-brand" />
       </div>
 
-      <div className="bg-white border-2 border-brand/20 rounded-2xl overflow-hidden">
-        <table className="w-full">
+      <div className="hidden overflow-x-auto rounded-2xl border-2 border-brand/20 bg-white lg:block">
+        <table className="w-full min-w-[900px]">
           <thead className="bg-paper2">
             <tr>
               <th className="px-4 py-3 text-right font-black text-sm text-ink">المنتج</th>
@@ -555,7 +573,7 @@ export default function AdminProducts() {
                 <td className="px-4 py-3 text-sm text-ink">{p.category}</td>
                 <td className="px-4 py-3 text-sm font-bold text-ink">{p.price.toLocaleString()} د.ع</td>
                 <td className="px-4 py-3">
-                  <span className={`text-sm font-bold ${p.stock > 10 ? 'text-green-600' : p.stock > 0 ? 'text-yellow-600' : 'text-red-600'}`}>{p.lotTracking ? (p.availableStock??p.stock) : p.stock} {saleUnitLabel(p.saleUnit)}</span>
+                  <span className={`text-sm font-bold ${availabilityColor(sellableStock(p))}`}>{sellableStock(p)} {saleUnitLabel(p.saleUnit)}</span>
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex gap-2">
