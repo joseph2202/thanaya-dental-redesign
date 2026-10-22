@@ -6,7 +6,7 @@ import { getJwtSecret } from '../config/auth';
 import { requireAdmin, requireSales } from '../middleware/requireAdmin';
 import { isProvince } from './delivery';
 import {discountFor,normalizeCode} from './coupons';
-import {ReturnError,parseReturnSelection,returnedCount,applyOrderReturn} from '../lib/orderReturnLedger';
+import {ReturnError,parseReturnSelection,applyOrderReturn} from '../lib/orderReturnLedger';
 
 const router = Router();
 const prisma = new PrismaClient();
