@@ -171,10 +171,18 @@ async function main() {
       }, bobToken);
       assert.equal(created.status, 201, JSON.stringify(created));
       const route = '/api/orders/' + created.body.id + '/status';
-      for (const status of ['confirmed', 'shipped', 'delivered', 'returned']) {
+      for (const status of ['confirmed', 'shipped', 'delivered']) {
         const result = await request(base, route, 'PATCH', { status }, adminToken);
         assert.equal(result.status, 200, JSON.stringify(result));
       }
+      const blocked=await request(base,route,'PATCH',{status:'returned'},adminToken);
+      assert.equal(blocked.status,409,'unsafe full-return status shortcut must be refused');
+      const receipt=await request(base,'/api/orders/'+created.body.id+'/returns','POST',{
+        requestId:randomUUID(),reason:'استلام قطعة سليمة',
+        items:[{orderItemId:created.body.items[0].id,quantity:1}]
+      },adminToken);
+      assert.equal(receipt.status,201,JSON.stringify(receipt));
+      assert.equal(receipt.body.orderStatus,'returned');
       const repeated = await request(base, route, 'PATCH', { status: 'returned' }, adminToken);
       assert.equal(repeated.status, 409);
       assert.equal((await prisma.product.findUniqueOrThrow({ where: { id: item.id } })).stock, 1);
@@ -272,8 +280,11 @@ async function main() {
       assert.ok(before.body.topProducts.some(p=>p.productId===item.id&&p.units===2));
       assert.ok(before.body.stats.totalProducts>=1);
       assert.equal(before.body.trend.length,30);
-      const returned=await request(base,'/api/orders/'+delivered.body.id+'/status','PATCH',{status:'returned'},adminToken);
-      assert.equal(returned.status,200);
+      const returned=await request(base,'/api/orders/'+delivered.body.id+'/returns','POST',{
+        requestId:randomUUID(),reason:'استلام الطلب بالكامل بعد التسليم',
+        items:[{orderItemId:delivered.body.items[0].id,quantity:2}]
+      },adminToken);
+      assert.equal(returned.status,201,JSON.stringify(returned));
       const after=await request(base,'/api/reports/overview?range=all','GET',undefined,adminToken);
       assert.equal(after.status,200);
       assert.equal(after.body.stats.deliveredValue,before.body.stats.deliveredValue-26000);
@@ -667,8 +678,12 @@ async function main() {
         requestId:randomUUID(),reason:body.reason,items:[{orderItemId:body.items[0].orderItemId,quantity:4}]
       },adminToken);
       assert.equal(tooMany.status,409);
-      const whole=await request(base,route,'PATCH',{status:'returned'},adminToken);
-      assert.equal(whole.status,200,JSON.stringify(whole));
+      const whole=await request(base,returnPath,'POST',{
+        requestId:randomUUID(),reason:'استلام الثلاث قطع المتبقية سليمة',
+        items:[{orderItemId:body.items[0].orderItemId,quantity:3}]
+      },adminToken);
+      assert.equal(whole.status,201,JSON.stringify(whole));
+      assert.equal(whole.body.orderStatus,'returned');
       const repeated=await request(base,route,'PATCH',{status:'returned'},adminToken);
       assert.equal(repeated.status,409);
       assert.equal((await prisma.product.findUniqueOrThrow({where:{id:item.id}})).stock,5);
