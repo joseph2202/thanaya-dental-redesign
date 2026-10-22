@@ -28,6 +28,8 @@ jobs:
             frontend/package-lock.json
       - name: Rehearse quarantine migration on synthetic legacy database
         run: python3 -m unittest discover -s backend/tests -p 'test_rehearse_return_disposition.py' -v
+      - name: Validate guarded migration against stale and damaged backups
+        run: python3 -m unittest discover -s backend/tests -p 'test_apply_return_disposition.py' -v
       - name: Install backend dependencies
         run: npm ci
         working-directory: backend
