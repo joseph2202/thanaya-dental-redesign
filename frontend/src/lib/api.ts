@@ -1,6 +1,15 @@
-// One origin for local browsers and private remote previews. Next.js rewrites
-// /api/* to this Mac's Express server; remote devices never use localhost:4000.
-const API_BASE = '/api';
+// Browser calls use the site's own /api route (also behind Cloudflare).
+// Server-rendered pages run inside Node.js, where fetch('/api/...') has no
+// absolute origin. Contact the local Express backend directly on the server.
+// The internal URL is NEVER sent to a visitor's browser.
+const API_BASE = typeof window === 'undefined'
+  ? `${process.env.THANAYA_INTERNAL_API_ORIGIN || 'http://127.0.0.1:4000'}/api`
+  : '/api';
+
+// The home page renders categories and products together. Coalesce only
+// simultaneous unfiltered catalog GETs; don't cache stock or prices after
+// the request completes.
+let pendingCatalog: Promise<any> | null = null;
 
 // Older products/banners already store absolute localhost upload URLs.
 // Rewrite only those local image paths to the shared /uploads/* route.
@@ -55,7 +64,13 @@ export const authAPI = {
 export const productsAPI = {
   getAll: (params?: { category?: string; brand?: string; sort?: string; search?: string; minPrice?: string; maxPrice?: string }) => {
     const query = new URLSearchParams(params as any).toString();
-    return apiRequest(`/products?${query}`);
+    if (typeof window !== 'undefined' && !query) {
+      if (!pendingCatalog) {
+        pendingCatalog = apiRequest('/products').finally(() => { pendingCatalog = null; });
+      }
+      return pendingCatalog;
+    }
+    return apiRequest(query ? `/products?${query}` : '/products');
   },
   
   getById: (id: string) => apiRequest(`/products/${id}`),
