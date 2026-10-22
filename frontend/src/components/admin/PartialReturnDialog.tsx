@@ -32,7 +32,7 @@ export default function PartialReturnDialog({order,onClose,onComplete}:Props){
     }
   },[order?.id]);
 
-  const chosen=useMemo<ReturnChoice[]>(()=>order?.items.flatMap(item=>{
+  const chosen=useMemo<ReturnChoice[]>(()=>order?.items.flatMap<ReturnChoice>(item=>{
     if(item.lotAllocations?.length){
       const lots=item.lotAllocations.flatMap(lot=>{
         const key=keyFor(item.id,lot.lotId);
