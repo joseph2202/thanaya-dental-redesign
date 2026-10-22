@@ -8,8 +8,8 @@ import ProductMedia from '@/components/ui/ProductMedia';
 import {saleUnitLabel} from '@/lib/saleUnits';
 
 export type CatalogCardProduct = Product & {
-  category: string;
-  brand: string;
+  category?: string;
+  brand?: string;
   price: number;
   availableStock?: number;
   saleUnit?: string | null;
