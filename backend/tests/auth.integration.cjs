@@ -52,9 +52,19 @@ async function main() {
   ], { cwd, env, encoding: 'utf8', timeout: 90000 });
   if (command.status !== 0) throw Error(command.stderr || command.stdout);
 
+  // Critical: set the current Node process environment as well as the child
+  // API process. Otherwise PrismaClient may silently use backend/.env (dev.db).
+  process.env.DATABASE_URL = url;
+  if (process.env.DATABASE_URL !== env.DATABASE_URL || !url.startsWith('file:' + scratch + path.sep)) {
+    throw Error('Refusing to run auth tests outside the isolated temporary database');
+  }
   const { PrismaClient } = require('@prisma/client');
   const bcrypt = require('bcryptjs');
-  prisma = new PrismaClient();
+  // Pin the URL a second time at the Prisma constructor, independent of .env.
+  prisma = new PrismaClient({ datasources: { db: { url } } });
+  if (await prisma.user.count() !== 0) {
+    throw Error('Auth test database must be empty before creating fixtures');
+  }
   await prisma.user.create({
     data: {
       name: 'Legacy owner', email: 'Legacy.Owner@Test.invalid', phone: '07812345678',
