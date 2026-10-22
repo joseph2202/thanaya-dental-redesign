@@ -46,7 +46,7 @@ export const authAPI = {
   register: (data: { name: string; email: string; phone: string; password: string }) =>
     apiRequest('/auth/register', { method: 'POST', body: JSON.stringify(data) }),
   
-  me: () => apiRequest('/auth/me'),
+  me: (signal?: AbortSignal) => apiRequest('/auth/me', { signal }),
   login: (email: string, password: string) =>
     apiRequest('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) }),
 };
