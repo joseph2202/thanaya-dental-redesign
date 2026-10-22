@@ -50,7 +50,7 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
       <div>
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3"><p className="text-sm font-bold text-[#587484]">{products.length} منتج مطابق</p>{(Object.values(apiParams).some(Boolean)||stockOnly)&&<Link href="/products" className="text-sm font-bold text-brand underline">إزالة الفلاتر</Link>}</div>
         {products.length === 0 ? <div className="site-surface text-center py-9 px-5"><h2 className="site-heading">ماكو منتجات تطابق اختيارك.</h2><p className="site-muted mt-2 mb-6">{stockOnly ? 'ماكو منتجات متوفرة تطابق اختيارك حالياً. جرّب إلغاء خيار المتوفر فقط.' : 'جرّب قسمًا آخر أو امسح الفلاتر.'}</p><Link href="/products" className="site-btn site-btn-primary">كل المنتجات</Link></div> :
-          <div className={`grid gap-3 min-[420px]:grid-cols-2 sm:gap-4 ${products.length === 1 ? 'max-w-sm' : products.length === 2 ? 'max-w-[820px]' : 'xl:grid-cols-3'}`}>
+          <div className={`grid gap-3 min-[390px]:grid-cols-2 sm:gap-4 ${products.length === 1 ? 'max-w-sm' : products.length === 2 ? 'max-w-[820px]' : 'xl:grid-cols-3'}`}>
             {products.map(p => <CatalogProductCard key={p.id} product={p} />)}
           </div>}
       </div>
