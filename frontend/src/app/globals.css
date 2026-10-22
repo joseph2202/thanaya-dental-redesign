@@ -17,7 +17,7 @@
 :root { color-scheme: light; }
 html { scroll-behavior: smooth; }
 body { background: var(--color-paper); color: var(--color-ink); }
-body::before { content: ''; position: fixed; inset: 0; z-index: -1; pointer-events: none; background-image: linear-gradient(#059bd00a 1px, transparent 1px), linear-gradient(90deg, #059bd00a 1px, transparent 1px); background-size: 30px 30px; }
+body::before { content: ''; position: fixed; inset: 0; z-index: -1; pointer-events: none; background-image: linear-gradient(#059bd0005 1px, transparent 1px), linear-gradient(90deg, #059bd0005 1px, transparent 1px); background-size: 44px 44px; }
 button, input, select, textarea { font: inherit; }
 button, a { -webkit-tap-highlight-color: transparent; }
 :focus-visible { outline: 3px solid #5DBEE0; outline-offset: 3px; }
