@@ -187,6 +187,9 @@ model OrderReturnLine {
   orderItemId String
   lotId       String?
   quantity    Int
+  // Legacy received returns were always restored to stock. New returns may
+  // quarantine damaged/unsellable pieces without increasing saleable stock.
+  disposition String       @default("restocked") // restocked | quarantined
   orderReturn OrderReturn  @relation(fields: [orderReturnId], references: [id], onDelete: Restrict)
   orderItem   OrderItem    @relation(fields: [orderItemId], references: [id], onDelete: Restrict)
   lot         ProductLot?  @relation(fields: [lotId], references: [id], onDelete: Restrict)
