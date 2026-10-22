@@ -14,7 +14,12 @@ export const instant = false;
 export default async function ProductPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   let product;
-  try { product = await productsAPI.getById(id); } catch { notFound(); }
+  try { product = await productsAPI.getById(id); }
+  catch (error) {
+    // A server outage is not the same as a product that does not exist.
+    if (error instanceof Error && (error as Error & {status?:number}).status === 404) notFound();
+    throw error;
+  }
   const settings: any = await settingsAPI.getPublic().catch(() => null);
   const approximateUsd = settings?.showUsdApprox && typeof settings?.usdToIqdRate === 'number' && settings.usdToIqdRate > 0
     ? (product.price / settings.usdToIqdRate).toFixed(2) : null;
