@@ -57,6 +57,7 @@ export default function RegisterPage() {
                 type="text"
                 required
                 minLength={3}
+                maxLength={80}
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
                 className="w-full border border-[#bbdeea] rounded-xl px-4 py-3 font-bold focus:outline-none focus:border-brand"
@@ -87,7 +88,7 @@ export default function RegisterPage() {
                 className="w-full border border-[#bbdeea] rounded-xl px-4 py-3 font-bold focus:outline-none focus:border-brand"
                 placeholder="07822088894"
               />
-              <p className="text-xs text-neutral-500 mt-1">يجب أن يبدأ بـ 07 ويتكون من 10 أرقام</p>
+              <p className="text-xs text-neutral-500 mt-1">يجب أن يبدأ بـ 07 ويتكون من 11 رقماً</p>
             </div>
 
             <div>
@@ -95,11 +96,12 @@ export default function RegisterPage() {
               <input
                 type="password"
                 required
-                minLength={6}
+                minLength={8}
+                maxLength={128}
                 value={form.password}
                 onChange={(e) => setForm({ ...form, password: e.target.value })}
                 className="w-full border border-[#bbdeea] rounded-xl px-4 py-3 font-bold focus:outline-none focus:border-brand"
-                placeholder="6 أحرف على الأقل"
+                placeholder="8 أحرف على الأقل"
               />
             </div>
 
@@ -108,7 +110,8 @@ export default function RegisterPage() {
               <input
                 type="password"
                 required
-                minLength={6}
+                minLength={8}
+                maxLength={128}
                 value={form.confirmPassword}
                 onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })}
                 className="w-full border border-[#bbdeea] rounded-xl px-4 py-3 font-bold focus:outline-none focus:border-brand"
