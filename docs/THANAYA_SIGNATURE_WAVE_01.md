@@ -21,7 +21,7 @@
 
 ## Verification
 
-- Existing GitHub Actions `.github/workflows/returns-quarantine.yml` runs isolated SQLite schema/order checks, backend typecheck, and Next.js `npm run build` on PRs.
+- **Verified successful:** GitHub Actions run `39866019792` completed with success: synthetic migration rehearsal, guarded-migration checks, isolated SQLite order/returns tests, Backend TypeScript build and optimized Next.js frontend build. This is a build/logic check, **not a real device screenshot or production load test**.
 - Review layout on a real mobile viewport and desktop **after** green CI. Do not run repeated Mac DB integration tests merely for UI styles.
 
 ## Next waves
