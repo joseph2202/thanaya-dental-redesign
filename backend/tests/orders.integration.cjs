@@ -81,7 +81,9 @@ async function main() {
   process.env.DATABASE_URL = databaseUrl;
   const { PrismaClient } = require('@prisma/client');
   const jwt = require('jsonwebtoken');
-  prisma = new PrismaClient();
+  // Double-pin the isolated database; refuse test fixtures on any real shop DB.
+  prisma = new PrismaClient({datasources:{db:{url:databaseUrl}}});
+  assert.equal(await prisma.user.count(),0,'isolated test database must be empty');
 
   const [alice, bob, admin] = await Promise.all([
     prisma.user.create({ data: { name: 'Alice test', email: 'alice@integration.invalid', phone: '07812345678', password: 'unused', role: 'customer' } }),
@@ -169,10 +171,18 @@ async function main() {
       }, bobToken);
       assert.equal(created.status, 201, JSON.stringify(created));
       const route = '/api/orders/' + created.body.id + '/status';
-      for (const status of ['confirmed', 'shipped', 'delivered', 'returned']) {
+      for (const status of ['confirmed', 'shipped', 'delivered']) {
         const result = await request(base, route, 'PATCH', { status }, adminToken);
         assert.equal(result.status, 200, JSON.stringify(result));
       }
+      const blocked=await request(base,route,'PATCH',{status:'returned'},adminToken);
+      assert.equal(blocked.status,409,'unsafe full-return status shortcut must be refused');
+      const receipt=await request(base,'/api/orders/'+created.body.id+'/returns','POST',{
+        requestId:randomUUID(),reason:'استلام قطعة سليمة',
+        items:[{orderItemId:created.body.items[0].id,quantity:1}]
+      },adminToken);
+      assert.equal(receipt.status,201,JSON.stringify(receipt));
+      assert.equal(receipt.body.orderStatus,'returned');
       const repeated = await request(base, route, 'PATCH', { status: 'returned' }, adminToken);
       assert.equal(repeated.status, 409);
       assert.equal((await prisma.product.findUniqueOrThrow({ where: { id: item.id } })).stock, 1);
@@ -270,8 +280,11 @@ async function main() {
       assert.ok(before.body.topProducts.some(p=>p.productId===item.id&&p.units===2));
       assert.ok(before.body.stats.totalProducts>=1);
       assert.equal(before.body.trend.length,30);
-      const returned=await request(base,'/api/orders/'+delivered.body.id+'/status','PATCH',{status:'returned'},adminToken);
-      assert.equal(returned.status,200);
+      const returned=await request(base,'/api/orders/'+delivered.body.id+'/returns','POST',{
+        requestId:randomUUID(),reason:'استلام الطلب بالكامل بعد التسليم',
+        items:[{orderItemId:delivered.body.items[0].id,quantity:2}]
+      },adminToken);
+      assert.equal(returned.status,201,JSON.stringify(returned));
       const after=await request(base,'/api/reports/overview?range=all','GET',undefined,adminToken);
       assert.equal(after.status,200);
       assert.equal(after.body.stats.deliveredValue,before.body.stats.deliveredValue-26000);
@@ -665,8 +678,12 @@ async function main() {
         requestId:randomUUID(),reason:body.reason,items:[{orderItemId:body.items[0].orderItemId,quantity:4}]
       },adminToken);
       assert.equal(tooMany.status,409);
-      const whole=await request(base,route,'PATCH',{status:'returned'},adminToken);
-      assert.equal(whole.status,200,JSON.stringify(whole));
+      const whole=await request(base,returnPath,'POST',{
+        requestId:randomUUID(),reason:'استلام الثلاث قطع المتبقية سليمة',
+        items:[{orderItemId:body.items[0].orderItemId,quantity:3}]
+      },adminToken);
+      assert.equal(whole.status,201,JSON.stringify(whole));
+      assert.equal(whole.body.orderStatus,'returned');
       const repeated=await request(base,route,'PATCH',{status:'returned'},adminToken);
       assert.equal(repeated.status,409);
       assert.equal((await prisma.product.findUniqueOrThrow({where:{id:item.id}})).stock,5);
@@ -728,7 +745,105 @@ async function main() {
       assert.equal(sums.find(x=>x.lotId===lotB.body.id)?._sum.quantity,2);
     });
 
-    console.log('\\nALL 23 CHECKS PASSED. Database was isolated and will be deleted.');
+
+    await check('mixed good and damaged legacy returns quarantine pieces and never refund',async()=>{
+      const item=await product('Quarantine legacy',4,29000);
+      const placed=await request(base,'/api/orders','POST',
+        {requestId:randomUUID(),customer,items:[{productId:item.id,quantity:3}]},aliceToken);
+      assert.equal(placed.status,201,JSON.stringify(placed));
+      const statusUrl='/api/orders/'+placed.body.id+'/status';
+      for(const status of ['confirmed','shipped','delivered']){
+        assert.equal((await request(base,statusUrl,'PATCH',{status},adminToken)).status,200);
+      }
+      assert.equal((await prisma.product.findUniqueOrThrow({where:{id:item.id}})).stock,1);
+      const url='/api/orders/'+placed.body.id+'/returns';
+      const body={requestId:randomUUID(),reason:'قطعتان، واحدة مكسورة',
+        items:[{orderItemId:placed.body.items[0].id,quantity:2,quarantinedQuantity:1}]};
+      const first=await request(base,url,'POST',body,adminToken);
+      assert.equal(first.status,201,JSON.stringify(first));
+      assert.equal(first.body.orderStatus,'delivered');
+      assert.equal((await prisma.product.findUniqueOrThrow({where:{id:item.id}})).stock,2);
+      const event=await prisma.orderReturn.findUniqueOrThrow({
+        where:{orderId_requestId:{orderId:placed.body.id,requestId:body.requestId}},
+        include:{lines:true}
+      });
+      assert.deepEqual(event.lines.map(x=>[x.disposition,x.quantity]).sort(),
+        [['quarantined',1],['restocked',1]]);
+      assert.equal((await prisma.inventoryMovement.count({where:{referenceId:event.id,delta:1}})),1);
+      const retry=await request(base,url,'POST',body,adminToken);
+      assert.equal(retry.status,200,JSON.stringify(retry));
+      assert.equal(retry.body.alreadyProcessed,true);
+      assert.equal((await prisma.product.findUniqueOrThrow({where:{id:item.id}})).stock,2);
+      const changed=await request(base,url,'POST',{
+        ...body,items:[{orderItemId:placed.body.items[0].id,quantity:2,quarantinedQuantity:0}]
+      },adminToken);
+      assert.equal(changed.status,409,'cannot change disposition on retried key');
+      const invalid=await request(base,url,'POST',{
+        requestId:randomUUID(),reason:'تالف أكثر من الكمية',
+        items:[{orderItemId:placed.body.items[0].id,quantity:1,quarantinedQuantity:2}]
+      },adminToken);
+      assert.equal(invalid.status,400);
+      const last=await request(base,url,'POST',{
+        requestId:randomUUID(),reason:'القطعة الأخيرة تالفة',
+        items:[{orderItemId:placed.body.items[0].id,quantity:1,quarantinedQuantity:1}]
+      },adminToken);
+      assert.equal(last.status,201,JSON.stringify(last));
+      assert.equal(last.body.orderStatus,'returned');
+      assert.equal((await prisma.product.findUniqueOrThrow({where:{id:item.id}})).stock,2);
+      assert.equal((await prisma.order.findUniqueOrThrow({where:{id:placed.body.id}})).total,87000);
+      const all=await prisma.orderReturnLine.groupBy({
+        by:['disposition'],_sum:{quantity:true},where:{orderItemId:placed.body.items[0].id}
+      });
+      assert.equal(all.find(x=>x.disposition==='quarantined')?._sum.quantity,2);
+      assert.equal(all.find(x=>x.disposition==='restocked')?._sum.quantity,1);
+    });
+
+    await check('batch returns quarantine damaged units without inflating original lot stock',async()=>{
+      const item=await product('Lot quarantine',0,22000);
+      const enabled=await request(base,'/api/products/'+item.id+'/enable-lots','POST',{},adminToken);
+      assert.equal(enabled.status,200,JSON.stringify(enabled));
+      const expiry=new Date(Date.now()+180*86400000).toISOString().slice(0,10);
+      const lotA=await request(base,'/api/products/'+item.id+'/lots','POST',{
+        code:'QUAR-A',expiryDate:expiry,quantity:2
+      },adminToken);
+      const lotB=await request(base,'/api/products/'+item.id+'/lots','POST',{
+        code:'QUAR-B',expiryDate:expiry,quantity:1
+      },adminToken);
+      assert.equal(lotA.status,201);assert.equal(lotB.status,201);
+      const placed=await request(base,'/api/orders','POST',{
+        requestId:randomUUID(),customer,items:[{productId:item.id,quantity:3}]
+      },bobToken);
+      assert.equal(placed.status,201,JSON.stringify(placed));
+      const statusUrl='/api/orders/'+placed.body.id+'/status';
+      for(const status of ['confirmed','shipped','delivered']){
+        assert.equal((await request(base,statusUrl,'PATCH',{status},adminToken)).status,200);
+      }
+      const route='/api/orders/'+placed.body.id+'/returns';
+      const body={requestId:randomUUID(),reason:'قطعة سليمة وقطعتان تلف',
+        items:[{orderItemId:placed.body.items[0].id,quantity:3,lots:[
+          {lotId:lotA.body.id,quantity:2,quarantinedQuantity:1},
+          {lotId:lotB.body.id,quantity:1,quarantinedQuantity:1}
+        ]}]};
+      const received=await request(base,route,'POST',body,adminToken);
+      assert.equal(received.status,201,JSON.stringify(received));
+      assert.equal(received.body.orderStatus,'returned');
+      assert.equal((await prisma.product.findUniqueOrThrow({where:{id:item.id}})).stock,1);
+      assert.equal((await prisma.productLot.findUniqueOrThrow({where:{id:lotA.body.id}})).stock,1);
+      assert.equal((await prisma.productLot.findUniqueOrThrow({where:{id:lotB.body.id}})).stock,0);
+      const event=await prisma.orderReturn.findUniqueOrThrow({
+        where:{orderId_requestId:{orderId:placed.body.id,requestId:body.requestId}},
+        include:{lines:true}
+      });
+      assert.equal(event.lines.length,3);
+      assert.equal(event.lines.filter(x=>x.disposition==='quarantined').reduce((a,x)=>a+x.quantity,0),2);
+      const retry=await request(base,route,'POST',body,adminToken);
+      assert.equal(retry.status,200);assert.equal(retry.body.alreadyProcessed,true);
+      const repeated=await request(base,route,'POST',{...body,requestId:randomUUID()},adminToken);
+      assert.equal(repeated.status,409);
+      assert.equal((await prisma.order.findUniqueOrThrow({where:{id:placed.body.id}})).total,66000);
+    });
+
+    console.log('\\nALL 25 CHECKS PASSED. Database was isolated and will be deleted.');
   } catch (error) {
     console.error('\nORDER INTEGRATION FAILED. Server output:\n' + logs);
     throw error;

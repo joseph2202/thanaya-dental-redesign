@@ -10,7 +10,7 @@ import {useAuth} from '@/context/AuthContext';
 import {shortOrderCode} from '@/lib/orderPresentation';
 
 type Line={id:string;quantity:number;price:number;productName?:string|null;product?:{name:string};returnLines?:{quantity:number;lotId?:string|null}[];lotAllocations?:{lotId:string;quantity:number;lot?:{code:string;expiryDate:string}}[]};
-type ReturnEvent={id:string;createdAt:string;reason:string;lines:{orderItemId:string;quantity:number;lotId:string|null}[]};
+type ReturnEvent={id:string;createdAt:string;reason:string;lines:{orderItemId:string;quantity:number;lotId:string|null;disposition?:string}[]};
 const returnedCount=(line:Line)=>(line.returnLines||[]).reduce((total,r)=>total+r.quantity,0);
 type Order={id:string;customerName:string;customerPhone:string;customerAddress:string;customerCity:string;total:number;subtotal:number|null;shippingFee:number|null;couponCode:string|null;discountAmount:number|null;status:string;createdAt:string;items:Line[];returns?:ReturnEvent[]};
 type Result={orders:Order[];total:number;page:number;pageSize:number;totalPages:number;statusCounts:Record<string,number>;matchingSearchTotal:number};
@@ -115,6 +115,9 @@ export default function AdminOrders(){
    const open=expanded===o.id;
    const productsSum=o.items.reduce((sum,item)=>sum+item.price*item.quantity,0);
    const hasReturnable=o.status==='delivered'&&o.items.some(line=>line.quantity>returnedCount(line));
+   // Historical returned orders from the old status shortcut may lack a
+   // receipt ledger. A returned status does not imply a refund or inspection.
+   const missingReturnLedger=o.status==='returned'&&!(o.returns?.length);
    return <article key={o.id} className="overflow-hidden rounded-2xl border border-brand/20 bg-white">
     <div className="flex flex-wrap items-start justify-between gap-4 p-5">
      <div className="min-w-0"><p className="text-xs text-neutral-500">{new Date(o.createdAt).toLocaleString('ar-IQ')}</p><div className="mt-1 flex flex-wrap items-center gap-2">
@@ -134,18 +137,28 @@ export default function AdminOrders(){
         </p>)}
       </div>
      </div>
-     <div className="text-left"><span className={`inline-block rounded-full px-3 py-1 text-xs font-bold ${colors[o.status]||'bg-gray-100'}`}>{labels[o.status]||o.status}</span>
-      <p className="mt-3 text-xl font-black text-ink">{format(o.total)}</p></div>
+     <div className="flex min-w-[180px] flex-col items-start gap-1 text-right md:items-end">
+      <span className={`inline-block rounded-full px-3 py-1 text-xs font-bold ${colors[o.status]||'bg-gray-100'}`}>{labels[o.status]||o.status}</span>
+      <p className="mt-1 text-xl font-black text-ink" dir="rtl">{format(o.total)}</p>
+      {missingReturnLedger&&<span className="mt-1 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1.5 text-xs font-bold text-amber-900">
+        مرتجع قديم — بدون سجل فرز
+      </span>}
+     </div>
     </div>
     <div className="flex flex-wrap items-center justify-between gap-3 border-t border-brand/10 px-5 py-3">
      <button type="button" aria-expanded={open} onClick={()=>setExpanded(open?null:o.id)} className="font-bold text-sm text-brand">{open?'إخفاء التفاصيل ↑':'عرض الفاتورة والتفاصيل ↓'}</button>
      <div className="flex flex-wrap gap-2">
       {canReceiveReturns&&hasReturnable&&<button type="button" disabled={busy!==null} onClick={()=>setReturnOrder(o)}
-        className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs font-bold text-amber-900 hover:bg-amber-100 disabled:opacity-50">استلام مرتجع جزئي</button>}
-      {(transitions[o.status]||[]).filter(next=>next!=='returned'||canReceiveReturns).map(next=><button key={next} type="button" disabled={busy!==null} onClick={()=>change(o,next)}
+        className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs font-bold text-amber-900 hover:bg-amber-100 disabled:opacity-50">استلام وفرز مرتجع</button>}
+      {(transitions[o.status]||[]).filter(next=>next!=='returned').map(next=><button key={next} type="button" disabled={busy!==null} onClick={()=>change(o,next)}
       className={`rounded-lg border px-3 py-2 text-xs font-bold disabled:opacity-50 ${next==='cancelled'||next==='returned'?'border-red-200 text-red-700':'border-brand/20 text-brand'}`}>{busy===o.id?'جاري التحديث...':'تغيير إلى '+labels[next]}</button>)}</div>
     </div>
     {open&&<div className="grid gap-5 border-t border-brand/10 bg-paper2/30 p-5 md:grid-cols-2">
+     {missingReturnLedger&&<div role="note" className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm leading-7 text-amber-950 md:col-span-2">
+      <strong className="block">هذا مرتجع من السجلات القديمة.</strong>
+      حالة الطلب «مرتجع»، لكن لا يوجد سجل استلام وفرز مفصّل يثبت الكميات التي عادت للمخزون أو حالتها.
+      كذلك حالة الطلب وحدها لا تثبت رد أي مبلغ للزبون. لا تسجّل مرتجعاً جديداً على هذا الطلب لتعويض نقص السجل القديم.
+     </div>}
      <section><h3 className="mb-3 font-black">معلومات التوصيل</h3><p className="font-bold">{o.customerName}</p><a className="block text-brand underline" href={`tel:${o.customerPhone}`} dir="ltr">{o.customerPhone}</a>
       <p className="mt-2 text-sm">{o.customerCity}، {o.customerAddress}</p><p className="mt-2 text-xs text-neutral-500">الدفع عند الاستلام</p></section>
      <section><div className="mb-3 flex flex-wrap items-center justify-between gap-2"><h3 className="font-black">تفاصيل المبالغ</h3><Link href={"/order/invoice?id="+encodeURIComponent(o.id)} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 rounded-full border border-brand/30 bg-white px-3 py-2 text-xs font-black text-brand hover:bg-[#eaf9fc]"><Printer size={15}/> طباعة / حفظ PDF</Link></div>
@@ -162,7 +175,7 @@ export default function AdminOrders(){
        <div className="flex justify-between border-t border-brand/20 pt-2 text-lg font-black"><span>الإجمالي المحفوظ</span><strong>{format(o.total)}</strong></div>
       </div>
       {(o.returns?.length??0)>0&&<div className="mt-4 border-t border-brand/20 pt-3">
-        <h4 className="mb-2 font-black">سجل استلام المرتجعات</h4>
+        <h4 className="mb-2 font-black">سجل استلام وفرز المرتجعات</h4>
         {o.returns?.map(entry=><div key={entry.id} className="mb-2 rounded-xl border border-[#d4e7ef] bg-white p-3 text-xs">
           <p className="font-bold text-[#345968]">{new Date(entry.createdAt).toLocaleString('ar-IQ')} — {entry.reason}</p>
           {Array.from(entry.lines.reduce((totals,line)=>{
@@ -170,7 +183,13 @@ export default function AdminOrders(){
           },new Map<string,number>())).map(([itemId,qty])=><p key={itemId} className="mt-1">
             {o.items.find(i=>i.id===itemId)?.productName||o.items.find(i=>i.id===itemId)?.product?.name||'منتج'} × {qty}
           </p>)}
-          <p className="mt-1 text-amber-800">سجل مخزني فقط؛ مو إثبات استرداد مبلغ.</p>
+          <p className="mt-2 font-black text-[#3d6575]">
+            السليم المعاد للمخزون: {entry.lines.filter(line=>line.disposition!=='quarantined').reduce((sum,line)=>sum+line.quantity,0)}
+            {' · '}التالف المحجوز: {entry.lines.filter(line=>line.disposition==='quarantined').reduce((sum,line)=>sum+line.quantity,0)}
+          </p>
+          {entry.lines.some(line=>line.disposition==='quarantined')&&
+            <p className="mt-1 text-red-800">التالف مسجّل في الحجر فقط، وما يزيد الكمية المتاحة للبيع.</p>}
+          <p className="mt-1 text-amber-800">الاستلام والحجر لا يثبتان ردّ المبلغ للزبون.</p>
         </div>)}
       </div>}
       </section>

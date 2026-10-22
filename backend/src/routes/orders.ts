@@ -6,7 +6,7 @@ import { getJwtSecret } from '../config/auth';
 import { requireAdmin, requireSales } from '../middleware/requireAdmin';
 import { isProvince } from './delivery';
 import {discountFor,normalizeCode} from './coupons';
-import {ReturnError,parseReturnSelection,returnedCount,applyOrderReturn} from '../lib/orderReturnLedger';
+import {ReturnError,parseReturnSelection,applyOrderReturn} from '../lib/orderReturnLedger';
 
 const router = Router();
 const prisma = new PrismaClient();
@@ -390,15 +390,21 @@ const transitions: Record<string, string[]> = {
   pending: ['confirmed', 'cancelled'],
   confirmed: ['shipped', 'cancelled'],
   shipped: ['delivered'],
-  delivered: ['returned'],
+  delivered: [], // Receipts (including full returns) must use itemized /:id/returns.
   cancelled: [],
   returned: []
 };
 
-// Only admins may change status. Cancellation and confirmed returns restock ONCE.
+// Sales roles may perform safe status transitions; all merchandise returns now require
+// itemized, admin-only receipt and condition recording through POST /:id/returns.
 router.patch('/:id/status', requireSales, async (req, res) => {
   try {
     const status = req.body?.status;
+    if (status === 'returned') {
+      return res.status(409).json({
+        error: 'استلام المرتجع يتطلب تحديد كميات القطع السليمة والتالفة؛ استخدم نموذج استلام وفرز المرتجع.'
+      });
+    }
     if (typeof status !== 'string' || !Object.values(transitions).flat().includes(status)) {
       return res.status(400).json({ error: 'حالة الطلب غير صالحة' });
     }
@@ -412,23 +418,6 @@ router.patch('/:id/status', requireSales, async (req, res) => {
         throw new OrderError(409, 'الانتقال بين حالتي الطلب غير مسموح');
       }
 
-      if(status==='returned'){
-        if(!['owner','admin'].includes(res.locals.staffRole as string))
-          throw new ReturnError(403,'استلام المرتجعات يتطلب صلاحية الإدارة');
-        const rest=current.items.map(item=>{
-          const quantity=item.quantity-returnedCount(item);
-          const lots=item.lotAllocations.map(allocation=>({
-            lotId:allocation.lotId,
-            quantity:allocation.quantity-item.returnLines.filter(line=>line.lotId===allocation.lotId)
-              .reduce((sum,line)=>sum+line.quantity,0)
-          })).filter(line=>line.quantity>0);
-          return {orderItemId:item.id,quantity,...(lots.length?{lots}:{})};
-        }).filter(item=>item.quantity>0);
-        if(!rest.length)throw new ReturnError(409,'جميع القطع مسجلة كمرتجعة');
-        await applyOrderReturn(tx,current,rest,'full_status',
-          'استلام كامل الكمية المتبقية عبر تغيير الحالة',res.locals.adminUserId as string);
-        return tx.order.findUniqueOrThrow({where:{id:current.id}});
-      }
       const changed = await tx.order.updateMany({
         where: { id: current.id, status: current.status,returnRevision:current.returnRevision },
         data: { status }

@@ -1,0 +1,51 @@
+name: Thanaya - Returns & Frontend
+
+on:
+  pull_request:
+    paths:
+      - 'backend/**'
+      - 'frontend/**'
+      - '.github/workflows/returns-quarantine.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  isolated-returns-and-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: |
+            backend/package-lock.json
+            frontend/package-lock.json
+      - name: Rehearse quarantine migration on synthetic legacy database
+        run: python3 -m unittest discover -s backend/tests -p 'test_rehearse_return_disposition.py' -v
+      - name: Validate guarded migration against stale and damaged backups
+        run: python3 -m unittest discover -s backend/tests -p 'test_apply_return_disposition.py' -v
+      - name: Install backend dependencies
+        run: npm ci
+        working-directory: backend
+      - name: Isolated order and return checks
+        run: npm run test:orders
+        working-directory: backend
+        env:
+          NODE_ENV: test
+          # Each runner creates its own temporary SQLite DB inside the test script.
+          JWT_SECRET: ci-placeholder-not-used-by-live-store
+      - name: Install frontend dependencies
+        run: npm ci
+        working-directory: frontend
+      - name: Production frontend build
+        run: npm run build
+        working-directory: frontend
+        env:
+          NODE_ENV: production
+          THANAYA_INTERNAL_API_ORIGIN: http://127.0.0.1:4000

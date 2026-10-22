@@ -143,7 +143,7 @@ export const ordersAPI = {
   
   updateStatus: (id: string, status: string) =>
     apiRequest(`/orders/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }),
-  receiveReturn: (id:string,data:{requestId:string;reason:string;items:{orderItemId:string;quantity:number;lots?:{lotId:string;quantity:number}[]}[]})=>
+  receiveReturn: (id:string,data:{requestId:string;reason:string;items:{orderItemId:string;quantity:number;quarantinedQuantity?:number;lots?:{lotId:string;quantity:number;quarantinedQuantity?:number}[]}[]})=>
     apiRequest('/orders/'+encodeURIComponent(id)+'/returns',{method:'POST',body:JSON.stringify(data)}),
 };
 
