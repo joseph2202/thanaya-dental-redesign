@@ -23,10 +23,17 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
   if (params.minPrice) apiParams.minPrice = params.minPrice;
   if (params.maxPrice) apiParams.maxPrice = params.maxPrice;
 
-  const [fetchedProducts, allProducts] = await Promise.all([
-    productsAPI.getAll(apiParams) as Promise<CatalogProduct[]>,
-    productsAPI.getAll() as Promise<CatalogProduct[]>,
-  ]);
+  // When no backend filter is active, one catalog fetch is enough for both
+  // the cards and the filter sidebar (previously fetched the same list twice).
+  const hasApiFilters = Object.values(apiParams).some(Boolean);
+  const [fetchedProducts, allProducts] = hasApiFilters
+    ? await Promise.all([
+        productsAPI.getAll(apiParams) as Promise<CatalogProduct[]>,
+        productsAPI.getAll() as Promise<CatalogProduct[]>,
+      ])
+    : await (productsAPI.getAll() as Promise<CatalogProduct[]>).then(
+        items => [items, items] as const
+      );
   const stockOnly = params.inStock === '1';
   // availableStock excludes expired batches, while stock also includes those physically held.
   const products = stockOnly ? fetchedProducts.filter(p => (p.availableStock ?? p.stock) > 0) : fetchedProducts;
