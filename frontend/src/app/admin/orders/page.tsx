@@ -10,7 +10,7 @@ import {useAuth} from '@/context/AuthContext';
 import {shortOrderCode} from '@/lib/orderPresentation';
 
 type Line={id:string;quantity:number;price:number;productName?:string|null;product?:{name:string};returnLines?:{quantity:number;lotId?:string|null}[];lotAllocations?:{lotId:string;quantity:number;lot?:{code:string;expiryDate:string}}[]};
-type ReturnEvent={id:string;createdAt:string;reason:string;lines:{orderItemId:string;quantity:number;lotId:string|null}[]};
+type ReturnEvent={id:string;createdAt:string;reason:string;lines:{orderItemId:string;quantity:number;lotId:string|null;disposition?:string}[]};
 const returnedCount=(line:Line)=>(line.returnLines||[]).reduce((total,r)=>total+r.quantity,0);
 type Order={id:string;customerName:string;customerPhone:string;customerAddress:string;customerCity:string;total:number;subtotal:number|null;shippingFee:number|null;couponCode:string|null;discountAmount:number|null;status:string;createdAt:string;items:Line[];returns?:ReturnEvent[]};
 type Result={orders:Order[];total:number;page:number;pageSize:number;totalPages:number;statusCounts:Record<string,number>;matchingSearchTotal:number};
@@ -141,8 +141,8 @@ export default function AdminOrders(){
      <button type="button" aria-expanded={open} onClick={()=>setExpanded(open?null:o.id)} className="font-bold text-sm text-brand">{open?'إخفاء التفاصيل ↑':'عرض الفاتورة والتفاصيل ↓'}</button>
      <div className="flex flex-wrap gap-2">
       {canReceiveReturns&&hasReturnable&&<button type="button" disabled={busy!==null} onClick={()=>setReturnOrder(o)}
-        className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs font-bold text-amber-900 hover:bg-amber-100 disabled:opacity-50">استلام مرتجع جزئي</button>}
-      {(transitions[o.status]||[]).filter(next=>next!=='returned'||canReceiveReturns).map(next=><button key={next} type="button" disabled={busy!==null} onClick={()=>change(o,next)}
+        className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs font-bold text-amber-900 hover:bg-amber-100 disabled:opacity-50">استلام وفرز مرتجع</button>}
+      {(transitions[o.status]||[]).filter(next=>next!=='returned').map(next=><button key={next} type="button" disabled={busy!==null} onClick={()=>change(o,next)}
       className={`rounded-lg border px-3 py-2 text-xs font-bold disabled:opacity-50 ${next==='cancelled'||next==='returned'?'border-red-200 text-red-700':'border-brand/20 text-brand'}`}>{busy===o.id?'جاري التحديث...':'تغيير إلى '+labels[next]}</button>)}</div>
     </div>
     {open&&<div className="grid gap-5 border-t border-brand/10 bg-paper2/30 p-5 md:grid-cols-2">
@@ -162,7 +162,7 @@ export default function AdminOrders(){
        <div className="flex justify-between border-t border-brand/20 pt-2 text-lg font-black"><span>الإجمالي المحفوظ</span><strong>{format(o.total)}</strong></div>
       </div>
       {(o.returns?.length??0)>0&&<div className="mt-4 border-t border-brand/20 pt-3">
-        <h4 className="mb-2 font-black">سجل استلام المرتجعات</h4>
+        <h4 className="mb-2 font-black">سجل استلام وفرز المرتجعات</h4>
         {o.returns?.map(entry=><div key={entry.id} className="mb-2 rounded-xl border border-[#d4e7ef] bg-white p-3 text-xs">
           <p className="font-bold text-[#345968]">{new Date(entry.createdAt).toLocaleString('ar-IQ')} — {entry.reason}</p>
           {Array.from(entry.lines.reduce((totals,line)=>{
@@ -170,7 +170,13 @@ export default function AdminOrders(){
           },new Map<string,number>())).map(([itemId,qty])=><p key={itemId} className="mt-1">
             {o.items.find(i=>i.id===itemId)?.productName||o.items.find(i=>i.id===itemId)?.product?.name||'منتج'} × {qty}
           </p>)}
-          <p className="mt-1 text-amber-800">سجل مخزني فقط؛ مو إثبات استرداد مبلغ.</p>
+          <p className="mt-2 font-black text-[#3d6575]">
+            السليم المعاد للمخزون: {entry.lines.filter(line=>line.disposition!=='quarantined').reduce((sum,line)=>sum+line.quantity,0)}
+            {' · '}التالف المحجوز: {entry.lines.filter(line=>line.disposition==='quarantined').reduce((sum,line)=>sum+line.quantity,0)}
+          </p>
+          {entry.lines.some(line=>line.disposition==='quarantined')&&
+            <p className="mt-1 text-red-800">التالف مسجّل في الحجر فقط، وما يزيد الكمية المتاحة للبيع.</p>}
+          <p className="mt-1 text-amber-800">الاستلام والحجر لا يثبتان ردّ المبلغ للزبون.</p>
         </div>)}
       </div>}
       </section>
