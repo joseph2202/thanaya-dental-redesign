@@ -24,7 +24,7 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
     related = all.filter((p: any) => p.id !== product.id).slice(0, 3);
   } catch { related = []; }
 
-  return <><Header /><main className="site-container site-main py-5 md:py-8">
+  return <><Header /><main className="site-container site-main pt-5 pb-36 sm:pb-8 md:pt-8">
     <nav aria-label="مسار الصفحة" className="text-xs text-[#8090a4] flex flex-wrap items-center gap-2 mb-4"><Link href="/" className="hover:text-brand">الرئيسية</Link><span>/</span><Link href="/products" className="hover:text-brand">المنتجات</Link><span>/</span><span className="text-ink">{product.name}</span></nav>
     <div className="grid lg:grid-cols-2 gap-6 lg:gap-9 items-start">
       <ProductGallery name={product.name} image={product.image} icon={product.icon} gallery={product.gallery} />
