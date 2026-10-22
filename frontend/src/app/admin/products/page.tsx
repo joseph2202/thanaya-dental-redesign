@@ -539,8 +539,61 @@ export default function AdminProducts() {
       )}
 
       {visibilityError && <p role="alert" className="mb-4 rounded-xl bg-red-50 p-4 font-bold text-red-700">{visibilityError}</p>}
-      <div className="mb-6">
-        <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="ابحث عن منتج..." className="w-full max-w-md border-2 border-brand/30 rounded-xl px-4 py-2 font-bold focus:outline-none focus:border-brand" />
+
+      <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4" aria-label="تصفية المنتجات حسب الحالة">
+        {([
+          ['all','كل المنتجات'],['low','مخزون قليل'],['out','غير متوفر'],['hidden','مخفي عن الزبائن']
+        ] as [InventoryView,string][]).map(([key,label])=>
+          <button key={key} type="button" onClick={()=>setInventoryView(key)} aria-pressed={inventoryView===key}
+            className={`rounded-2xl border p-3 text-right transition sm:p-4 ${inventoryView===key?'border-[#5bbbd9] bg-[#eaf8fc]':'border-[#d1e7ee] bg-white hover:border-brand'}`}>
+            <span className="block text-xs font-bold text-[#617b89]">{label}</span>
+            <strong className={`mt-2 block text-2xl font-black ${key==='out'?'text-red-700':key==='low'?'text-amber-700':'text-brand'}`}>{inventorySummary[key]}</strong>
+          </button>)}
+      </div>
+      <div className="mb-4 flex flex-wrap items-center gap-3">
+        <label htmlFor="admin-product-search" className="sr-only">البحث في المنتجات والمخزون</label>
+        <input id="admin-product-search" type="search" value={searchQuery}
+          onChange={e=>setSearchQuery(e.target.value)} placeholder="ابحث بالاسم، SKU، الماركة أو القسم..."
+          className="site-input min-h-11 min-w-0 flex-1 px-4 py-2 text-sm sm:max-w-lg"/>
+        <span role="status" className="text-xs font-bold text-[#647e8a]">{filteredProducts.length} منتج مطابق</span>
+      </div>
+      {filteredProducts.length===0&&<div className="site-surface mb-4 p-8 text-center">
+        <p className="font-black text-[#315465]">ماكو منتجات تطابق البحث أو الفلتر.</p>
+        <button type="button" className="mt-3 text-sm font-bold text-brand underline" onClick={()=>{setSearchQuery('');setInventoryView('all')}}>عرض كل المنتجات</button>
+      </div>}
+
+      <div className="grid gap-3 sm:grid-cols-2 lg:hidden" aria-label="بطاقات إدارة المنتجات">
+        {filteredProducts.map(p=>{
+          const available=sellableStock(p);
+          return <article key={p.id} className="min-w-0 rounded-[22px] border border-[#cce5ee] bg-white p-4 shadow-sm">
+            <div className="flex items-start gap-3">
+              <div className="grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-2xl bg-[#edf7fb] text-brand">
+                {p.image?<img src={p.image} alt={p.name} loading="lazy" className="h-full w-full object-contain p-1"/>:<ProductIcon name={p.icon||'Package'} size={32}/>}
+              </div>
+              <div className="min-w-0 flex-1">
+                <h3 className="break-words text-sm font-black text-[#234757]">{p.name}</h3>
+                <p className="mt-1 break-words text-xs text-[#708793]">{p.brand||'بدون ماركة'} · {p.category||'غير مصنف'}</p>
+                {p.sku&&<p dir="ltr" className="mt-1 break-all text-left text-[11px] text-[#708793]">SKU: {p.sku}</p>}
+              </div>
+            </div>
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              {p.published===false&&<span className="rounded-full bg-amber-100 px-2 py-1 text-[10px] font-black text-amber-900">مخفي عن الزبائن</span>}
+              {available===0&&<span className="rounded-full bg-red-50 px-2 py-1 text-[10px] font-black text-red-700">غير متوفر للبيع</span>}
+              {available>0&&available<=5&&<span className="rounded-full bg-amber-50 px-2 py-1 text-[10px] font-black text-amber-800">مخزون قليل</span>}
+            </div>
+            <div className="mt-3 grid grid-cols-2 gap-3 rounded-xl bg-[#f4fafc] p-3">
+              <div><span className="block text-[11px] font-bold text-[#6d8996]">سعر البيع</span><strong className="mt-1 block text-sm font-black text-[#254353]">{p.price.toLocaleString('en-US')} د.ع</strong></div>
+              <div><span className="block text-[11px] font-bold text-[#6d8996]">المتاح للبيع</span><strong className={`mt-1 block text-sm font-black ${availabilityColor(available)}`}>{available} {saleUnitLabel(p.saleUnit)}</strong></div>
+              {p.lotTracking&&<p className="col-span-2 text-[11px] text-[#63808e]">المخزون الفعلي: {p.stock} — المنتهي الصلاحية ما يدخل بالمتاح للبيع.</p>}
+            </div>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button type="button" onClick={()=>openInventory(p)} className="site-btn site-btn-outline site-btn-sm !px-3">المخزون</button>
+              {canEditProducts&&<button type="button" onClick={()=>handleEdit(p)} className="rounded-full border border-[#b2ddeb] bg-[#eaf8fc] px-4 py-2 text-xs font-black text-[#147fa2]">تعديل</button>}
+              {canEditProducts&&<button type="button" disabled={visibilityBusy===p.id} onClick={()=>toggleVisibility(p)} className="rounded-full border border-[#c8e0e9] px-3 py-2 text-xs font-bold text-[#31586a] disabled:opacity-50">{visibilityBusy===p.id?'جاري الحفظ...':p.published===false?'إظهار بالمتجر':'إخفاء من المتجر'}</button>}
+              {canEditProducts&&<button type="button" onClick={()=>handleDelete(p)} className="rounded-full border border-red-100 bg-red-50 px-3 py-2 text-xs font-bold text-red-700">حذف</button>}
+            </div>
+          </article>;
+        })}
       </div>
 
       <div className="hidden overflow-x-auto rounded-2xl border-2 border-brand/20 bg-white lg:block">
