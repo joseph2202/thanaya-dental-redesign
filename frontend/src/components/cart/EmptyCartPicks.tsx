@@ -20,7 +20,7 @@ export default function EmptyCartPicks(){
    <h2 id="cart-picks-title" className="mt-2 text-xl font-black text-[#234b5d] sm:text-2xl">ابدأ بمنتج من كتالوج ثنايا</h2>
    <p className="mt-2 text-xs font-semibold text-[#718e9b]">منتجات متوفرة حالياً حسب الكتالوج؛ يتأكد المخزون مرة ثانية عند الطلب.</p>
   </div>
-  <div className={`grid gap-3.5 sm:gap-5 ${products.length===1?'mx-auto max-w-[320px]':'mx-auto max-w-[740px] grid-cols-2 lg:grid-cols-3'}`}>
+  <div className={`grid gap-3.5 sm:gap-5 ${products.length===1?'mx-auto max-w-[320px]':products.length===2?'mx-auto max-w-[680px] grid-cols-2':'mx-auto max-w-[820px] grid-cols-2 lg:grid-cols-3'}`}>
    {products.map(product=><CatalogProductCard key={product.id} product={product}/>)}
   </div>
  </section>;
