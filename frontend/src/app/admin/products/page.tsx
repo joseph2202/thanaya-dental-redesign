@@ -30,6 +30,8 @@ export default function AdminProducts() {
   const [visibilityError, setVisibilityError] = useState('');
   const [pendingVisibility, setPendingVisibility] = useState<any | null>(null);
   const visibilityDialogRef = useRef<HTMLDialogElement>(null);
+  const stockSectionRef=useRef<HTMLElement>(null);
+  const productFormRef=useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const dialog = visibilityDialogRef.current;
@@ -64,6 +66,13 @@ export default function AdminProducts() {
   const [actionReason,setActionReason]=useState('');
   const [actionBusy,setActionBusy]=useState(false);
   const [actionError,setActionError]=useState('');
+  // Opening an editor above the list must bring it into view on phones.
+  useEffect(()=>{
+    if(stockProduct?.id)stockSectionRef.current?.scrollIntoView({behavior:'smooth',block:'start'});
+  },[stockProduct?.id]);
+  useEffect(()=>{
+    if(showAddForm)productFormRef.current?.scrollIntoView({behavior:'smooth',block:'start'});
+  },[showAddForm,editingProduct?.id]);
   const closeAction=()=>{if(!actionBusy){setPendingAction(null);setActionError('')}};
 
 
@@ -445,7 +454,7 @@ export default function AdminProducts() {
       </div>
 
       {exportError&&<p role="alert" className="mb-4 rounded-xl bg-red-50 p-3 text-sm font-bold text-red-700">{exportError}</p>}
-      {stockProduct && <section className="site-surface mb-5 p-4 md:p-5" aria-label="إدارة المخزون">
+      {stockProduct && <section ref={stockSectionRef} className="site-surface mb-5 scroll-mt-32 p-4 md:p-5" aria-label="إدارة المخزون">
         <div className="flex items-center justify-between gap-3 mb-4"><h3 className="text-xl font-black">مخزون {stockProduct.name}</h3><button type="button" className="site-btn site-btn-outline site-btn-sm" onClick={() => setStockProduct(null)}>إغلاق</button></div>
         <p className="mb-4 text-sm">الكمية الحالية: <strong className="text-brand">{stockProduct.stock}</strong> {saleUnitLabel(stockProduct.saleUnit)}. للإضافة اكتب رقماً موجباً، وللتصحيح بالنقصان اكتب رقماً سالباً.</p>
         {canEditProducts&&<div className="mb-4 rounded-2xl border border-[#c6e4ed] bg-white p-4">
@@ -540,7 +549,9 @@ export default function AdminProducts() {
       </section>}
 
       {showAddForm && (
-        <ProductForm product={editingProduct} existingCategories={existingCategories} onSave={handleSave} onCancel={() => { setShowAddForm(false); setEditingProduct(null); }} loading={loading} />
+        <div ref={productFormRef} className="scroll-mt-32">
+          <ProductForm product={editingProduct} existingCategories={existingCategories} onSave={handleSave} onCancel={() => { setShowAddForm(false); setEditingProduct(null); }} loading={loading} />
+        </div>
       )}
 
       {visibilityError && <p role="alert" className="mb-4 rounded-xl bg-red-50 p-4 font-bold text-red-700">{visibilityError}</p>}
