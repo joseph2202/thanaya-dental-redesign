@@ -2,63 +2,67 @@
 
 import {useState} from 'react';
 import Link from 'next/link';
-import {ArrowUpLeft, Check, ShoppingBag} from 'lucide-react';
-import {useCart, type Product} from '@/context/CartContext';
+import {ArrowUpLeft,Check,ShoppingBag,ArrowLeft,Box} from 'lucide-react';
+import {useCart,type Product} from '@/context/CartContext';
 import ProductMedia from '@/components/ui/ProductMedia';
 import {saleUnitLabel} from '@/lib/saleUnits';
 
-export type CatalogCardProduct = Product & {
-  category?: string;
-  brand?: string;
-  price: number;
-  availableStock?: number;
-  saleUnit?: string | null;
+export type CatalogCardProduct=Product & {
+  category?:string;brand?:string;price:number;availableStock?:number;saleUnit?:string|null;
 };
 
-export default function CatalogProductCard({product}: {product: CatalogCardProduct}) {
-  const {addToCart} = useCart();
-  const [feedback, setFeedback] = useState<{success:boolean; message:string} | null>(null);
-  // Physical lot stock may contain expired inventory. Only sell usable units.
-  const available = Math.max(0, product.availableStock ?? product.stock);
-  const hasStock = available > 0;
+export default function CatalogProductCard({product}:{product:CatalogCardProduct}){
+ const {addToCart}=useCart();
+ const [feedback,setFeedback]=useState<{success:boolean;message:string}|null>(null);
+ const available=Math.max(0,product.availableStock??product.stock);
+ const hasStock=available>0;
+ const saleUnit=saleUnitLabel(product.saleUnit);
+ function handleAdd(){setFeedback(addToCart({...product,stock:available},1));}
+ const url=`/product/${encodeURIComponent(product.id)}`;
 
-  const handleAdd = () => {
-    setFeedback(addToCart({...product, stock: available}, 1));
-  };
+ return <article className="signature-card group flex h-full min-w-0 flex-col overflow-hidden">
+  <div className="relative m-2.5 mb-0 sm:m-3 sm:mb-0">
+   <Link href={url} className="signature-card-media block focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand" aria-label={`تفاصيل ${product.name}`}>
+    <ProductMedia name={product.name} image={product.image} icon={product.icon} size={58}
+      className={product.image?'aspect-[4/3] w-full':'aspect-[1.55] w-full'}/>
+   </Link>
+   <span className={`pointer-events-none absolute right-2.5 top-2.5 inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[10px] font-black shadow-sm ${hasStock?'border-[#c4eddc] bg-white/95 text-[#137958]':'border-red-200 bg-red-50 text-red-700'}`}>
+    <span aria-hidden="true" className={`h-1.5 w-1.5 rounded-full ${hasStock?'bg-emerald-500':'bg-red-500'}`}/>{hasStock?'متوفر':'غير متوفر'}
+   </span>
+   {!product.image&&<span className="pointer-events-none absolute bottom-3 right-3 max-w-[65%] rounded-full border border-[#d1e4ee] bg-white/85 px-2.5 py-1.5 text-[10px] font-bold text-[#638695]">
+     لا توجد صورة مرفوعة بعد
+   </span>}
+   <Link href={url} aria-label={`استكشف ${product.name}`} className="absolute bottom-3 left-3 grid h-9 w-9 place-items-center rounded-full border border-white/80 bg-white/95 text-[#267992] shadow-sm transition hover:bg-[#e7f9ff] focus-visible:outline-brand">
+    <ArrowUpLeft size={17} aria-hidden="true"/>
+   </Link>
+  </div>
 
-  return <article className="group flex h-full min-w-0 flex-col overflow-hidden rounded-[22px] border border-[#cde5ed] bg-white shadow-[0_8px_24px_rgba(24,79,102,.035)] transition-colors hover:border-[#83cde4] hover:shadow-[0_16px_30px_rgba(24,79,102,.08)]">
-    <div className="relative m-2 mb-0 sm:m-3 sm:mb-0">
-      <Link href={`/product/${product.id}`} className="block overflow-hidden rounded-[16px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand" aria-label={`عرض تفاصيل ${product.name}`}>
-        <ProductMedia name={product.name} image={product.image} icon={product.icon} size={56} className="aspect-[4/3] w-full rounded-[16px] sm:aspect-[5/4]" />
-      </Link>
-      <span className={`pointer-events-none absolute right-2 top-2 rounded-full border px-2.5 py-1 text-[10px] font-extrabold shadow-sm ${hasStock ? 'border-emerald-100 bg-white/95 text-emerald-700' : 'border-red-100 bg-red-50 text-red-700'}`}>
-        {hasStock ? 'متوفر' : 'غير متوفر'}
-      </span>
+  <div className="flex min-w-0 flex-1 flex-col px-3.5 pb-3.5 pt-3.5 sm:px-4.5 sm:pb-4.5">
+   <div className="flex min-w-0 items-center gap-2 text-[10px] font-extrabold text-[#167ba0] sm:text-[11px]">
+    <Box size={14} className="shrink-0" aria-hidden="true"/>
+    <span className="truncate">{product.category||'المستلزمات الطبية'}</span>
+   </div>
+   <Link href={url} className="mt-2 line-clamp-2 min-h-[3.3rem] text-sm font-black leading-[1.7] text-[#234454] transition hover:text-[#058ebf] sm:text-[15px]">
+    {product.name}
+   </Link>
+   {product.brand&&<p className="mt-1 truncate text-[11px] font-medium text-[#6f8994]">{product.brand}</p>}
+   <div className="mt-auto border-t border-[#edf3f5] pt-3.5">
+    <p className="text-[10px] font-semibold text-[#8499a3]">السعر / {saleUnit}</p>
+    <div className="mt-0.5 flex flex-wrap items-end gap-1.5">
+     <strong className="text-xl font-black tabular-nums tracking-tight text-[#173e50] sm:text-[23px]">{product.price.toLocaleString('en-US')}</strong>
+     <span className="pb-0.5 text-[11px] font-bold text-[#638594]">د.ع</span>
     </div>
-
-    <div className="flex min-w-0 flex-1 flex-col px-3 pb-3 pt-3 sm:px-4 sm:pb-4">
-      <p className="line-clamp-1 text-[10px] font-bold text-[#0783ad] sm:text-xs">{product.category || 'مستلزمات طبية'}</p>
-      <Link href={`/product/${product.id}`} className="mt-1 line-clamp-2 min-h-[3.25rem] text-[13px] font-black leading-[1.65] text-[#254452] hover:text-brand sm:text-[15px]">
-        {product.name}
-      </Link>
-      <p className="mt-1 line-clamp-1 text-[11px] text-[#728795]">{product.brand || 'ثنايا'}</p>
-      <div className="mt-auto border-t border-[#edf2f5] pt-3">
-        <div className="flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5">
-          <strong className="text-lg font-black tracking-tight text-[#16384a] sm:text-[22px]">{product.price.toLocaleString('en-US')}</strong>
-          <span className="text-[10px] font-bold text-[#748a97] sm:text-xs">د.ع / {saleUnitLabel(product.saleUnit)}</span>
-        </div>
-        <div className="mt-3">
-          <button type="button" onClick={handleAdd} disabled={!hasStock}
-            className="site-btn site-btn-primary site-btn-sm !min-h-[42px] w-full min-w-0 !px-2 !text-xs"
-            aria-label={`إضافة ${product.name} للسلة`}>
-            {feedback?.success ? <Check size={17} aria-hidden="true"/> : <ShoppingBag size={17} aria-hidden="true"/>}
-            <span>{!hasStock ? 'غير متوفر' : feedback?.success ? 'تمت الإضافة' : 'أضف للسلة'}</span>
-          </button>
-        </div>
-        {feedback && <div role="status" aria-live="polite" className={`mt-2 text-[11px] font-bold ${feedback.success ? 'text-emerald-700' : 'text-red-700'}`}>
-          {feedback.success ? <Link href="/cart" className="underline underline-offset-2">عرض السلة <ArrowUpLeft size={12} className="inline"/></Link> : feedback.message}
-        </div>}
-      </div>
-    </div>
-  </article>;
+    <button type="button" onClick={handleAdd} disabled={!hasStock}
+      aria-label={`إضافة ${product.name} للسلة`}
+      className={`signature-card-quick mt-3 flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl px-2 text-xs font-black sm:text-sm ${hasStock?'bg-[#089bcc] text-white shadow-[0_3px_0_#087da2] hover:bg-[#0a8eba]':'cursor-not-allowed bg-[#eaf0f2] text-[#80939a]'}`}>
+      {feedback?.success?<Check size={17} aria-hidden="true"/>:<ShoppingBag size={17} aria-hidden="true"/>}
+      <span>{!hasStock?'غير متوفر':feedback?.success?'أُضيف للسلة':'إضافة للسلة'}</span>
+      {hasStock&&!feedback?.success&&<ArrowLeft size={15} aria-hidden="true"/>}
+    </button>
+    {feedback&&<div role="status" aria-live="polite" className={`mt-2 text-center text-[11px] font-bold ${feedback.success?'text-emerald-800':'text-red-700'}`}>
+      {feedback.success?<Link href="/cart" className="inline-flex items-center gap-1 underline underline-offset-2">عرض السلة <ArrowUpLeft size={13} aria-hidden="true"/></Link>:feedback.message}
+    </div>}
+   </div>
+  </div>
+ </article>;
 }

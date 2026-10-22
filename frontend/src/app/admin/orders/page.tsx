@@ -118,40 +118,48 @@ export default function AdminOrders(){
    // Historical returned orders from the old status shortcut may lack a
    // receipt ledger. A returned status does not imply a refund or inspection.
    const missingReturnLedger=o.status==='returned'&&!(o.returns?.length);
-   return <article key={o.id} className="overflow-hidden rounded-2xl border border-brand/20 bg-white">
-    <div className="flex flex-wrap items-start justify-between gap-4 p-5">
-     <div className="min-w-0"><p className="text-xs text-neutral-500">{new Date(o.createdAt).toLocaleString('ar-IQ')}</p><div className="mt-1 flex flex-wrap items-center gap-2">
-         <h2 title={o.id} className="font-extrabold text-brand" dir="ltr">#{shortOrderCode(o.id)}</h2>
-         <button type="button" onClick={()=>void copyOrderId(o.id)} aria-label={`نسخ رقم الطلب الكامل ${o.id}`} title="نسخ رقم الطلب كاملاً"
-          className="grid h-9 w-9 place-items-center rounded-full border border-[#c8e5ef] text-[#177da0] hover:bg-[#e9f8fd]"><Copy size={15}/></button>
-        </div>
-      <p className="mt-2 font-bold text-ink">{o.customerName} <span className="text-sm font-normal text-neutral-500">· {o.customerCity}</span></p>
-       <a href={`tel:${o.customerPhone.replace(/[^+0-9]/g,'')}`} className="mt-2 inline-flex min-h-9 items-center gap-2 rounded-full border border-[#c7e4ef] bg-[#f1faff] px-3 text-xs font-black text-[#177da0]">
-        <Phone size={14} aria-hidden="true"/> اتصال بالزبون <span dir="ltr">{o.customerPhone}</span>
-       </a>
-      <div className="mt-3 rounded-xl border border-[#d6ebf3] bg-[#f6fbfd] p-3 text-sm">
-        <p className="mb-1 text-xs font-bold text-[#4b7788]">المنتجات المشتراة ({o.items.length} نوع)</p>
-        {o.items.slice(0,2).map(item=><p key={item.id} className="break-words text-[#304e5b]">
-          {item.productName||item.product?.name||'منتج من الطلب'} × {item.quantity}
-          {returnedCount(item)>0&&<span className="mr-2 text-xs font-bold text-amber-700">(مرجع {returnedCount(item)})</span>}
-        </p>)}
+   return <article key={o.id} aria-busy={busy===o.id} className="signature-order-card">
+    <div className="grid items-start gap-4 p-4 sm:p-5 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,.95fr)_minmax(175px,.55fr)] lg:gap-5">
+     <div className="min-w-0">
+      <p className="text-[11px] font-semibold text-[#8399a3]">{new Date(o.createdAt).toLocaleString('ar-IQ')}</p>
+      <div className="mt-1.5 flex flex-wrap items-center gap-2">
+       <h2 title={o.id} className="font-black text-[#0b8fb8]" dir="ltr">#{shortOrderCode(o.id)}</h2>
+       <button type="button" onClick={()=>void copyOrderId(o.id)} aria-label={`نسخ رقم الطلب الكامل ${o.id}`} title="نسخ الرقم الكامل"
+        className="grid h-9 w-9 place-items-center rounded-full border border-[#c8e5ef] text-[#177da0] hover:bg-[#e9f8fd]"><Copy size={15}/></button>
       </div>
+      <p className="mt-2 break-words text-[15px] font-black text-[#244855]">{o.customerName}
+       <span className="mr-2 text-xs font-semibold text-[#8aa0a9]">· {o.customerCity}</span>
+      </p>
+      <a href={`tel:${o.customerPhone.replace(/[^+0-9]/g,'')}`} className="mt-2 inline-flex min-h-9 items-center gap-2 rounded-full border border-[#c7e4ef] bg-[#f1faff] px-3 text-xs font-black text-[#177da0]">
+       <Phone size={14} aria-hidden="true"/> اتصال بالزبون <span dir="ltr">{o.customerPhone}</span>
+      </a>
      </div>
-     <div className="flex min-w-[180px] flex-col items-start gap-1 text-right md:items-end">
-      <span className={`inline-block rounded-full px-3 py-1 text-xs font-bold ${colors[o.status]||'bg-gray-100'}`}>{labels[o.status]||o.status}</span>
-      <p className="mt-1 text-xl font-black text-ink" dir="rtl">{format(o.total)}</p>
-      {missingReturnLedger&&<span className="mt-1 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1.5 text-xs font-bold text-amber-900">
-        مرتجع قديم — بدون سجل فرز
-      </span>}
+     <div className="min-w-0 rounded-2xl border border-[#d9eaf0] bg-[#f5fafc] p-3.5 lg:min-h-[112px]">
+      <p className="mb-2 text-[11px] font-black text-[#5f8392]">المنتجات المشتراة · {o.items.length} نوع</p>
+      {o.items.slice(0,2).map(item=><p key={item.id} className="mt-1 break-words text-sm font-semibold leading-6 text-[#2e5263]">
+       {item.productName||item.product?.name||'منتج من الطلب'} <span className="whitespace-nowrap font-black">× {item.quantity}</span>
+       {returnedCount(item)>0&&<span className="mr-2 text-xs font-bold text-amber-700">(مرجع {returnedCount(item)})</span>}
+      </p>)}
+      {o.items.length>2&&<p className="mt-1 text-xs font-bold text-[#70909d]">+ {o.items.length-2} أصناف إضافية داخل الفاتورة</p>}
+     </div>
+     <div className="flex min-w-0 flex-row items-center justify-between gap-3 border-t border-[#edf2f5] pt-3 text-right lg:flex-col lg:items-end lg:justify-start lg:border-0 lg:pt-0">
+      <span className={`inline-flex shrink-0 items-center rounded-full px-3 py-1.5 text-xs font-black ${colors[o.status]||'bg-gray-100'}`}>{labels[o.status]||o.status}</span>
+      <p className="text-xl font-black tabular-nums text-[#203f4e] lg:mt-2 lg:text-2xl" dir="rtl">{format(o.total)}</p>
      </div>
     </div>
-    <div className="flex flex-wrap items-center justify-between gap-3 border-t border-brand/10 px-5 py-3">
-     <button type="button" aria-expanded={open} onClick={()=>setExpanded(open?null:o.id)} className="font-bold text-sm text-brand">{open?'إخفاء التفاصيل ↑':'عرض الفاتورة والتفاصيل ↓'}</button>
+    {missingReturnLedger&&<div className="mx-4 mb-4 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-bold text-amber-900 sm:mx-5">
+      مرتجع قديم بدون سجل فرز؛ حالة الطلب لا تثبت الاستلام التفصيلي أو رد المبلغ.
+    </div>}
+    <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#eaf1f4] bg-[#fbfdfe] px-4 py-3 sm:px-5">
+     <button type="button" aria-expanded={open} onClick={()=>setExpanded(open?null:o.id)} className="inline-flex min-h-10 items-center gap-2 rounded-xl px-2 text-sm font-black text-[#1686ac] hover:bg-[#eef9fc]">{open?'إخفاء الفاتورة ↑':'الفاتورة وتفاصيل الطلب ↓'}</button>
      <div className="flex flex-wrap gap-2">
       {canReceiveReturns&&hasReturnable&&<button type="button" disabled={busy!==null} onClick={()=>setReturnOrder(o)}
-        className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs font-bold text-amber-900 hover:bg-amber-100 disabled:opacity-50">استلام وفرز مرتجع</button>}
+       className="rounded-xl border border-amber-300 bg-amber-50 px-3 py-2.5 text-xs font-black text-amber-900 hover:bg-amber-100 disabled:opacity-50">استلام وفرز مرتجع</button>}
       {(transitions[o.status]||[]).filter(next=>next!=='returned').map(next=><button key={next} type="button" disabled={busy!==null} onClick={()=>change(o,next)}
-      className={`rounded-lg border px-3 py-2 text-xs font-bold disabled:opacity-50 ${next==='cancelled'||next==='returned'?'border-red-200 text-red-700':'border-brand/20 text-brand'}`}>{busy===o.id?'جاري التحديث...':'تغيير إلى '+labels[next]}</button>)}</div>
+       className={`rounded-xl border px-3 py-2.5 text-xs font-black transition disabled:opacity-50 ${next==='cancelled'?'border-red-200 bg-red-50 text-red-700 hover:bg-red-100':'border-[#bce1ed] bg-white text-[#167b9f] hover:bg-[#e7f7fc]'}`}>
+       {busy===o.id?'جاري التحديث...':'تغيير إلى '+labels[next]}
+      </button>)}
+     </div>
     </div>
     {open&&<div className="grid gap-5 border-t border-brand/10 bg-paper2/30 p-5 md:grid-cols-2">
      {missingReturnLedger&&<div role="note" className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm leading-7 text-amber-950 md:col-span-2">
