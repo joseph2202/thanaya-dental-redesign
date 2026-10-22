@@ -9,11 +9,18 @@ import SiteActionDialog from '@/components/ui/SiteActionDialog';
 import { useAuth } from '@/context/AuthContext';
 import {saleUnitLabel,saleUnitOptions} from '@/lib/saleUnits';
 
+type InventoryView='all'|'low'|'out'|'hidden';
+const sellableStock=(p:any):number=>Math.max(0,Number(p.lotTracking?(p.availableStock??p.stock):p.stock)||0);
+const availabilityColor=(n:number)=>n===0?'text-red-700':n<=5?'text-amber-700':'text-emerald-700';
+
 export default function AdminProducts() {
   const { user } = useAuth();
   const canEditProducts = user?.role === 'owner' || user?.role === 'admin';
   const [productsList, setProductsList] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [inventoryView,setInventoryView]=useState<InventoryView>('all');
+  const [listLoading,setListLoading]=useState(true);
+  const [listError,setListError]=useState('');
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [loading, setLoading] = useState(false);
@@ -23,6 +30,8 @@ export default function AdminProducts() {
   const [visibilityError, setVisibilityError] = useState('');
   const [pendingVisibility, setPendingVisibility] = useState<any | null>(null);
   const visibilityDialogRef = useRef<HTMLDialogElement>(null);
+  const stockSectionRef=useRef<HTMLElement>(null);
+  const productFormRef=useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const dialog = visibilityDialogRef.current;
@@ -57,6 +66,13 @@ export default function AdminProducts() {
   const [actionReason,setActionReason]=useState('');
   const [actionBusy,setActionBusy]=useState(false);
   const [actionError,setActionError]=useState('');
+  // Opening an editor above the list must bring it into view on phones.
+  useEffect(()=>{
+    if(stockProduct?.id)stockSectionRef.current?.scrollIntoView({behavior:'smooth',block:'start'});
+  },[stockProduct?.id]);
+  useEffect(()=>{
+    if(showAddForm)productFormRef.current?.scrollIntoView({behavior:'smooth',block:'start'});
+  },[showAddForm,editingProduct?.id]);
   const closeAction=()=>{if(!actionBusy){setPendingAction(null);setActionError('')}};
 
 
@@ -65,11 +81,14 @@ export default function AdminProducts() {
   }, []);
 
   const loadProducts = async () => {
+    setListLoading(true);setListError('');
     try {
       const data = await productsAPI.manage();
       setProductsList(data);
     } catch (error) {
-      console.error('Failed to load products', error);
+      setListError(error instanceof Error?error.message:'تعذّر جلب المنتجات، حاول مرة ثانية.');
+    } finally {
+      setListLoading(false);
     }
   };
 
@@ -298,9 +317,22 @@ export default function AdminProducts() {
 
   const existingCategories = [...new Set(productsList.map(p => p.category?.trim()).filter(Boolean))] as string[];
 
-  const filteredProducts = productsList.filter((p) =>
-    p.name.toLowerCase().includes(searchQuery.toLowerCase()) || (p.sku||'').toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const inventorySummary={
+    all:productsList.length,
+    low:productsList.filter(p=>sellableStock(p)>0&&sellableStock(p)<=5).length,
+    out:productsList.filter(p=>sellableStock(p)===0).length,
+    hidden:productsList.filter(p=>p.published===false).length
+  };
+  const normalizedQuery=searchQuery.trim().toLocaleLowerCase();
+  const filteredProducts=productsList.filter(p=>{
+    const matches=!normalizedQuery||[p.name,p.sku,p.brand,p.category].some(
+      value=>typeof value==='string'&&value.toLocaleLowerCase().includes(normalizedQuery));
+    const available=sellableStock(p);
+    return matches&&(inventoryView==='all'||
+      (inventoryView==='low'&&available>0&&available<=5)||
+      (inventoryView==='out'&&available===0)||
+      (inventoryView==='hidden'&&p.published===false));
+  });
 
   return (
     <AdminLayout>
@@ -422,7 +454,7 @@ export default function AdminProducts() {
       </div>
 
       {exportError&&<p role="alert" className="mb-4 rounded-xl bg-red-50 p-3 text-sm font-bold text-red-700">{exportError}</p>}
-      {stockProduct && <section className="site-surface mb-5 p-4 md:p-5" aria-label="إدارة المخزون">
+      {stockProduct && <section ref={stockSectionRef} className="site-surface mb-5 scroll-mt-32 p-4 md:p-5" aria-label="إدارة المخزون">
         <div className="flex items-center justify-between gap-3 mb-4"><h3 className="text-xl font-black">مخزون {stockProduct.name}</h3><button type="button" className="site-btn site-btn-outline site-btn-sm" onClick={() => setStockProduct(null)}>إغلاق</button></div>
         <p className="mb-4 text-sm">الكمية الحالية: <strong className="text-brand">{stockProduct.stock}</strong> {saleUnitLabel(stockProduct.saleUnit)}. للإضافة اكتب رقماً موجباً، وللتصحيح بالنقصان اكتب رقماً سالباً.</p>
         {canEditProducts&&<div className="mb-4 rounded-2xl border border-[#c6e4ed] bg-white p-4">
@@ -517,16 +549,76 @@ export default function AdminProducts() {
       </section>}
 
       {showAddForm && (
-        <ProductForm product={editingProduct} existingCategories={existingCategories} onSave={handleSave} onCancel={() => { setShowAddForm(false); setEditingProduct(null); }} loading={loading} />
+        <div ref={productFormRef} className="scroll-mt-32">
+          <ProductForm product={editingProduct} existingCategories={existingCategories} onSave={handleSave} onCancel={() => { setShowAddForm(false); setEditingProduct(null); }} loading={loading} />
+        </div>
       )}
 
       {visibilityError && <p role="alert" className="mb-4 rounded-xl bg-red-50 p-4 font-bold text-red-700">{visibilityError}</p>}
-      <div className="mb-6">
-        <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="ابحث عن منتج..." className="w-full max-w-md border-2 border-brand/30 rounded-xl px-4 py-2 font-bold focus:outline-none focus:border-brand" />
+      {listError&&<div role="alert" className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700">
+        <span>{listError}</span>
+        <button type="button" onClick={()=>void loadProducts()} className="underline underline-offset-4">إعادة المحاولة</button>
+      </div>}
+      {listLoading&&<p role="status" className="mb-4 rounded-xl border border-[#cce5ee] bg-[#eef9fd] p-4 text-sm font-bold text-[#1f718c]">جاري تحميل معلومات المنتجات والمخزون...</p>}
+
+      <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4" aria-label="تصفية المنتجات حسب الحالة">
+        {([
+          ['all','كل المنتجات'],['low','مخزون قليل'],['out','غير متوفر'],['hidden','مخفي عن الزبائن']
+        ] as [InventoryView,string][]).map(([key,label])=>
+          <button key={key} type="button" onClick={()=>setInventoryView(key)} aria-pressed={inventoryView===key}
+            className={`rounded-2xl border p-3 text-right transition sm:p-4 ${inventoryView===key?'border-[#5bbbd9] bg-[#eaf8fc]':'border-[#d1e7ee] bg-white hover:border-brand'}`}>
+            <span className="block text-xs font-bold text-[#617b89]">{label}</span>
+            <strong className={`mt-2 block text-2xl font-black ${key==='out'?'text-red-700':key==='low'?'text-amber-700':'text-brand'}`}>{inventorySummary[key]}</strong>
+          </button>)}
+      </div>
+      <div className="mb-4 flex flex-wrap items-center gap-3">
+        <label htmlFor="admin-product-search" className="sr-only">البحث في المنتجات والمخزون</label>
+        <input id="admin-product-search" type="search" value={searchQuery}
+          onChange={e=>setSearchQuery(e.target.value)} placeholder="ابحث بالاسم، SKU، الماركة أو القسم..."
+          className="site-input min-h-11 min-w-0 flex-1 px-4 py-2 text-sm sm:max-w-lg"/>
+        <span role="status" className="text-xs font-bold text-[#647e8a]">{filteredProducts.length} منتج مطابق</span>
+      </div>
+      {!listLoading&&!listError&&filteredProducts.length===0&&<div className="site-surface mb-4 p-8 text-center">
+        <p className="font-black text-[#315465]">ماكو منتجات تطابق البحث أو الفلتر.</p>
+        <button type="button" className="mt-3 text-sm font-bold text-brand underline" onClick={()=>{setSearchQuery('');setInventoryView('all')}}>عرض كل المنتجات</button>
+      </div>}
+
+      <div className="grid gap-3 sm:grid-cols-2 lg:hidden" aria-label="بطاقات إدارة المنتجات">
+        {filteredProducts.map(p=>{
+          const available=sellableStock(p);
+          return <article key={p.id} className="min-w-0 rounded-[22px] border border-[#cce5ee] bg-white p-4 shadow-sm">
+            <div className="flex items-start gap-3">
+              <div className="grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-2xl bg-[#edf7fb] text-brand">
+                {p.image?<img src={p.image} alt={p.name} loading="lazy" className="h-full w-full object-contain p-1"/>:<ProductIcon name={p.icon||'Package'} size={32}/>}
+              </div>
+              <div className="min-w-0 flex-1">
+                <h3 className="break-words text-sm font-black text-[#234757]">{p.name}</h3>
+                <p className="mt-1 break-words text-xs text-[#708793]">{p.brand||'بدون ماركة'} · {p.category||'غير مصنف'}</p>
+                {p.sku&&<p dir="ltr" className="mt-1 break-all text-left text-[11px] text-[#708793]">SKU: {p.sku}</p>}
+              </div>
+            </div>
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              {p.published===false&&<span className="rounded-full bg-amber-100 px-2 py-1 text-[10px] font-black text-amber-900">مخفي عن الزبائن</span>}
+              {available===0&&<span className="rounded-full bg-red-50 px-2 py-1 text-[10px] font-black text-red-700">غير متوفر للبيع</span>}
+              {available>0&&available<=5&&<span className="rounded-full bg-amber-50 px-2 py-1 text-[10px] font-black text-amber-800">مخزون قليل</span>}
+            </div>
+            <div className="mt-3 grid grid-cols-2 gap-3 rounded-xl bg-[#f4fafc] p-3">
+              <div><span className="block text-[11px] font-bold text-[#6d8996]">سعر البيع</span><strong className="mt-1 block text-sm font-black text-[#254353]">{p.price.toLocaleString('en-US')} د.ع</strong></div>
+              <div><span className="block text-[11px] font-bold text-[#6d8996]">المتاح للبيع</span><strong className={`mt-1 block text-sm font-black ${availabilityColor(available)}`}>{available} {saleUnitLabel(p.saleUnit)}</strong></div>
+              {p.lotTracking&&<p className="col-span-2 text-[11px] text-[#63808e]">المخزون الفعلي: {p.stock} — المنتهي الصلاحية ما يدخل بالمتاح للبيع.</p>}
+            </div>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button type="button" onClick={()=>openInventory(p)} className="site-btn site-btn-outline site-btn-sm !px-3">المخزون</button>
+              {canEditProducts&&<button type="button" onClick={()=>handleEdit(p)} className="rounded-full border border-[#b2ddeb] bg-[#eaf8fc] px-4 py-2 text-xs font-black text-[#147fa2]">تعديل</button>}
+              {canEditProducts&&<button type="button" disabled={visibilityBusy===p.id} onClick={()=>toggleVisibility(p)} className="rounded-full border border-[#c8e0e9] px-3 py-2 text-xs font-bold text-[#31586a] disabled:opacity-50">{visibilityBusy===p.id?'جاري الحفظ...':p.published===false?'إظهار بالمتجر':'إخفاء من المتجر'}</button>}
+              {canEditProducts&&<button type="button" onClick={()=>handleDelete(p)} className="rounded-full border border-red-100 bg-red-50 px-3 py-2 text-xs font-bold text-red-700">حذف</button>}
+            </div>
+          </article>;
+        })}
       </div>
 
-      <div className="bg-white border-2 border-brand/20 rounded-2xl overflow-hidden">
-        <table className="w-full">
+      <div className="hidden overflow-x-auto rounded-2xl border-2 border-brand/20 bg-white lg:block">
+        <table className="w-full min-w-[900px]">
           <thead className="bg-paper2">
             <tr>
               <th className="px-4 py-3 text-right font-black text-sm text-ink">المنتج</th>
@@ -555,7 +647,7 @@ export default function AdminProducts() {
                 <td className="px-4 py-3 text-sm text-ink">{p.category}</td>
                 <td className="px-4 py-3 text-sm font-bold text-ink">{p.price.toLocaleString()} د.ع</td>
                 <td className="px-4 py-3">
-                  <span className={`text-sm font-bold ${p.stock > 10 ? 'text-green-600' : p.stock > 0 ? 'text-yellow-600' : 'text-red-600'}`}>{p.lotTracking ? (p.availableStock??p.stock) : p.stock} {saleUnitLabel(p.saleUnit)}</span>
+                  <span className={`text-sm font-bold ${availabilityColor(sellableStock(p))}`}>{sellableStock(p)} {saleUnitLabel(p.saleUnit)}</span>
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex gap-2">

@@ -1,12 +1,13 @@
 "use client";
-import {useCallback,useEffect,useState} from 'react';
+import {useCallback,useEffect,useRef,useState} from 'react';
 import AdminLayout from '@/components/admin/AdminLayout';
 import Link from 'next/link';
-import {Printer,FileSpreadsheet} from 'lucide-react';
+import {Printer,FileSpreadsheet,Copy,Phone} from 'lucide-react';
 import {ordersAPI,exportsAPI} from '@/lib/api';
 import SiteActionDialog from '@/components/ui/SiteActionDialog';
 import PartialReturnDialog from '@/components/admin/PartialReturnDialog';
 import {useAuth} from '@/context/AuthContext';
+import {shortOrderCode} from '@/lib/orderPresentation';
 
 type Line={id:string;quantity:number;price:number;productName?:string|null;product?:{name:string};returnLines?:{quantity:number;lotId?:string|null}[];lotAllocations?:{lotId:string;quantity:number;lot?:{code:string;expiryDate:string}}[]};
 type ReturnEvent={id:string;createdAt:string;reason:string;lines:{orderItemId:string;quantity:number;lotId:string|null}[]};
@@ -29,11 +30,18 @@ export default function AdminOrders(){
  const [pendingChange,setPendingChange]=useState<{order:Order;next:string}|null>(null);
  const [returnOrder,setReturnOrder]=useState<Order|null>(null);
  const [changeError,setChangeError]=useState('');
+ const requestSequence=useRef(0);
  const load=useCallback(async()=>{
+  const sequence=++requestSequence.current;
   setLoading(true);setError('');
-  try{setData(await ordersAPI.manage({page,status,search:query}))}
-  catch(e){setError(e instanceof Error?e.message:'تعذر تحميل الطلبات')}
-  finally{setLoading(false)}
+  try{
+   const next=await ordersAPI.manage({page,status,search:query});
+   if(sequence===requestSequence.current)setData(next);
+  }catch(e){
+   if(sequence===requestSequence.current)setError(e instanceof Error?e.message:'تعذر تحميل الطلبات');
+  }finally{
+   if(sequence===requestSequence.current)setLoading(false);
+  }
  },[page,status,query]);
  useEffect(()=>{load()},[load]);
  function change(order:Order,next:string){setChangeError('');setPendingChange({order,next});}
@@ -50,6 +58,10 @@ export default function AdminOrders(){
   finally{setBusy(null)}
  }
  function submitSearch(e:React.FormEvent){e.preventDefault();setPage(1);setQuery(search.trim());}
+ async function copyOrderId(id:string){
+  try{await navigator.clipboard.writeText(id);setNotice('تم نسخ رقم الطلب '+shortOrderCode(id));}
+  catch{setError('تعذر النسخ تلقائياً. افتح تفاصيل الطلب وانسخه يدوياً.');}
+ }
  return <AdminLayout>
   <PartialReturnDialog order={returnOrder} onClose={()=>setReturnOrder(null)}
     onComplete={message=>{
@@ -83,11 +95,11 @@ export default function AdminOrders(){
   {error&&<p className="mb-4 rounded-xl bg-red-50 p-4 text-red-700 font-bold" role="alert">{error}</p>}
   {notice&&<p className="mb-4 rounded-xl bg-green-50 p-4 text-green-700 font-bold" role="status">{notice}</p>}
   <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
-   {(['pending','confirmed','shipped','delivered'] as const).map(x=><button key={x} onClick={()=>{setStatus(x);setPage(1)}} className="rounded-2xl border border-brand/20 bg-white p-4 text-right hover:border-brand">
+   {(['pending','confirmed','shipped','delivered'] as const).map(x=><button key={x} onClick={()=>{setStatus(x);setPage(1)}} className={`rounded-2xl border p-4 text-right transition ${status===x?'border-brand bg-[#e9f8fd] shadow-sm':'border-brand/20 bg-white hover:border-brand'}`} aria-pressed={status===x}>
    <span className="text-sm text-neutral-600">{labels[x]}</span><strong className="mt-2 block text-3xl text-brand">{data?.statusCounts[x]??'—'}</strong></button>)}
   </div>
-  <form onSubmit={submitSearch} className="mb-5 flex flex-wrap gap-2">
-   <input type="search" value={search} onChange={e=>setSearch(e.target.value)} placeholder="رقم الطلب، اسم الزبون، الهاتف، المحافظة..." maxLength={100} className="min-w-[180px] flex-1 rounded-xl border border-brand/25 bg-white px-4 py-3"/>
+  <form onSubmit={submitSearch} role="search" aria-label="البحث في الطلبات" className="mb-5 flex flex-wrap gap-2">
+   <input type="search" aria-label="البحث عن طلب بالرقم أو اسم الزبون أو الهاتف" value={search} onChange={e=>setSearch(e.target.value)} placeholder="رقم الطلب، اسم الزبون، الهاتف، المحافظة..." maxLength={100} className="min-w-[180px] flex-1 rounded-xl border border-brand/25 bg-white px-4 py-3"/>
    <button type="submit" className="site-btn site-btn-primary site-btn-sm">بحث</button>
    {(query||search)&&<button type="button" className="site-btn site-btn-outline site-btn-sm" onClick={()=>{setSearch('');setQuery('');setPage(1)}}>مسح</button>}
   </form>
@@ -99,17 +111,24 @@ export default function AdminOrders(){
   <p className="mb-4 text-xs text-neutral-500">{loading?'جاري تحميل الطلبات...':`نتائج البحث: ${data?.total??0} طلب`}</p>
   {!loading&&data?.orders.length===0&&<div className="rounded-2xl bg-white p-10 text-center">ماكو طلبات مطابقة للبحث.</div>}
   <div className="space-y-4">
-  {data?.orders.map(o=>{
+  {!loading&&data?.orders.map(o=>{
    const open=expanded===o.id;
    const productsSum=o.items.reduce((sum,item)=>sum+item.price*item.quantity,0);
    const hasReturnable=o.status==='delivered'&&o.items.some(line=>line.quantity>returnedCount(line));
    return <article key={o.id} className="overflow-hidden rounded-2xl border border-brand/20 bg-white">
     <div className="flex flex-wrap items-start justify-between gap-4 p-5">
-     <div className="min-w-0"><p className="text-xs text-neutral-500">{new Date(o.createdAt).toLocaleString('ar-IQ')}</p><h2 className="mt-1 break-all font-extrabold text-brand">{o.id}</h2>
+     <div className="min-w-0"><p className="text-xs text-neutral-500">{new Date(o.createdAt).toLocaleString('ar-IQ')}</p><div className="mt-1 flex flex-wrap items-center gap-2">
+         <h2 title={o.id} className="font-extrabold text-brand" dir="ltr">#{shortOrderCode(o.id)}</h2>
+         <button type="button" onClick={()=>void copyOrderId(o.id)} aria-label={`نسخ رقم الطلب الكامل ${o.id}`} title="نسخ رقم الطلب كاملاً"
+          className="grid h-9 w-9 place-items-center rounded-full border border-[#c8e5ef] text-[#177da0] hover:bg-[#e9f8fd]"><Copy size={15}/></button>
+        </div>
       <p className="mt-2 font-bold text-ink">{o.customerName} <span className="text-sm font-normal text-neutral-500">· {o.customerCity}</span></p>
+       <a href={`tel:${o.customerPhone.replace(/[^+0-9]/g,'')}`} className="mt-2 inline-flex min-h-9 items-center gap-2 rounded-full border border-[#c7e4ef] bg-[#f1faff] px-3 text-xs font-black text-[#177da0]">
+        <Phone size={14} aria-hidden="true"/> اتصال بالزبون <span dir="ltr">{o.customerPhone}</span>
+       </a>
       <div className="mt-3 rounded-xl border border-[#d6ebf3] bg-[#f6fbfd] p-3 text-sm">
         <p className="mb-1 text-xs font-bold text-[#4b7788]">المنتجات المشتراة ({o.items.length} نوع)</p>
-        {o.items.map(item=><p key={item.id} className="break-words text-[#304e5b]">
+        {o.items.slice(0,2).map(item=><p key={item.id} className="break-words text-[#304e5b]">
           {item.productName||item.product?.name||'منتج من الطلب'} × {item.quantity}
           {returnedCount(item)>0&&<span className="mr-2 text-xs font-bold text-amber-700">(مرجع {returnedCount(item)})</span>}
         </p>)}
@@ -124,7 +143,7 @@ export default function AdminOrders(){
       {canReceiveReturns&&hasReturnable&&<button type="button" disabled={busy!==null} onClick={()=>setReturnOrder(o)}
         className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs font-bold text-amber-900 hover:bg-amber-100 disabled:opacity-50">استلام مرتجع جزئي</button>}
       {(transitions[o.status]||[]).filter(next=>next!=='returned'||canReceiveReturns).map(next=><button key={next} type="button" disabled={busy!==null} onClick={()=>change(o,next)}
-      className={`rounded-lg border px-3 py-2 text-xs font-bold disabled:opacity-50 ${next==='cancelled'||next==='returned'?'border-red-200 text-red-700':'border-brand/20 text-brand'}`}>{busy===o.id?'جاري التحديث...':labels[next]}</button>)}</div>
+      className={`rounded-lg border px-3 py-2 text-xs font-bold disabled:opacity-50 ${next==='cancelled'||next==='returned'?'border-red-200 text-red-700':'border-brand/20 text-brand'}`}>{busy===o.id?'جاري التحديث...':'تغيير إلى '+labels[next]}</button>)}</div>
     </div>
     {open&&<div className="grid gap-5 border-t border-brand/10 bg-paper2/30 p-5 md:grid-cols-2">
      <section><h3 className="mb-3 font-black">معلومات التوصيل</h3><p className="font-bold">{o.customerName}</p><a className="block text-brand underline" href={`tel:${o.customerPhone}`} dir="ltr">{o.customerPhone}</a>
