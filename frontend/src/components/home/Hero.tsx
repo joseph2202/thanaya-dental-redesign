@@ -16,10 +16,10 @@ export default function Hero(){
           مستلزمات وأجهزة طب الأسنان لعيادتك، مع أسعار واضحة بالدينار وتفاصيل تساعدك تختار بثقة.
         </p>
         <div className="mt-4 flex flex-row flex-wrap gap-2.5 sm:mt-6 sm:gap-3">
-          <Link href="/products" className="site-btn site-btn-primary site-btn-sm min-w-0 flex-1 !px-2.5 !text-xs sm:site-btn-lg sm:flex-none sm:!px-7 sm:!text-sm">
+          <Link href="/products" className="site-btn site-btn-primary site-btn-sm min-w-0 flex-1 !px-2.5 !text-xs sm:min-h-[52px] sm:flex-none sm:!px-7 sm:!text-sm">
             تسوّق المنتجات <ArrowUpLeft size={18} aria-hidden="true" />
           </Link>
-          <Link href="/categories" className="site-btn site-btn-outline site-btn-sm min-w-0 flex-1 !px-2.5 !text-xs sm:site-btn-lg sm:flex-none sm:!px-7 sm:!text-sm">
+          <Link href="/categories" className="site-btn site-btn-outline site-btn-sm min-w-0 flex-1 !px-2.5 !text-xs sm:min-h-[52px] sm:flex-none sm:!px-7 sm:!text-sm">
             استكشف الأقسام <ArrowLeft size={18} aria-hidden="true" />
           </Link>
         </div>
