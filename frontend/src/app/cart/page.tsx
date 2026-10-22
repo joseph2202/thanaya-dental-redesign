@@ -9,6 +9,7 @@ import {productsAPI,CartQuote} from '@/lib/api';
 import {Trash2,Minus,Plus,ArrowUpLeft,ShieldCheck,ShoppingBag,Truck,ArrowRight,LockKeyhole,PackageCheck} from 'lucide-react';
 import {saleUnitLabel} from '@/lib/saleUnits';
 import SiteActionDialog from '@/components/ui/SiteActionDialog';
+import EmptyCartPicks from '@/components/cart/EmptyCartPicks';
 
 const amount=(value:number)=>value.toLocaleString('en-US')+' د.ع';
 
@@ -53,14 +54,15 @@ export default function CartPage(){
  }
 
  if(items.length===0)return <><Header/>
-  <main className="site-container site-main flex min-h-[65vh] items-center justify-center py-12">
-   <div className="signature-detail-sheet mx-auto w-full max-w-[580px] px-5 py-12 text-center sm:px-12">
+  <main className="site-container site-main py-10 sm:py-12">
+   <div className="signature-detail-sheet mx-auto w-full max-w-[580px] px-5 py-10 text-center sm:px-12">
     <div className="mx-auto grid h-20 w-20 place-items-center rounded-[27px] bg-[#e7f7fc] text-brand"><ShoppingBag size={38} strokeWidth={1.5}/></div>
     <span className="site-eyebrow mt-6 block" dir="ltr">YOUR THANAYA CART</span>
     <h1 className="mt-3 text-3xl font-black text-[#244454] sm:text-4xl">سلتك بانتظار أول اختيار</h1>
     <p className="mx-auto mt-4 max-w-sm text-sm leading-8 text-[#6c8692]">تصفّح مستلزمات العيادة، وشوف الأسعار والتفاصيل، وأضف المنتجات اللي تحتاجها.</p>
     <Link href="/products" className="site-btn site-btn-primary mt-7">استكشف المنتجات <ArrowUpLeft size={18}/></Link>
    </div>
+   <EmptyCartPicks/>
   </main><Footer/></>;
 
  const canCheckout=Boolean(quote?.canCheckout&&!quoteLoading&&!quoteError);
