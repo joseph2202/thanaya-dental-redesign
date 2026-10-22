@@ -34,7 +34,7 @@ export default function Products() {
         </div>)}
       <span className="sr-only">جاري تحميل المنتجات...</span>
     </div> : error ? <div className="site-surface flex flex-col items-center gap-4 p-6 text-center site-muted" role="status"><PackageX size={32} /> تعذّر تحميل المنتجات. تأكد من تشغيل خادم المتجر. <button type="button" onClick={reload} className="site-btn site-btn-outline"><RefreshCw size={15} /> إعادة المحاولة</button></div> : products.length === 0 ? <div className="site-surface p-6 text-center site-muted">ما انضافت منتجات للمتجر بعد. المنتجات الجديدة راح تظهر هنا تلقائياً.</div> :
-      <div className={`grid gap-4 sm:gap-5 ${products.length === 1 ? "grid-cols-1 max-w-3xl" : products.length === 2 ? "grid-cols-1 min-[390px]:grid-cols-2" : products.length === 3 ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-4"}`}>
+      <div className={`grid gap-4 sm:gap-5 ${products.length === 1 ? "grid-cols-1 max-w-3xl" : products.length === 2 ? "grid-cols-1 min-[390px]:grid-cols-2" : products.length === 3 ? "grid-cols-1 min-[390px]:grid-cols-2 lg:grid-cols-3" : "grid-cols-1 min-[390px]:grid-cols-2 lg:grid-cols-4"}`}>
         {products.map(p => <CatalogProductCard key={p.id} product={p} />)}
       </div>}
   </section>;
