@@ -21,7 +21,7 @@ export default function Products() {
 
   return <section id="featured-products" className="site-container scroll-mt-28 pt-9 pb-8 md:pt-12 md:pb-11" aria-labelledby="products-title">
     <div className="mb-6 flex flex-wrap items-end justify-between gap-4 md:mb-7">
-      <div><span className="site-eyebrow" dir="ltr">CURATED FOR YOUR CLINIC / 01</span><h2 id="products-title" className="signature-section-heading mt-2">اختيارات لعيادتك، بكل وضوح.</h2><p className="site-muted mt-2 max-w-[620px] text-sm">منتجات حقيقية من كتالوج ثنايا، مع الأسعار ووحدات البيع وحالة التوفر الحالية.</p></div>
+      <div><span className="site-eyebrow" dir="ltr">CURATED FOR YOUR CLINIC / 01</span><h2 id="products-title" className="signature-section-heading mt-2">اختيارات لعيادتك، بكل وضوح.</h2><p className="site-muted mt-2 max-w-[620px] text-sm">منتجات من كتالوج ثنايا، مع الأسعار ووحدات البيع وحالة التوفر الحالية.</p></div>
       <Link href="/products" className="site-btn site-btn-outline site-btn-sm">الكتالوج الكامل <ArrowUpLeft size={16} /></Link>
     </div>
     {loading ? <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4" role="status" aria-label="جاري تحميل المنتجات">
