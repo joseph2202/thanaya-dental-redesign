@@ -19,6 +19,8 @@ export default function AdminProducts() {
   const [productsList, setProductsList] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [inventoryView,setInventoryView]=useState<InventoryView>('all');
+  const [listLoading,setListLoading]=useState(true);
+  const [listError,setListError]=useState('');
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [loading, setLoading] = useState(false);
@@ -70,11 +72,14 @@ export default function AdminProducts() {
   }, []);
 
   const loadProducts = async () => {
+    setListLoading(true);setListError('');
     try {
       const data = await productsAPI.manage();
       setProductsList(data);
     } catch (error) {
-      console.error('Failed to load products', error);
+      setListError(error instanceof Error?error.message:'تعذّر جلب المنتجات، حاول مرة ثانية.');
+    } finally {
+      setListLoading(false);
     }
   };
 
@@ -539,6 +544,11 @@ export default function AdminProducts() {
       )}
 
       {visibilityError && <p role="alert" className="mb-4 rounded-xl bg-red-50 p-4 font-bold text-red-700">{visibilityError}</p>}
+      {listError&&<div role="alert" className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700">
+        <span>{listError}</span>
+        <button type="button" onClick={()=>void loadProducts()} className="underline underline-offset-4">إعادة المحاولة</button>
+      </div>}
+      {listLoading&&<p role="status" className="mb-4 rounded-xl border border-[#cce5ee] bg-[#eef9fd] p-4 text-sm font-bold text-[#1f718c]">جاري تحميل معلومات المنتجات والمخزون...</p>}
 
       <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4" aria-label="تصفية المنتجات حسب الحالة">
         {([
@@ -557,7 +567,7 @@ export default function AdminProducts() {
           className="site-input min-h-11 min-w-0 flex-1 px-4 py-2 text-sm sm:max-w-lg"/>
         <span role="status" className="text-xs font-bold text-[#647e8a]">{filteredProducts.length} منتج مطابق</span>
       </div>
-      {filteredProducts.length===0&&<div className="site-surface mb-4 p-8 text-center">
+      {!listLoading&&!listError&&filteredProducts.length===0&&<div className="site-surface mb-4 p-8 text-center">
         <p className="font-black text-[#315465]">ماكو منتجات تطابق البحث أو الفلتر.</p>
         <button type="button" className="mt-3 text-sm font-bold text-brand underline" onClick={()=>{setSearchQuery('');setInventoryView('all')}}>عرض كل المنتجات</button>
       </div>}
