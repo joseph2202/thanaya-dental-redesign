@@ -20,6 +20,7 @@ import shutil
 import sqlite3
 import sys
 from datetime import datetime
+from contextlib import closing
 from urllib.parse import unquote, urlsplit, quote
 
 BACKEND = Path(__file__).resolve().parents[1]
@@ -106,7 +107,7 @@ def main() -> int:
 
     db = database_path()
     uploads = get_uploads()
-    with read_only_connection(db) as conn:
+    with closing(read_only_connection(db)) as conn:
         integrity(conn)
         counts_before = verified_counts(conn)
         print("SOURCE: " + str(db))
@@ -137,9 +138,9 @@ def main() -> int:
         incomplete.mkdir(mode=0o700)
         try:
             dest_db = incomplete / "database.sqlite"
-            with sqlite3.connect(dest_db) as target:
+            with closing(sqlite3.connect(dest_db)) as target:
                 conn.backup(target, pages=128, sleep=0.1)
-            with read_only_connection(dest_db) as checked:
+            with closing(read_only_connection(dest_db)) as checked:
                 integrity(checked)
                 counts_after = verified_counts(checked)
             counts_end = verified_counts(conn)
