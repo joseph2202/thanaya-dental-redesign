@@ -31,6 +31,21 @@ ADD COLUMN "disposition" TEXT NOT NULL DEFAULT 'restocked';
 
 قبل أي ترحيل لقاعدة Mac: وقف الخدمات والنفق، تحقّق من عنوان `dev.db`، احفظ نسخة جديدة بالـ`safe_backup.py --backup`، افحص سلامتها وعدد السجلات، وطبّق على نسخة معزولة أولاً. التنفيذ على الأصل يحتاج موافقة المستخدم ومراجعة نتائج CI وخطة تراجع موثوقة. **لا `db:push` عشوائي ولا استعادة نسخة قديمة تمحو طلبات جديدة.**
 
+## تجربة الترحيل بدون مساس البيانات الحقيقية
+
+أضفنا `backend/scripts/rehearse_return_disposition.py`، وهو **للتمرين فقط**. يفتح SQLite المصدر بالقراءة فقط، ويأخذ نسخة خاصة في مجلد مؤقت، ويضيف الحقل **على النسخة المؤقتة حصراً**. بعدها يقارن بصمات السجلات القديمة، ويفحص SQLite integrity وforeign keys، ويتأكد أن المرتجعات القديمة تُوسم `restocked`. يمسح النسخة المؤقتة تلقائياً. **لا يحتوي على خيار `--apply`**.
+
+في الماك يمكن تجربته على النسخة الاحتياطية التي تحققنا منها سابقاً `THANAYA-20261022-201539` (3 مستخدمين، 7 طلبات) دون تبديل فرع التطبيق إلى Schema الجديد:
+
+```bash
+cd ~/Documents/thanaya-dental-redesign
+git fetch origin
+git show origin/feature/returns-quarantine-foundation:backend/scripts/rehearse_return_disposition.py > backend/scripts/rehearse_return_disposition.py
+python3 backend/scripts/rehearse_return_disposition.py --source "$HOME/Thanaya-Backups/THANAYA-20261022-201539/database.sqlite"
+```
+
+النتيجة المطلوبة: `ISOLATED REHEARSAL PASSED` و`Original database UNCHANGED`. هذه تجربة على صورة تاريخية وليست دليلاً على عدم تغير `dev.db` منذ تاريخ النسخة. للتفعيل الفعلي نحتاج نسخة حديثة، فحص مصدرها، توقف الخدمات، خطة تراجع وموافقة المستخدم المحددة.
+
 ## التحقق (بدون تحميل صاحب المتجر سلسلة فحوصات)
 
 - `.github/workflows/returns-quarantine.yml` يفحص PR عند فتحه: `npm run test:orders` عبر قاعدة مؤقتة مُولّدة داخل `/tmp`، و`npm run build` للواجهة.
