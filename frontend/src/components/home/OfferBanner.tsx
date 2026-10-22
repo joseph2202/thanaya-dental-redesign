@@ -30,7 +30,7 @@ export default function OfferBanner(){
       bannerDescription:typeof result.bannerDescription==='string'?result.bannerDescription:fallback.bannerDescription,
       bannerButtonLabel:typeof result.bannerButtonLabel==='string'?result.bannerButtonLabel:fallback.bannerButtonLabel,
       bannerButtonHref:typeof result.bannerButtonHref==='string'&&allowedLinks.includes(result.bannerButtonHref)?result.bannerButtonHref:fallback.bannerButtonHref,
-      bannerImage:typeof result.bannerImage==='string'&&/^http:\/\/localhost:\d+\/uploads\/[0-9]+-[0-9]+\.(?:jpg|jpeg|png|webp)$/i.test(result.bannerImage)?result.bannerImage:null
+      bannerImage:typeof result.bannerImage==='string'&&/^\/uploads\/[0-9]+-[0-9]+\.(?:jpg|jpeg|png|webp)$/i.test(result.bannerImage)?result.bannerImage:null
     });
   }).catch(()=>{/* Keep the default banner when the server is briefly offline. */});
   return ()=>{alive=false};
@@ -39,7 +39,7 @@ export default function OfferBanner(){
  return <section aria-label="إعلان ثنايا" className="site-container py-4 md:py-5">
    <div className="relative grid items-center gap-5 overflow-hidden rounded-[24px] bg-[linear-gradient(120deg,#007cae,#04a5d1)] px-6 py-6 text-white md:grid-cols-[1fr_auto] sm:px-10 sm:py-7">
      {banner.bannerImage && <>
-       <img src={banner.bannerImage} alt="" aria-hidden="true" className="pointer-events-none absolute inset-0 h-full w-full object-cover" />
+       <img src={banner.bannerImage} alt="" aria-hidden="true" loading="lazy" decoding="async" className="pointer-events-none absolute inset-0 h-full w-full object-cover" />
        <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,rgba(0,91,126,.80),rgba(0,116,160,.88))]" />
      </>}
      <div className="pointer-events-none absolute -left-[75px] -top-[95px] h-72 w-72 rounded-full border-[48px] border-white/[.06]" aria-hidden="true" />
