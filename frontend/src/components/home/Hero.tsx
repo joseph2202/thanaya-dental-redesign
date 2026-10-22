@@ -4,31 +4,31 @@ import {ArrowUpLeft, ArrowLeft, MapPin, Search, ShieldCheck, Package, Stethoscop
 export default function Hero(){
   return <section aria-labelledby="hero-title" className="relative isolate overflow-hidden border-b border-[#d1e9f1] bg-[linear-gradient(135deg,#f4fbfd_0%,#e9f7fb_56%,#f8fcfd_100%)]">
     <div aria-hidden="true" className="pointer-events-none absolute -top-32 -left-32 h-96 w-96 rounded-full bg-[#9bdbef]/20 blur-3xl" />
-    <div className="site-container relative grid items-center gap-6 py-7 sm:py-9 lg:grid-cols-[1.15fr_.85fr] lg:gap-8 lg:py-10">
+    <div className="site-container relative grid items-center gap-6 py-5 sm:py-7 lg:grid-cols-[1.15fr_.85fr] lg:gap-8 lg:py-10">
       <div className="max-w-3xl">
         <div className="inline-flex max-w-full items-center gap-2 rounded-full border border-[#b4e3ee] bg-white/85 px-3.5 py-2 text-[11px] font-bold text-[#056f92] shadow-sm sm:text-xs">
           <Sparkles size={15} className="shrink-0" aria-hidden="true" /> متخصصون بمستلزمات طب الأسنان والأجهزة الطبية
         </div>
-        <h1 id="hero-title" className="mt-5 text-[clamp(2.15rem,5.5vw,4.65rem)] font-black leading-[1.28] tracking-[-.045em] text-[#233943]">
+        <h1 id="hero-title" className="mt-4 text-[clamp(1.9rem,5.5vw,4.65rem)] font-black leading-[1.25] sm:mt-5 lg:leading-[1.28] tracking-[-.045em] text-[#233943]">
           تجهيز عيادتك<br /><span className="text-[#0497c7]">صار أسهل ويا ثنايا.</span>
         </h1>
-        <p className="mt-4 max-w-xl text-sm leading-8 text-[#566e7a] sm:text-base sm:leading-9">
-          تصفّح مستلزمات طب الأسنان والمواد والأجهزة الطبية، قارن التفاصيل والأسعار بالدينار العراقي، واختَر اللي تحتاجه بوضوح.
+        <p className="mt-3 max-w-xl text-[13px] leading-7 text-[#566e7a] sm:mt-4 sm:text-base sm:leading-9">
+          مستلزمات وأجهزة طب الأسنان لعيادتك، مع أسعار واضحة بالدينار وتفاصيل تساعدك تختار بثقة.
         </p>
-        <div className="mt-6 flex flex-col gap-3 min-[440px]:flex-row min-[440px]:flex-wrap">
-          <Link href="/products" className="site-btn site-btn-primary min-[440px]:min-w-[190px]">
+        <div className="mt-4 flex flex-row flex-wrap gap-2.5 sm:mt-6 sm:gap-3">
+          <Link href="/products" className="site-btn site-btn-primary site-btn-sm min-w-0 flex-1 !px-2.5 !text-xs sm:site-btn-lg sm:flex-none sm:!px-7 sm:!text-sm">
             تسوّق المنتجات <ArrowUpLeft size={18} aria-hidden="true" />
           </Link>
-          <Link href="/categories" className="site-btn site-btn-outline min-[440px]:min-w-[190px]">
+          <Link href="/categories" className="site-btn site-btn-outline site-btn-sm min-w-0 flex-1 !px-2.5 !text-xs sm:site-btn-lg sm:flex-none sm:!px-7 sm:!text-sm">
             استكشف الأقسام <ArrowLeft size={18} aria-hidden="true" />
           </Link>
         </div>
-        <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-3 border-t border-[#b8dae6] pt-5 text-xs font-semibold text-[#537282]">
+        <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-[#b8dae6] pt-3 text-[11px] font-semibold sm:mt-6 sm:gap-x-6 sm:gap-y-3 sm:pt-5 sm:text-xs text-[#537282]">
           <span className="inline-flex items-center gap-2"><MapPin size={16} className="text-brand" aria-hidden="true" /> متجر عراقي من البصرة</span>
           <span className="inline-flex items-center gap-2"><ShieldCheck size={16} className="text-brand" aria-hidden="true" /> أسعار واضحة بالدينار</span>
         </div>
       </div>
-      <div aria-label="تصفح المنتجات بسهولة من الأقسام أو البحث" className="relative mx-auto w-full max-w-[480px]">
+      <div aria-label="تصفح المنتجات بسهولة من الأقسام أو البحث" className="relative mx-auto hidden w-full max-w-[480px] lg:block">
         <div className="absolute -inset-3 rounded-[38px] border border-white/70 bg-white/25 -rotate-3" aria-hidden="true"/>
         <div className="relative overflow-hidden rounded-[30px] border border-[#bfdfec] bg-[#ffffff] p-3 shadow-[0_32px_70px_rgba(18,84,109,.12)] sm:p-5">
           <div className="flex items-center justify-between border-b border-[#e2eff3] pb-4">
