@@ -68,10 +68,10 @@ def check_unchanged(current: sqlite3.Connection, backup: sqlite3.Connection,
         raise RuntimeError("The source already has disposition; refusing a second migration.")
     if verified_counts(current) != manifest["counts"]:
         raise RuntimeError("Shop records changed since backup. Make a fresh verified backup.")
-    if fingerprint(current) != fingerprint(backup):
-        raise RuntimeError("Shop data no longer exactly match the verified backup.")
     if schema_snapshot(current) != schema_snapshot(backup):
         raise RuntimeError("Shop schema differs from verified backup; refusing to guess.")
+    if fingerprint(current) != fingerprint(backup):
+        raise RuntimeError("Shop data no longer exactly match the verified backup.")
     integrity(current)
 
 
