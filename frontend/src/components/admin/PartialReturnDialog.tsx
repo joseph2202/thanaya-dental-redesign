@@ -104,7 +104,7 @@ export default function PartialReturnDialog({order,onClose,onComplete}:Props){
               value={quantities[item.id]??'0'} disabled={busy||max===0}
               onChange={e=>{setQuantities(current=>({...current,[item.id]:e.target.value}));setError('');}}
               className="mt-1 block w-full rounded-lg border border-[#c2dce6] px-3 py-2 text-base" />
-          </label> 
+          </label>}
         </div>;
       })}
       <label className="block text-sm font-black text-[#345968]">سبب استلام المرتجع
