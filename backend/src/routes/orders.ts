@@ -6,6 +6,7 @@ import { getJwtSecret } from '../config/auth';
 import { requireAdmin, requireSales } from '../middleware/requireAdmin';
 import { isProvince } from './delivery';
 import {discountFor,normalizeCode} from './coupons';
+import {ReturnError,parseReturnSelection,returnedCount,applyOrderReturn} from '../lib/orderReturnLedger';
 
 const router = Router();
 const prisma = new PrismaClient();
@@ -89,12 +90,12 @@ function parseCustomer(input: unknown): Customer {
 }
 
 function reportError(res: import('express').Response, error: unknown, context: string) {
-  if (error instanceof OrderError) {
+  if (error instanceof OrderError || error instanceof ReturnError) {
     res.status(error.status).json({ error: error.message });
     return;
   }
   if (error instanceof Prisma.PrismaClientKnownRequestError &&
-      ['P2034', 'P1008', 'P2028', 'P2010'].includes(error.code)) {
+      ['P2034', 'P1008', 'P2028', 'P2010', 'P2002', 'P2025'].includes(error.code)) {
     res.status(409).json({ error: 'تغير المخزون أو يوجد طلب متزامن، يرجى المحاولة مجدداً' });
     return;
   }
@@ -133,7 +134,7 @@ router.get('/manage',requireSales,async(req,res)=>{
     ]}:{};
     const where:Prisma.OrderWhereInput={...searchWhere,...(status==='all'?{}:{status})};
     const [rows,total,states]=await Promise.all([
-      prisma.order.findMany({where,include:{items:{include:{product:{select:{name:true}}}}},
+      prisma.order.findMany({where,include:{items:{include:{product:{select:{name:true}},returnLines:{select:{quantity:true,lotId:true}},lotAllocations:{include:{lot:{select:{code:true,expiryDate:true}}}}}},returns:{orderBy:{createdAt:'desc'},include:{lines:true}}},
         orderBy:[{createdAt:'desc'},{id:'desc'}],skip:(page-1)*limit,take:limit}),
       prisma.order.count({where}),
       prisma.order.groupBy({by:['status'],_count:{_all:true},where:searchWhere})
@@ -171,7 +172,7 @@ router.get('/mine', async (req, res) => {
     if (!principal) return res.status(401).json({ error: 'يجب تسجيل الدخول' });
     const orders = await prisma.order.findMany({
       where: { userId: principal.id },
-      include: { items: { include: { product: { select: { id: true, name: true, image: true } } } } },
+      include: { items: { include: { product: { select: { id: true, name: true, image: true } },returnLines:{select:{quantity:true}} } } },
       orderBy: { createdAt: 'desc' }
     });
     res.json(orders);
@@ -185,7 +186,7 @@ router.get('/:id', async (req, res) => {
     if (!principal) return res.status(401).json({ error: 'يجب تسجيل الدخول' });
     const order = await prisma.order.findUnique({
       where: { id: String(req.params.id) },
-      include: { items: { include: { product: { select: { id: true, name: true, image: true } } } } }
+      include: { items: { include: { product: { select: { id: true, name: true, image: true } },returnLines:{select:{quantity:true}} } } }
     });
     if (!order) return res.status(404).json({ error: 'الطلب غير موجود' });
     if (order.userId !== principal.id && !['owner','admin','sales'].includes(principal.role)) {
@@ -320,6 +321,7 @@ router.post('/', async (req, res) => {
           items: {
             create: lines.map(item => ({
               productId: item.productId,
+              productName: byId.get(item.productId)!.name,
               quantity: item.quantity,
               price: byId.get(item.productId)!.price
             }))
@@ -364,6 +366,26 @@ router.post('/', async (req, res) => {
   }
 });
 
+// Only administrators can confirm actual receipt of returned merchandise.
+// Money owed/refunded must be handled in a separate financial workflow.
+router.post('/:id/returns',requireAdmin,async(req,res)=>{
+  try{
+    const requestId=req.body?.requestId;
+    if(typeof requestId!=='string'||!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(requestId))
+      throw new ReturnError(400,'معرّف المرتجع غير صالح');
+    const reason=typeof req.body?.reason==='string'?req.body.reason.trim():'';
+    if(reason.length<3||reason.length>250)throw new ReturnError(400,'اكتب سبب الاستلام من 3 إلى 250 حرفاً');
+    const selection=parseReturnSelection(req.body?.items);
+    const saved=await prisma.$transaction(async tx=>{
+      const order=await tx.order.findUnique({where:{id:String(req.params.id)},
+        include:{items:{include:{lotAllocations:true,returnLines:true}}}});
+      if(!order)throw new ReturnError(404,'الطلب غير موجود');
+      return applyOrderReturn(tx,order,selection,requestId,reason,res.locals.adminUserId as string);
+    },{maxWait:5000,timeout:15000});
+    res.status(saved.alreadyProcessed?200:201).json(saved);
+  }catch(error){reportError(res,error,'receive partial merchandise return')}
+});
+
 const transitions: Record<string, string[]> = {
   pending: ['confirmed', 'cancelled'],
   confirmed: ['shipped', 'cancelled'],
@@ -383,19 +405,36 @@ router.patch('/:id/status', requireSales, async (req, res) => {
     const order = await prisma.$transaction(async (tx) => {
       const current = await tx.order.findUnique({
         where: { id: String(req.params.id) },
-        include: { items: { include: { lotAllocations:true } } }
+        include: { items: { include: { lotAllocations:true,returnLines:true } } }
       });
       if (!current) throw new OrderError(404, 'الطلب غير موجود');
       if (!(transitions[current.status] || []).includes(status)) {
         throw new OrderError(409, 'الانتقال بين حالتي الطلب غير مسموح');
       }
 
+      if(status==='returned'){
+        if(!['owner','admin'].includes(res.locals.staffRole as string))
+          throw new ReturnError(403,'استلام المرتجعات يتطلب صلاحية الإدارة');
+        const rest=current.items.map(item=>{
+          const quantity=item.quantity-returnedCount(item);
+          const lots=item.lotAllocations.map(allocation=>({
+            lotId:allocation.lotId,
+            quantity:allocation.quantity-item.returnLines.filter(line=>line.lotId===allocation.lotId)
+              .reduce((sum,line)=>sum+line.quantity,0)
+          })).filter(line=>line.quantity>0);
+          return {orderItemId:item.id,quantity,...(lots.length?{lots}:{})};
+        }).filter(item=>item.quantity>0);
+        if(!rest.length)throw new ReturnError(409,'جميع القطع مسجلة كمرتجعة');
+        await applyOrderReturn(tx,current,rest,'full_status',
+          'استلام كامل الكمية المتبقية عبر تغيير الحالة',res.locals.adminUserId as string);
+        return tx.order.findUniqueOrThrow({where:{id:current.id}});
+      }
       const changed = await tx.order.updateMany({
-        where: { id: current.id, status: current.status },
+        where: { id: current.id, status: current.status,returnRevision:current.returnRevision },
         data: { status }
       });
       if (changed.count !== 1) throw new OrderError(409, 'حالة الطلب تغيرت، حدّث الصفحة');
-      if (status === 'cancelled' || status === 'returned') {
+      if (status === 'cancelled') {
         for (const item of current.items) {
           // An expired restored lot remains physically present, but not sellable.
           for(const allocation of item.lotAllocations){

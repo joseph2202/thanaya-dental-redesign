@@ -13,7 +13,7 @@ import {orderPresentation,orderStatusLabels,orderStatusColors,shortOrderCode} fr
 type Order = {
   id: string; total: number; subtotal?:number|null; shippingFee?:number|null; discountAmount?:number|null;couponCode?:string|null; status: string; createdAt: string;
   customerName: string; customerPhone: string; customerAddress: string; customerCity: string;
-  items: { id: string; quantity: number; price: number; product: { id: string; name: string } }[];
+  items: { id: string; quantity: number; price: number; productName?:string|null;returnLines?:{quantity:number}[];product: { id: string; name: string } }[];
 };
 
 function ConfirmationContent() {
@@ -159,7 +159,7 @@ function ConfirmationContent() {
                   <div className="space-y-3">
                     {order.items.map((item) => (
                       <div key={item.id} className="flex justify-between gap-4 border-b border-[#edf0f4] pb-3 text-sm">
-                        <span className="text-ink">{item.product.name} × {item.quantity}</span>
+                        <span className="text-ink">{item.productName||item.product.name} × {item.quantity}{(item.returnLines?.length||0)>0&&<small className="mr-1 text-amber-700">(مرجع {item.returnLines?.reduce((sum,line)=>sum+line.quantity,0)})</small>}</span>
                         <span className="font-black text-ink whitespace-nowrap">{(item.price * item.quantity).toLocaleString('ar-IQ')} د.ع</span>
                       </div>
                     ))}

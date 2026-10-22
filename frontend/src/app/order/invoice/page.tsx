@@ -6,7 +6,7 @@ import {Printer,ArrowRight,ShieldCheck} from 'lucide-react';
 import {ordersAPI,settingsAPI} from '@/lib/api';
 import {orderStatusLabels,shortOrderCode} from '@/lib/orderPresentation';
 
-type Order={id:string;status:string;createdAt:string;customerName:string;customerPhone:string;customerCity:string;customerAddress:string;total:number;subtotal:number|null;discountAmount:number|null;shippingFee:number|null;couponCode:string|null;items:{id:string;price:number;quantity:number;product?:{name:string}}[]};
+type Order={id:string;status:string;createdAt:string;customerName:string;customerPhone:string;customerCity:string;customerAddress:string;total:number;subtotal:number|null;discountAmount:number|null;shippingFee:number|null;couponCode:string|null;items:{id:string;price:number;quantity:number;productName?:string|null;product?:{name:string}}[]};
 type Store={siteName?:string;phone?:string;address?:string};
 const iqd=(amount:number)=>amount.toLocaleString('en-US')+' د.ع';
 function InvoiceContent(){
@@ -52,7 +52,7 @@ function InvoiceContent(){
     <div className="overflow-x-auto"><table className="w-full border-collapse text-right text-sm">
      <thead><tr className="bg-[#eaf6fb] text-[#305669]"><th className="p-3">المنتج</th><th className="p-3 text-center">الكمية</th><th className="p-3">سعر الوحدة</th><th className="p-3">المجموع</th></tr></thead>
      <tbody>{order.items.map((item,index)=><tr key={item.id} className="border-b border-[#e5eff3]">
-      <td className="max-w-[280px] break-words p-3 font-bold">{item.product?.name||'منتج من الطلب'} <small className="text-[#9db3bd]">#{index+1}</small></td>
+      <td className="max-w-[280px] break-words p-3 font-bold">{item.productName||item.product?.name||'منتج من الطلب'} <small className="text-[#9db3bd]">#{index+1}</small></td>
       <td className="p-3 text-center">{item.quantity}</td><td className="whitespace-nowrap p-3">{iqd(item.price)}</td><td className="whitespace-nowrap p-3 font-bold">{iqd(item.price*item.quantity)}</td>
      </tr>)}</tbody>
     </table></div>
@@ -62,7 +62,7 @@ function InvoiceContent(){
      <div className="flex justify-between gap-3"><span>التوصيل</span><strong>{order.shippingFee==null?'غير محدد في الطلب':iqd(order.shippingFee)}</strong></div>
      <div className="flex justify-between gap-3 border-t border-[#d0e5ec] pt-3 text-base font-black"><span>الإجمالي المحفوظ</span><strong>{iqd(order.total)}</strong></div>
     </div>
-    <p className="mt-5 text-[11px] leading-6 text-[#68818c]"><ShieldCheck size={14} className="ml-1 inline"/> أسعار الوحدات والكميات محفوظة من وقت الشراء. اسم المنتج قد يعكس اسمه الحالي إذا تغير لاحقاً.</p>
+    <p className="mt-5 text-[11px] leading-6 text-[#68818c]"><ShieldCheck size={14} className="ml-1 inline"/> الكميات والأسعار محفوظة وقت الطلب؛ أسماء المنتجات مثبتة وقت الشراء للطلبات الجديدة، والقديمة تعرض الاسم الحالي إن لم تتوفر نسخة محفوظة. ملخص الطلب ليس إثبات قبض أو ردّ مبلغ.</p>
     <p className="mt-1 text-[11px] leading-6 text-[#68818c]">هذه وثيقة ملخص طلب، وليست إيصال قبض أو فاتورة ضريبية؛ حالة تسليم الطلب لا تثبت تحصيل المبلغ.</p>
    </section>
    <footer className="border-t border-[#d6e8f0] bg-[#f8fcfe] px-6 py-4 text-center text-xs text-[#748c97]">

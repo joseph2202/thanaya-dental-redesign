@@ -117,6 +117,8 @@ model Order {
   createdAt       DateTime    @default(now())
   user            User?       @relation(fields: [userId], references: [id])
   items           OrderItem[]
+  returns         OrderReturn[]
+  returnRevision  Int         @default(0) // CAS guard against simultaneous partial returns
 }
 
 model OrderItem {
@@ -125,9 +127,11 @@ model OrderItem {
   productId String
   quantity  Int
   price     Int
+  productName String? // immutable product-name snapshot at checkout; null for legacy orders
   order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
   product   Product @relation(fields: [productId], references: [id])
   lotAllocations OrderItemLot[]
+  returnLines OrderReturnLine[]
 }
 
 // Each physical batch belongs to one product. Expiry is a date-only YYYY-MM-DD
@@ -143,6 +147,7 @@ model ProductLot {
   createdAt  DateTime @default(now())
   product    Product  @relation(fields: [productId], references: [id], onDelete: Restrict)
   allocations OrderItemLot[]
+  returnLines OrderReturnLine[]
 
   @@unique([productId, code])
   @@index([productId, expiryDate])
@@ -158,6 +163,36 @@ model OrderItemLot {
 
   @@unique([orderItemId, lotId])
   @@index([lotId])
+}
+
+// Each received merchandise return is an immutable ledger event. Never treat it as cash refunded.
+// Requests have an idempotency key per order; each line records the exact original batch restored.
+model OrderReturn {
+  id        String   @id @default(cuid())
+  orderId   String
+  requestId String
+  actorId   String
+  reason    String
+  createdAt DateTime @default(now())
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  lines     OrderReturnLine[]
+
+  @@unique([orderId, requestId])
+  @@index([orderId, createdAt])
+}
+
+model OrderReturnLine {
+  id          String       @id @default(cuid())
+  orderReturnId String
+  orderItemId String
+  lotId       String?
+  quantity    Int
+  orderReturn OrderReturn  @relation(fields: [orderReturnId], references: [id], onDelete: Restrict)
+  orderItem   OrderItem    @relation(fields: [orderItemId], references: [id], onDelete: Restrict)
+  lot         ProductLot?  @relation(fields: [lotId], references: [id], onDelete: Restrict)
+
+  @@index([orderItemId, lotId])
+  @@index([orderReturnId])
 }
 
 // Append-only record of every stock change. It is NOT a replacement for Product.stock;

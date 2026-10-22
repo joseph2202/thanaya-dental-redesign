@@ -619,7 +619,116 @@ async function main() {
       assert.equal(noRetro.status,409,'sold lots need financial adjustments, not silent cost rewriting');
       assert.equal((await prisma.productLot.findUniqueOrThrow({where:{id:received.body.id}})).stock,4);
     });
-    console.log('\\nALL 20 CHECKS PASSED. Database was isolated and will be deleted.');
+
+    await check('order captures immutable purchased product name and shows line items',async()=>{
+      const item=await product('Original dental kit name',5,14000);
+      const created=await request(base,'/api/orders','POST',{
+        requestId:randomUUID(),customer,items:[{productId:item.id,quantity:3}]
+      },aliceToken);
+      assert.equal(created.status,201,JSON.stringify(created));
+      assert.equal(created.body.items[0].productName,'Original dental kit name');
+      assert.equal(created.body.items[0].price,14000);
+      await prisma.product.update({where:{id:item.id},data:{name:'Renamed dental kit'}});
+      const details=await request(base,'/api/orders/'+created.body.id,'GET',undefined,aliceToken);
+      assert.equal(details.status,200);
+      assert.equal(details.body.items[0].productName,'Original dental kit name');
+      assert.equal(details.body.items[0].product.name,'Renamed dental kit');
+      const adminView=await request(base,'/api/orders/manage','GET',undefined,adminToken);
+      assert.equal(adminView.status,200);
+      assert.equal(adminView.body.orders.find(o=>o.id===created.body.id).items[0].productName,'Original dental kit name');
+    });
+
+    await check('partial returns use idempotent records and full return restores remaining only',async()=>{
+      const item=await product('Partial legacy item',5,5000);
+      const placed=await request(base,'/api/orders','POST',{
+        requestId:randomUUID(),customer,items:[{productId:item.id,quantity:5}]
+      },aliceToken);
+      assert.equal(placed.status,201,JSON.stringify(placed));
+      const route='/api/orders/'+placed.body.id+'/status';
+      for(const status of ['confirmed','shipped','delivered']){
+        const x=await request(base,route,'PATCH',{status},adminToken);assert.equal(x.status,200,JSON.stringify(x));
+      }
+      const returnPath='/api/orders/'+placed.body.id+'/returns';
+      const body={requestId:randomUUID(),reason:'استلمنا قطعتين سليمتين',items:[{orderItemId:placed.body.items[0].id,quantity:2}]};
+      const noPermission=await request(base,returnPath,'POST',body,aliceToken);
+      assert.equal(noPermission.status,403);
+      const first=await request(base,returnPath,'POST',body,adminToken);
+      assert.equal(first.status,201,JSON.stringify(first));
+      assert.equal(first.body.orderStatus,'delivered');
+      assert.equal((await prisma.product.findUniqueOrThrow({where:{id:item.id}})).stock,2);
+      const retry=await request(base,returnPath,'POST',body,adminToken);
+      assert.equal(retry.status,200,JSON.stringify(retry));
+      assert.equal(retry.body.alreadyProcessed,true);
+      const conflict=await request(base,returnPath,'POST',{...body,items:[{orderItemId:body.items[0].orderItemId,quantity:1}]},adminToken);
+      assert.equal(conflict.status,409);
+      const tooMany=await request(base,returnPath,'POST',{
+        requestId:randomUUID(),reason:body.reason,items:[{orderItemId:body.items[0].orderItemId,quantity:4}]
+      },adminToken);
+      assert.equal(tooMany.status,409);
+      const whole=await request(base,route,'PATCH',{status:'returned'},adminToken);
+      assert.equal(whole.status,200,JSON.stringify(whole));
+      const repeated=await request(base,route,'PATCH',{status:'returned'},adminToken);
+      assert.equal(repeated.status,409);
+      assert.equal((await prisma.product.findUniqueOrThrow({where:{id:item.id}})).stock,5);
+      const stored=await prisma.order.findUniqueOrThrow({where:{id:placed.body.id},include:{returns:{include:{lines:true}}}});
+      assert.equal(stored.status,'returned');
+      assert.equal(stored.total,25000,'original order money must not be overwritten');
+      assert.equal(stored.returns.length,2);
+      assert.equal(stored.returns.flatMap(e=>e.lines).reduce((sum,line)=>sum+line.quantity,0),5);
+    });
+
+    await check('partial batch returns restore the original lots and concurrent requests cannot over-return',async()=>{
+      const item=await product('Lots partial test',0,13000);
+      const enabled=await request(base,'/api/products/'+item.id+'/enable-lots','POST',{},adminToken);
+      assert.equal(enabled.status,200,JSON.stringify(enabled));
+      const futureA=new Date(Date.now()+70*86400000).toISOString().slice(0,10);
+      const futureB=new Date(Date.now()+120*86400000).toISOString().slice(0,10);
+      const lotA=await request(base,'/api/products/'+item.id+'/lots','POST',{code:'RET-A',expiryDate:futureA,quantity:2},adminToken);
+      const lotB=await request(base,'/api/products/'+item.id+'/lots','POST',{code:'RET-B',expiryDate:futureB,quantity:3},adminToken);
+      assert.equal(lotA.status,201);assert.equal(lotB.status,201);
+      const placed=await request(base,'/api/orders','POST',{
+        requestId:randomUUID(),customer,items:[{productId:item.id,quantity:4}]
+      },bobToken);
+      assert.equal(placed.status,201,JSON.stringify(placed));
+      const statusUrl='/api/orders/'+placed.body.id+'/status';
+      for(const status of ['confirmed','shipped','delivered']){
+        const x=await request(base,statusUrl,'PATCH',{status},adminToken);assert.equal(x.status,200,JSON.stringify(x));
+      }
+      const returnUrl='/api/orders/'+placed.body.id+'/returns';
+      const b={reason:'استلام فعلي من التشغيلات',items:[{orderItemId:placed.body.items[0].id,quantity:3,lots:[{lotId:lotA.body.id,quantity:2},{lotId:lotB.body.id,quantity:1}]}]};
+      const wrongBatch=await request(base,returnUrl,'POST',{
+        reason:'تشغيلة غير صحيحة',requestId:randomUUID(),
+        items:[{orderItemId:placed.body.items[0].id,quantity:1,lots:[{lotId:'wrong-lot',quantity:1}]}]
+      },adminToken);
+      assert.equal(wrongBatch.status,400);
+      const noBatch=await request(base,returnUrl,'POST',{
+        reason:'بدون رقم تشغيلة',requestId:randomUUID(),
+        items:[{orderItemId:placed.body.items[0].id,quantity:1}]
+      },adminToken);
+      assert.equal(noBatch.status,400);
+      const [a,c]=await Promise.all([
+        request(base,returnUrl,'POST',{...b,requestId:randomUUID()},adminToken),
+        request(base,returnUrl,'POST',{...b,requestId:randomUUID()},adminToken)
+      ]);
+      assert.deepEqual([a.status,c.status].sort(),[201,409],JSON.stringify([a,c]));
+      assert.equal((await prisma.product.findUniqueOrThrow({where:{id:item.id}})).stock,4);
+      assert.equal((await prisma.productLot.findUniqueOrThrow({where:{id:lotA.body.id}})).stock,2);
+      assert.equal((await prisma.productLot.findUniqueOrThrow({where:{id:lotB.body.id}})).stock,2);
+      const last=await request(base,returnUrl,'POST',{
+        reason:'استلام القطعة الأخيرة',requestId:randomUUID(),
+        items:[{orderItemId:placed.body.items[0].id,quantity:1,lots:[{lotId:lotB.body.id,quantity:1}]}]
+      },adminToken);
+      assert.equal(last.status,201,JSON.stringify(last));
+      assert.equal(last.body.orderStatus,'returned');
+      assert.equal((await prisma.productLot.findUniqueOrThrow({where:{id:lotB.body.id}})).stock,3);
+      assert.equal((await prisma.product.findUniqueOrThrow({where:{id:item.id}})).stock,5);
+      const sums=await prisma.orderReturnLine.groupBy({by:['lotId'],_sum:{quantity:true},
+        where:{orderItemId:placed.body.items[0].id}});
+      assert.equal(sums.find(x=>x.lotId===lotA.body.id)?._sum.quantity,2);
+      assert.equal(sums.find(x=>x.lotId===lotB.body.id)?._sum.quantity,2);
+    });
+
+    console.log('\\nALL 23 CHECKS PASSED. Database was isolated and will be deleted.');
   } catch (error) {
     console.error('\nORDER INTEGRATION FAILED. Server output:\n' + logs);
     throw error;
