@@ -10,6 +10,8 @@ export type ReturnableOrder={
     lotAllocations?:{lotId:string;quantity:number;lot?:{code:string;expiryDate:string}}[]}[];
 };
 type Props={order:ReturnableOrder|null;onClose:()=>void;onComplete:(message:string)=>void};
+type ReturnChoice={orderItemId:string;quantity:number;quarantinedQuantity?:number;
+  lots?:{lotId:string;quantity:number;quarantinedQuantity?:number}[]};
 const countReturned=(item:ReturnableOrder['items'][number])=>
   (item.returnLines||[]).reduce((sum,line)=>sum+line.quantity,0);
 const keyFor=(itemId:string,lotId?:string)=>lotId?itemId+':'+lotId:itemId;
@@ -30,7 +32,7 @@ export default function PartialReturnDialog({order,onClose,onComplete}:Props){
     }
   },[order?.id]);
 
-  const chosen=useMemo(()=>order?.items.flatMap(item=>{
+  const chosen=useMemo<ReturnChoice[]>(()=>order?.items.flatMap(item=>{
     if(item.lotAllocations?.length){
       const lots=item.lotAllocations.flatMap(lot=>{
         const key=keyFor(item.id,lot.lotId);
@@ -69,8 +71,8 @@ export default function PartialReturnDialog({order,onClose,onComplete}:Props){
 
   const totalReturned=chosen.reduce((sum,line)=>sum+line.quantity,0);
   const totalDamaged=chosen.reduce((sum,line)=>
-    sum+('lots' in line&&line.lots?line.lots.reduce((s,lot)=>s+(lot.quarantinedQuantity||0),0):
-      ('quarantinedQuantity' in line?Number(line.quarantinedQuantity)||0:0)),0);
+    sum+(line.lots?.length?line.lots.reduce((s,lot)=>s+(lot.quarantinedQuantity||0),0):
+      (line.quarantinedQuantity||0)),0);
 
   async function submit(){
     if(!valid||!order||!requestId||busy)return;
