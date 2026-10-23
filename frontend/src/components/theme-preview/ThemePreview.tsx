@@ -194,6 +194,15 @@ export default function ThemePreview(){
       <button key={name} type="button" className="thl-outline" onClick={()=>browseCategory(name)}>{name}<ArrowUpLeft size={16}/></button>)
       :<span className="thl-faint">الأقسام تظهر من كتالوج ثنايا.</span>}</div>
     </section>
+    <section className="thl-offer-banner" aria-labelledby="thanaya-preview-banner">
+      <div className="thl-offer-art" aria-hidden="true"><Stethoscope size={44}/><span>THANAYA / BASRA</span></div>
+      <div className="thl-offer-copy">
+       <span className="thl-small-accent">THANAYA / BASRA</span>
+       <h2 id="thanaya-preview-banner">احتياجات عيادتك، <span>أسهل مع ثنايا.</span></h2>
+       <p>تصفّح مستلزمات طب الأسنان والأجهزة الطبية، واختَر اللي يناسب عيادتك من الكتالوج الحالي.</p>
+      </div>
+      <button type="button" className="thl-cta thl-offer-button" onClick={()=>go('products')}>ابدأ التصفّح <ArrowUpLeft size={18}/></button>
+    </section>
    </>}
 
    {view==='products'&&<section className="thl-section thl-inner-page">
