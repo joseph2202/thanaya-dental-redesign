@@ -2,7 +2,7 @@
 import {useCallback,useEffect,useRef,useState} from 'react';
 import AdminLayout from '@/components/admin/AdminLayout';
 import Link from 'next/link';
-import {Printer,FileSpreadsheet,Copy,Phone} from 'lucide-react';
+import {Printer,FileSpreadsheet,Copy,Phone,HandCoins} from 'lucide-react';
 import {ordersAPI,exportsAPI} from '@/lib/api';
 import SiteActionDialog from '@/components/ui/SiteActionDialog';
 import PartialReturnDialog from '@/components/admin/PartialReturnDialog';
@@ -153,6 +153,7 @@ export default function AdminOrders(){
     <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#eaf1f4] bg-[#fbfdfe] px-4 py-3 sm:px-5">
      <button type="button" aria-expanded={open} onClick={()=>setExpanded(open?null:o.id)} className="inline-flex min-h-10 items-center gap-2 rounded-xl px-2 text-sm font-black text-[#1686ac] hover:bg-[#eef9fc]">{open?'إخفاء الفاتورة ↑':'الفاتورة وتفاصيل الطلب ↓'}</button>
      <div className="flex flex-wrap gap-2">
+      {canReceiveReturns&&['delivered','returned'].includes(o.status)&&<Link href={'/admin/finance?orderId='+encodeURIComponent(o.id)} className="inline-flex items-center gap-1.5 rounded-xl border border-[#bce1ed] bg-white px-3 py-2.5 text-xs font-black text-[#167b9f] hover:bg-[#e7f7fc]"><HandCoins size={16}/> سجل التحصيل</Link>}
       {canReceiveReturns&&hasReturnable&&<button type="button" disabled={busy!==null} onClick={()=>setReturnOrder(o)}
        className="rounded-xl border border-amber-300 bg-amber-50 px-3 py-2.5 text-xs font-black text-amber-900 hover:bg-amber-100 disabled:opacity-50">استلام وفرز مرتجع</button>}
       {(transitions[o.status]||[]).filter(next=>next!=='returned').map(next=><button key={next} type="button" disabled={busy!==null} onClick={()=>change(o,next)}

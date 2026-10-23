@@ -119,6 +119,8 @@ model Order {
   items           OrderItem[]
   returns         OrderReturn[]
   returnRevision  Int         @default(0) // CAS guard against simultaneous partial returns
+  paymentRevision Int         @default(0) // CAS guard for concurrent financial events
+  paymentEvents OrderPaymentEvent[]
 }
 
 model OrderItem {
@@ -301,4 +303,24 @@ model Notification {
 
   @@index([recipientId, createdAt])
   @@index([recipientId, readAt])
+}
+
+
+// Cashflow is an append-only, staff-attested record. No payment is inferred
+// from the order's status or a physical return. No history is fabricated.
+model OrderPaymentEvent {
+  id         String   @id @default(cuid())
+  orderId    String
+  requestId  String
+  actorId    String
+  kind       String   // collection | refund
+  method     String   // cash | bank_transfer | card | other
+  amountIqd  Int      // Positive amount, integer IQD; never negative
+  note       String
+  createdAt  DateTime @default(now())
+  order      Order    @relation(fields:[orderId],references:[id],onDelete:Restrict)
+
+  @@unique([orderId,requestId])
+  @@index([orderId,createdAt])
+  @@index([createdAt])
 }

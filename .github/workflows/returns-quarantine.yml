@@ -30,6 +30,10 @@ jobs:
         run: python3 -m unittest discover -s backend/tests -p 'test_rehearse_return_disposition.py' -v
       - name: Validate guarded migration against stale and damaged backups
         run: python3 -m unittest discover -s backend/tests -p 'test_apply_return_disposition.py' -v
+      - name: Rehearse financial migration without touching shop data
+        run: python3 -m unittest discover -s backend/tests -p 'test_rehearse_finance_ledger.py' -v
+      - name: Verify guarded finance apply on disposable databases
+        run: python3 -m unittest discover -s backend/tests -p 'test_apply_finance_ledger.py' -v
       - name: Install backend dependencies
         run: npm ci
         working-directory: backend
@@ -39,6 +43,12 @@ jobs:
         env:
           NODE_ENV: test
           # Each runner creates its own temporary SQLite DB inside the test script.
+          JWT_SECRET: ci-placeholder-not-used-by-live-store
+      - name: Isolated financial ledger checks
+        run: node tests/finance.integration.cjs
+        working-directory: backend
+        env:
+          NODE_ENV: test
           JWT_SECRET: ci-placeholder-not-used-by-live-store
       - name: Install frontend dependencies
         run: npm ci
