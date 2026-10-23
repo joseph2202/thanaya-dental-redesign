@@ -2,7 +2,7 @@ import Link from 'next/link';
 import {ArrowUpLeft} from 'lucide-react';
 import ProductIcon from '@/components/ui/ProductIcon';
 
-type CatalogProduct = { name: string; category: string; image?: string | null; icon?: string | null };
+type CatalogProduct = { name: string; category?: string; image?: string | null; icon?: string | null };
 type CatalogCategory = { name: string; count: number; product: CatalogProduct };
 
 function groupProducts(products: CatalogProduct[]): CatalogCategory[] {
