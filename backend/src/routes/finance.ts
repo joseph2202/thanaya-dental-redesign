@@ -8,8 +8,8 @@ const prisma=new PrismaClient();
 
 const include={
  items:{include:{returnLines:true}},
- paymentEvents:{orderBy:{createdAt:'asc' as const}}
-};
+ paymentEvents:{orderBy:{createdAt:'asc'}}
+} as const;
 function failure(res:import('express').Response,error:unknown,context:string){
  if(error instanceof PaymentError){res.status(error.status).json({error:error.message});return;}
  if(error instanceof Prisma.PrismaClientKnownRequestError&&
@@ -22,9 +22,10 @@ function failure(res:import('express').Response,error:unknown,context:string){
 const validOrderId=(id:unknown):id is string=>typeof id==='string'&&id.length>=3&&id.length<=120;
 
 router.get('/orders/:id',requireAdmin,async(req,res)=>{
- if(!validOrderId(req.params.id))return res.status(400).json({error:'رقم الطلب غير صالح'});
+ const orderId=req.params.id;
+ if(!validOrderId(orderId))return res.status(400).json({error:'رقم الطلب غير صالح'});
  try{
-  const order=await prisma.order.findUnique({where:{id:req.params.id},include});
+  const order=await prisma.order.findUnique({where:{id:orderId},include});
   if(!order)return res.status(404).json({error:'الطلب غير موجود'});
   const totals=snapshot(order);
   res.setHeader('Cache-Control','no-store');
@@ -37,7 +38,8 @@ router.get('/orders/:id',requireAdmin,async(req,res)=>{
 });
 
 router.post('/orders/:id/events',requireAdmin,async(req,res)=>{
- if(!validOrderId(req.params.id))return res.status(400).json({error:'رقم الطلب غير صالح'});
+ const orderId=req.params.id;
+ if(!validOrderId(orderId))return res.status(400).json({error:'رقم الطلب غير صالح'});
  try{
   const intent=parsePaymentIntent(req.body);
   const actorId=res.locals.adminUserId as string;
