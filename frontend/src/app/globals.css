@@ -193,3 +193,75 @@ button, a { -webkit-tap-highlight-color: transparent; }
 @media (prefers-reduced-motion: reduce) {
   .signature-hero-cta,.signature-showcase-tile,.signature-card,.signature-card-media img,.signature-card-quick { transition:none; transform:none !important; }
 }
+
+/* THANAYA motion ribbon — seamless loop independent from dev-mode JavaScript.
+   Every repeated segment is at least one viewport wide, preventing empty gaps. */
+.thanaya-ticker {
+  overflow: hidden;
+  border-top: 1px solid #bee5ef;
+  border-bottom: 1px solid #bee5ef;
+  background: #e9f7fb;
+  color: #28647a;
+}
+.thanaya-ticker-viewport {
+  width: 100%;
+  overflow: hidden;
+}
+.thanaya-ticker-track {
+  display: flex;
+  width: max-content;
+  direction: ltr;
+  animation: thanaya-ticker-loop 32s linear infinite;
+  will-change: transform;
+}
+.thanaya-ticker-group {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-around;
+  gap: clamp(1.5rem, 4vw, 5rem);
+  min-width: 100vw;
+  width: max-content;
+  padding: .78rem clamp(1rem, 3.5vw, 4rem);
+  direction: rtl;
+}
+.thanaya-ticker-item {
+  display: inline-flex;
+  align-items: center;
+  gap: .55rem;
+  flex: none;
+  white-space: nowrap;
+  font-size: clamp(.76rem, 1vw, .91rem);
+  font-weight: 800;
+  line-height: 1.6;
+}
+.thanaya-ticker-icon {
+  flex: none;
+  color: #058db8;
+}
+@keyframes thanaya-ticker-loop {
+  from { transform: translate3d(0,0,0); }
+  to { transform: translate3d(-50%,0,0); }
+}
+@media (hover: hover) {
+  .thanaya-ticker:hover .thanaya-ticker-track { animation-play-state: paused; }
+}
+.thanaya-ticker:focus-within .thanaya-ticker-track { animation-play-state: paused; }
+@media (prefers-reduced-motion: reduce) {
+  .thanaya-ticker-track {
+    animation: none;
+    will-change: auto;
+    width: 100%;
+  }
+  .thanaya-ticker-viewport { overflow: visible; }
+  .thanaya-ticker-group:first-child {
+    flex-wrap: wrap;
+    min-width: 0;
+    width: 100%;
+    justify-content: center;
+    gap: .65rem 1.4rem;
+    padding: .75rem 1rem;
+  }
+  .thanaya-ticker-group[aria-hidden="true"] { display: none; }
+  .thanaya-ticker-item { white-space: normal; }
+}
