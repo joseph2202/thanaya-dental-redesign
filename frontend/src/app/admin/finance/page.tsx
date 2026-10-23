@@ -53,7 +53,7 @@ export default function FinancePage(){
  useEffect(()=>{void refreshSummary();},[refreshSummary]);
  async function findOrders(term:string){
   const sequence=++finderSeq.current;
-  setFinding(true);setFinderError('');
+  setFinding(true);setFinderError('');setChoices([]);setFinderLoaded(false);
   try{
    const result=await financeAPI.findOrders(term.trim());
    if(sequence!==finderSeq.current)return;
@@ -68,7 +68,7 @@ export default function FinancePage(){
  async function loadOrder(id:string){
   if(!id.trim()||busy)return;
   const sequence=++ledgerSeq.current;
-  setLoading(true);setError('');setNotice('');
+  setLoading(true);setError('');setNotice('');setLedger(null);
   setAmount('');setNote('');
   try{
    const detail=await financeAPI.order(id.trim());
