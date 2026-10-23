@@ -44,7 +44,7 @@ router.post('/orders/:id/events',requireAdmin,async(req,res)=>{
   const intent=parsePaymentIntent(req.body);
   const actorId=res.locals.adminUserId as string;
   const result=await prisma.$transaction(async(tx)=>{
-   const order=await tx.order.findUnique({where:{id:req.params.id},include});
+   const order=await tx.order.findUnique({where:{id:orderId},include});
    if(!order)throw new PaymentError(404,'الطلب غير موجود');
    const duplicate=order.paymentEvents.find(e=>e.requestId===intent.requestId);
    if(duplicate){
