@@ -7,14 +7,24 @@ const benefits=[
  {label:'أجور توصيل حسب المحافظة',icon:MapPinned}
 ];
 
-// Do not advertise categories the store has not actually stocked yet.
-// Catalog categories are generated from real products in CategoryGrid.
+// Infinite, CSS-only marquee. The repeated group is visual only; screen readers
+// announce each useful statement once. No invented product categories or stock.
+function BenefitsGroup({duplicate=false}:{duplicate?:boolean}){
+ return <div className="thanaya-ticker-group" aria-hidden={duplicate?true:undefined}>
+  {benefits.map(({label,icon:Icon})=><span key={label} className="thanaya-ticker-item">
+   <Icon size={19} strokeWidth={1.8} className="thanaya-ticker-icon" aria-hidden="true"/>
+   <span>{label}</span>
+  </span>)}
+ </div>;
+}
+
 export default function Ticker(){
- return <section aria-label="معلومات عن التسوق في ثنايا" className="border-b border-[#cde7f0] bg-[#e9f7fb]">
-  <div className="site-container grid grid-cols-2 gap-x-4 gap-y-3 py-3 sm:gap-x-6 lg:grid-cols-4">
-   {benefits.map(({label,icon:Icon})=><p key={label} className="flex min-w-0 items-center gap-2 text-[11px] font-bold leading-5 text-[#3c6b7b] sm:text-xs">
-    <Icon size={17} strokeWidth={1.8} className="shrink-0 text-[#088eb9]" aria-hidden="true"/><span>{label}</span>
-   </p>)}
+ return <section className="thanaya-ticker" aria-label="معلومات عن التسوق في ثنايا">
+  <div className="thanaya-ticker-viewport">
+   <div className="thanaya-ticker-track">
+    <BenefitsGroup/>
+    <BenefitsGroup duplicate/>
+   </div>
   </div>
  </section>;
 }
