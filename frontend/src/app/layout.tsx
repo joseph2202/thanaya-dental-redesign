@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import "./site-dual-theme.css";
 import { CartProvider } from "@/context/CartContext";
 import { AuthProvider } from "@/context/AuthContext";
 import BackgroundPattern from "@/components/layout/BackgroundPattern";
+import {ThemeInitializer} from "@/components/theme/ThemeToggle";
 
 export const metadata: Metadata = {
   title: "ثنايا | مستلزمات طب الأسنان والأجهزة الطبية",
@@ -21,7 +23,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ar" dir="rtl">
+    <html lang="ar" dir="rtl" data-thanaya-theme="dark" suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://cdn.jsdelivr.net" crossOrigin="anonymous" />
         <link
@@ -30,6 +32,7 @@ export default function RootLayout({
         />
       </head>
       <body className="font-sans antialiased bg-paper text-ink relative">
+        <ThemeInitializer/>
         <BackgroundPattern />
         <div className="relative z-10">
           <AuthProvider>
