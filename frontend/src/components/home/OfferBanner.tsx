@@ -37,7 +37,7 @@ export default function OfferBanner(){
  },[]);
  if(!banner.bannerEnabled)return null;
  return <section aria-label="إعلان ثنايا" className="site-container py-4 md:py-5">
-   <div className="relative grid items-center gap-5 overflow-hidden rounded-[24px] bg-[linear-gradient(120deg,#007cae,#04a5d1)] px-6 py-6 text-white md:grid-cols-[1fr_auto] sm:px-10 sm:py-7">
+   <div className="thanaya-offer-banner relative grid items-center gap-5 overflow-hidden rounded-[24px] bg-[linear-gradient(120deg,#007cae,#04a5d1)] px-6 py-7 text-white md:grid-cols-[1fr_auto] sm:px-10 sm:py-8">
      {banner.bannerImage && <>
        <img src={banner.bannerImage} alt="" aria-hidden="true" loading="lazy" decoding="async" className="pointer-events-none absolute inset-0 h-full w-full object-cover" />
        <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,rgba(0,91,126,.80),rgba(0,116,160,.88))]" />
@@ -45,7 +45,7 @@ export default function OfferBanner(){
      <div className="pointer-events-none absolute -left-[75px] -top-[95px] h-72 w-72 rounded-full border-[48px] border-white/[.06]" aria-hidden="true" />
      <div className="relative min-w-0">
        <span className="text-xs font-bold tracking-widest text-white/85">{banner.bannerEyebrow}</span>
-       <h2 className="site-heading mt-2 text-white">{banner.bannerTitle}</h2>
+       <h2 className="mt-3 text-[clamp(1.65rem,3.2vw,2.65rem)] font-black leading-[1.3] tracking-[-.035em] text-white">{banner.bannerTitle}</h2>
        <p className="mt-2 max-w-2xl text-sm leading-7 text-white/85">{banner.bannerDescription}</p>
      </div>
      <div className="relative flex items-center gap-3">
