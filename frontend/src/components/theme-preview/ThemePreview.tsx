@@ -29,6 +29,17 @@ const nav:{key:View;label:string}[]=[
 
 export default function ThemePreview(){
  const [theme,setTheme]=useState<Theme>('dark');
+ useEffect(()=>{
+  try{
+   setTheme(window.localStorage.getItem('thanaya:color-theme')==='light'?'light':'dark');
+  }catch{/* Private browsing may disable storage. */}
+ },[]);
+ function selectTheme(next:Theme){
+  setTheme(next);
+  document.documentElement.dataset.thanayaTheme=next;
+  try{window.localStorage.setItem('thanaya:color-theme',next);}catch{}
+  window.dispatchEvent(new Event('thanaya-theme-change'));
+ }
  const [view,setView]=useState<View>('home');
  const [products,setProducts]=useState<PreviewProduct[]>([]);
  const [loading,setLoading]=useState(true);
@@ -113,11 +124,11 @@ export default function ThemePreview(){
  return <div className="thl-shell" data-theme={theme} dir="rtl">
   <div className="thl-lab-bar">
    <div className="thl-wrap thl-lab-inner">
-    <span className="thl-lab-identity"><Sparkles size={15}/> مختبر تصميم ثنايا — معاينة منفصلة، بدون تغيير المتجر</span>
+    <span className="thl-lab-identity"><Sparkles size={15}/> مختبر تصميم ثنايا — تغيير الألوان فقط، بدون تعديل بيانات المتجر</span>
     <div className="thl-top-actions">
      <div className="thl-tone" role="group" aria-label="قارن نمط الألوان">
-      <button type="button" aria-pressed={theme==='dark'} onClick={()=>setTheme('dark')}>داكن</button>
-      <button type="button" aria-pressed={theme==='light'} onClick={()=>setTheme('light')}>فاتح</button>
+      <button type="button" aria-pressed={theme==='dark'} onClick={()=>selectTheme('dark')}>داكن</button>
+      <button type="button" aria-pressed={theme==='light'} onClick={()=>selectTheme('light')}>فاتح</button>
      </div>
      <Link href="/" className="thl-exit">الموقع الأصلي <ArrowUpLeft size={15}/></Link>
     </div>
