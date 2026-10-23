@@ -16,6 +16,8 @@ const periods:[FinancialSummary['range'],string][]=[['7','7 أيام'],['30','30
 export default function FinancePage(){
  const [period,setPeriod]=useState<'7'|'30'|'90'|'all'>('30');
  const [summary,setSummary]=useState<FinancialSummary|null>(null);
+ const [summaryLoading,setSummaryLoading]=useState(true);
+ const summarySeq=useRef(0);
  const [summaryError,setSummaryError]=useState('');
  const [orderId,setOrderId]=useState('');
  const [finderTerm,setFinderTerm]=useState('');
@@ -37,8 +39,16 @@ export default function FinancePage(){
  const [draft,setDraft]=useState<Draft|null>(null);
 
  const refreshSummary=useCallback(async()=>{
-  try{setSummaryError('');setSummary(await financeAPI.summary(period));}
-  catch(e){setSummaryError(e instanceof Error?e.message:'تعذّر تحميل سجل التحصيل');}
+  const sequence=++summarySeq.current;
+  setSummary(null);setSummaryLoading(true);setSummaryError('');
+  try{
+   const latest=await financeAPI.summary(period);
+   if(sequence===summarySeq.current)setSummary(latest);
+  }catch(e){
+   if(sequence===summarySeq.current){
+    setSummaryError(e instanceof Error?e.message:'تعذّر تحميل سجل التحصيل');
+   }
+  }finally{if(sequence===summarySeq.current)setSummaryLoading(false);}
  },[period]);
  useEffect(()=>{void refreshSummary();},[refreshSummary]);
  async function findOrders(term:string){
@@ -129,6 +139,7 @@ export default function FinancePage(){
      <button type="button" key={key} aria-pressed={period===key} onClick={()=>setPeriod(key as typeof period)}
       className={`rounded-full border px-3 py-2 text-xs font-black ${period===key?'border-brand bg-brand text-white':'border-brand/20 bg-paper2 text-ink'}`}>{label}</button>)}</div>
    </div>
+   {summaryLoading&&<p role="status" className="site-muted mb-4 text-sm">جاري تحديث الحركات المالية للفترة المختارة...</p>}
    {summaryError&&<p role="alert" className="mb-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{summaryError}</p>}
    {summary&&<div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
     {[
