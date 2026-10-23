@@ -1,8 +1,16 @@
 # حالة مشروع ثنايا | THANAYA — سجل الاستمرار
 
+## التحديث الحالي — 23 أكتوبر 2026 | المحاسبة تعمل على Mac
+
+- **أبلغ المستخدم عن نجاح الترحيل المالي المحمي فعلياً على قاعدة SQLite في الماك**: الرسالة `THANAYA FINANCIAL SCHEMA APPLIED — VERIFIED` أكدت إضافة `Order.paymentRevision` وجدول `OrderPaymentEvent` مع بقاء **8 طلبات** و**0 بنود مرتجعات تفصيلية** دون تغيير، والنسخة الاحتياطية السابقة سليمة.
+- المستخدم شغّل Backend مع Prisma Client الجديد وFrontend، وأرسل **صورة حقيقية ناجحة** للواجهة `/admin/finance` بالوضع الداكن، تُظهر تحصيلات واستردادات مسجلة بقيمة **صفر** (لا توجد حركات مالية فعلية سجلها المستخدم). هذا طبيعي ولا يبرر إنشاء حركة مالية تجريبية.
+- **لا تعِد تشغيل أداة الترحيل ولا `prisma db push` على قاعدة المتجر الحقيقية**: المخطط المالي مفعّل بالفعل. قبل تغيير المخطط مستقبلاً يجب مسار نسخة احتياطية/ترحيل مستقل جديد.
+- فرع تحسين مستقل `feature/finance-order-finder-ux` (Draft PR #40) يضيف بحثاً آمناً داخل صفحة التحصيل عن الطلبات المسلّمة/المرتجعة بالاسم أو الرقم، وعرض المبالغ المتبقية، وحماية شاشة التقرير من عرض بيانات فترة سابقة أثناء تحميل فترة جديدة. **هذا الفرع لا يحتاج ترحيل DB**؛ لا أثر له على حسابات العملاء أو سجلات المال المحفوظة.
+- لا توجد قياسات أداء إنتاجية أو اختبار على قاعدة المستخدم من جهة المساعد؛ فحوصات GitHub تستخدم **SQLite وهمية/مؤقتة فقط**. المتابعة: مراجعة واجهة اختيار الطلبات، ثم وضع سياسة تحقق الإيصالات وربط تكاليف البضاعة الفعلية قبل أي تقرير أرباح.
+
 ## THANAYA — Financial collection / refund foundation (2026-10-23)
 
-- Draft branch `feature/financial-collection-ledger` based on `feature/catalog-server-first-performance`, Draft PR #39; **not applied to Mac or production database**.
+- Draft branch `feature/financial-collection-ledger` based on `feature/catalog-server-first-performance`, Draft PR #39; **historical pre-activation state; see current checkpoint above**.
 - Prisma additions: `Order.paymentRevision` and append-only `OrderPaymentEvent` with `(orderId,requestId)` unique, actor reference, amount IQD, method, event type, reason, timestamp.
 - Admin-only `/api/finance/orders/:id`, POST `/api/finance/orders/:id/events`, GET `/api/finance/summary` with atomic CAS and idempotency for collections/refunds; no cash transaction inferred from order/return status.
 - Manual finance management page `/admin/finance` (dark/light compatible), order detail links, history, confirmed/manual entries and summary distinct from delivery values. No customer-facing payment processor, no automatic transfer/refund.
