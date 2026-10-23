@@ -9,7 +9,7 @@ export default function Footer({ compact = false }: { compact?: boolean }) {
   const [settings,setSettings]=useState<any>(null);
   useEffect(()=>{settingsAPI.getPublic().then(setSettings).catch(()=>{});},[]);
   const safePhone=settings?.phone||'07822088894';
-  return <footer className={`bg-[#20313b] text-white ${compact ? "mt-0" : "mt-7 md:mt-9"}`}>
+  return <footer className={`thanaya-site-footer bg-[#20313b] text-white ${compact ? "mt-0" : "mt-7 md:mt-9"}`}>
     <div className={`site-container grid sm:grid-cols-2 lg:grid-cols-[1.35fr_.75fr_1fr_.75fr] ${compact ? "py-7 md:py-9 gap-5 lg:gap-7" : "py-8 md:py-11 gap-6 lg:gap-8"}`}>
       <div>
         <Link href="/" className="inline-flex items-center gap-3"><Image src="/logo-icon.png" alt="" width={42} height={42} className="w-10 h-10" /><span><strong className="block text-[25px] leading-none">{settings?.siteName||"ثنايا"}</strong><small className="text-brand-light text-[10px] tracking-wider" dir="ltr">THANAYA MEDICAL</small></span></Link>
