@@ -318,3 +318,36 @@ html[data-thanaya-theme="dark"] .thanaya-site-footer [class~="text-white/45"] {
    color:#203e4c!important;
  }
 }
+
+/* Additional gradient panels audited for the same white-on-white dark-mode bug. */
+html[data-thanaya-theme="dark"] .thanaya-account-hero {
+ background:linear-gradient(120deg,#1b4558,#112e3e)!important;
+ border-color:#487588!important;
+}
+html[data-thanaya-theme="dark"] .thanaya-account-hero h1 {
+ color:#f4fbff!important;
+}
+html[data-thanaya-theme="dark"] .thanaya-account-hero > div > p,
+html[data-thanaya-theme="dark"] .thanaya-account-hero [class~="text-[#597783]"] {
+ color:#c4dce7!important;
+}
+html[data-thanaya-theme="dark"] .thanaya-account-hero [class~="text-[#678190]"] {
+ color:#b9d5df!important;
+}
+html[data-thanaya-theme="dark"] .thanaya-admin-welcome {
+ background:linear-gradient(125deg,#1c4558,#133140)!important;
+ border-color:#4a7688!important;
+}
+html[data-thanaya-theme="dark"] .thanaya-admin-welcome h1 {
+ color:#f4fbff!important;
+}
+html[data-thanaya-theme="dark"] .thanaya-admin-welcome p {
+ color:#c4dce7!important;
+}
+html[data-thanaya-theme="dark"] .thanaya-admin-hero-action {
+ background:#ddf6ff!important;
+ color:#12445b!important;
+}
+html[data-thanaya-theme="dark"] .thanaya-admin-hero-action:hover {
+ background:#fff!important;
+}
