@@ -87,14 +87,14 @@ export default function Header() {
             {user ? (
               <>
                 {["owner","admin","inventory","sales"].includes(user.role) && (
-                  <Link href="/admin" className="hidden items-center gap-1 text-xs font-bold text-[#37546d] hover:text-brand xl:inline-flex" aria-label="لوحة الإدارة">
+                  <Link href="/admin" className="thanaya-header-admin-link hidden items-center gap-1 text-xs font-bold text-[#37546d] hover:text-brand xl:inline-flex" aria-label="لوحة الإدارة">
                     <LayoutDashboard size={16} /> الإدارة
                   </Link>
                 )}
                 <Link href="/account" aria-label="حسابي" className="site-btn site-btn-outline site-btn-sm gap-1.5">
                   <UserRound size={17} /> <span className="hidden sm:inline">حسابي</span>
                 </Link>
-                <button type="button" onClick={logout} className="hidden items-center gap-1 text-xs font-semibold text-[#5b7385] hover:text-brand lg:inline-flex">
+                <button type="button" onClick={logout} className="thanaya-header-logout-link hidden items-center gap-1 text-xs font-semibold text-[#5b7385] hover:text-brand lg:inline-flex">
                   <LogOut size={15} /> خروج
                 </button>
               </>
