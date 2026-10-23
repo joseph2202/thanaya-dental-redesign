@@ -2,8 +2,9 @@ import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import Hero from "@/components/home/Hero";
 import Ticker from "@/components/home/Ticker";
-import Categories from "@/components/home/Categories";
-import Products from "@/components/home/Products";
+import HomeCatalog from "@/components/home/HomeCatalog";
+import HomeCatalogFallback from "@/components/home/HomeCatalogFallback";
+import { Suspense } from "react";
 import OfferBanner from "@/components/home/OfferBanner";
 import ShoppingSteps from "@/components/home/ShoppingSteps";
 
@@ -13,8 +14,9 @@ export default function Home() {
       <Header />
       <Hero />
       <Ticker />
-      <Products />
-      <Categories />
+      <Suspense fallback={<HomeCatalogFallback/>}>
+        <HomeCatalog />
+      </Suspense>
       <ShoppingSteps />
       <OfferBanner />
       <Footer compact />
