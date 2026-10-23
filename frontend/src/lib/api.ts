@@ -227,3 +227,25 @@ export const reportsAPI={
 };
 
 export type CartQuote={items:{productId:string;quantity:number;product:{id:string;name:string;price:number;stock:number;availableStock:number;saleUnit:string|null}|null;available:boolean}[];subtotal:number;canCheckout:boolean};
+
+export type FinancialEvent={
+ id:string;kind:'collection'|'refund';method:'cash'|'bank_transfer'|'card'|'other';
+ amountIqd:number;note:string;actorId:string;createdAt:string
+};
+export type OrderFinancialLedger={
+ order:{id:string;customerName:string;status:string;total:number;paymentMethod:string};
+ totals:{collectedIqd:number;refundedIqd:number;netIqd:number;collectionRemainingIqd:number;
+ refundableCeilingIqd:number;refundableRemainingIqd:number;ledgerOnly:true};
+ events:FinancialEvent[]
+};
+export type FinancialSummary={
+ range:string;receivedIqd:number;refundedIqd:number;netRecordedIqd:number;
+ receipts:number;refunds:number;deliveredWithoutReceipt:number;generatedAt:string;explanation:string
+};
+export const financeAPI={
+ summary:(range:'7'|'30'|'90'|'all'):Promise<FinancialSummary>=>apiRequest('/finance/summary?range='+range),
+ order:(id:string):Promise<OrderFinancialLedger>=>apiRequest('/finance/orders/'+encodeURIComponent(id)),
+ record:(id:string,event:{requestId:string;kind:'collection'|'refund';method:'cash'|'bank_transfer'|'card'|'other';amountIqd:number;note:string}):
+  Promise<{id:string;kind:string;amountIqd:number;alreadyProcessed:boolean}>=>
+  apiRequest('/finance/orders/'+encodeURIComponent(id)+'/events',{method:'POST',body:JSON.stringify(event)})
+};
