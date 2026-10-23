@@ -30,6 +30,8 @@ jobs:
         run: python3 -m unittest discover -s backend/tests -p 'test_rehearse_return_disposition.py' -v
       - name: Validate guarded migration against stale and damaged backups
         run: python3 -m unittest discover -s backend/tests -p 'test_apply_return_disposition.py' -v
+      - name: Rehearse financial migration without touching shop data
+        run: python3 -m unittest discover -s backend/tests -p 'test_rehearse_finance_ledger.py' -v
       - name: Install backend dependencies
         run: npm ci
         working-directory: backend
