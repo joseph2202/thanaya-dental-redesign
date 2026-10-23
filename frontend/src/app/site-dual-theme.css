@@ -171,3 +171,45 @@ html[data-thanaya-theme="dark"] .signature-hero [class~="bg-white/[.08]"] {backg
  .thanaya-theme-toggle {transition:none;}
  .thanaya-theme-toggle:hover {transform:none;}
 }
+
+/* Page-specific color mapping keeps the original interaction and layout intact. */
+html[data-thanaya-theme="dark"] .thanaya-catalog-hero{
+ background:radial-gradient(ellipse at 83% 15%,#23556b,transparent 54%),linear-gradient(120deg,#183f52,#102a38)!important;
+ border-color:#396275!important;
+}
+html[data-thanaya-theme="dark"] .thanaya-catalog-hero h1 {color:#f3fbff!important;}
+html[data-thanaya-theme="dark"] .thanaya-gallery-shell{
+ background:linear-gradient(155deg,#193d50,#112d3a)!important;
+ border-color:#3b6374!important;
+ box-shadow:0 12px 34px #00000026!important;
+}
+html[data-thanaya-theme="dark"] .thanaya-steps-card{
+ background:#163443!important;border-color:#386475!important;
+ box-shadow:0 12px 31px #00000017!important;
+}
+html[data-thanaya-theme="dark"] .thanaya-steps-card h3{color:#eaf8ff!important;}
+html[data-thanaya-theme="dark"] .thanaya-steps-card p{color:#b3ccd7!important;}
+html[data-thanaya-theme="dark"] .thanaya-steps-strip{
+ background:#173c4e!important;border-color:#39677a!important;color:#c2dce6!important;
+}
+html[data-thanaya-theme="dark"] .thanaya-category-image{
+ background:linear-gradient(135deg,#1c485a,#244d60)!important;color:#8ce2fa!important;
+}
+html[data-thanaya-theme="dark"] :is(.thanaya-steps-card,.thanaya-category-image) [class*="text-[#"]{color:#8ce2fa!important;}
+html[data-thanaya-theme="dark"] .thanaya-site-header .site-btn-outline {background:#1c4559;color:#eefaff;border-color:#547b8a;}
+html[data-thanaya-theme="dark"] .thanaya-site-header button[aria-expanded] {border-color:#4c7182;color:#f0faff;}
+html[data-thanaya-theme="dark"] .signature-cart-summary [class*="border-[#"],
+html[data-thanaya-theme="dark"] .signature-detail-sheet [class*="border-[#"] {border-color:#355f70;}
+html[data-thanaya-theme="dark"] .signature-detail-sheet [class*="bg-[#"],
+html[data-thanaya-theme="dark"] .signature-cart-summary [class*="bg-[#"] {background-color:#1b3e4f;}
+html[data-thanaya-theme="dark"] .signature-detail-sheet [class*="text-[#"],
+html[data-thanaya-theme="dark"] .signature-cart-summary [class*="text-[#"] {color:#cbe1eb;}
+html[data-thanaya-theme="dark"] .signature-detail-sheet h1,
+html[data-thanaya-theme="dark"] .signature-detail-sheet h2,
+html[data-thanaya-theme="dark"] .signature-detail-sheet strong,
+html[data-thanaya-theme="dark"] .signature-cart-summary h2,
+html[data-thanaya-theme="dark"] .signature-cart-summary strong {color:#f2fbff;}
+html[data-thanaya-theme="dark"] .signature-card :is(h2,h3,strong) {color:#f1faff;}
+html[data-thanaya-theme="dark"] .signature-card .thanaya-product-price strong{color:#f4fbff;}
+html[data-thanaya-theme="dark"] [class~="text-black"] {color:#eefaff;}
+html[data-thanaya-theme="dark"] .site-main [class~="border-white"] {border-color:#456a78;}
