@@ -247,7 +247,8 @@ export type FinanceOrderChoice={
  createdAt:string;collectedIqd:number;refundedIqd:number;collectionRemainingIqd:number
 };
 export type FinanceOrderFinder={orders:FinanceOrderChoice[];limit:number;hasMore:boolean};
-export const financeAPI={\n findOrders:(search:string):Promise<FinanceOrderFinder>=>apiRequest('/finance/orders?'+new URLSearchParams({search}).toString()),
+export const financeAPI={
+ findOrders:(search:string):Promise<FinanceOrderFinder>=>apiRequest('/finance/orders?'+new URLSearchParams({search}).toString()),
  summary:(range:'7'|'30'|'90'|'all'):Promise<FinancialSummary>=>apiRequest('/finance/summary?range='+range),
  order:(id:string):Promise<OrderFinancialLedger>=>apiRequest('/finance/orders/'+encodeURIComponent(id)),
  record:(id:string,event:{requestId:string;kind:'collection'|'refund';method:'cash'|'bank_transfer'|'card'|'other';amountIqd:number;note:string}):
