@@ -92,7 +92,7 @@ export default function AdminDashboard(){
  if(user?.role==='inventory'||user?.role==='sales'){
    const inventory=user.role==='inventory';
    return <AdminLayout>
-     <div className="rounded-3xl border border-[#d0e8f1] bg-[linear-gradient(125deg,#e6f7fd,#fff)] p-6 sm:p-8">
+     <div className="thanaya-admin-welcome rounded-3xl border border-[#d0e8f1] bg-[linear-gradient(125deg,#e6f7fd,#fff)] p-6 sm:p-8">
        <span className="site-eyebrow">THANAYA / WORKSPACE</span>
        <h1 className="mt-2 text-2xl font-black sm:text-3xl">أهلاً {user.name}</h1>
        <p className="mt-2 text-sm text-[#587786]">واجهة عملك حسب الصلاحيات الممنوحة لحسابك.</p>
@@ -113,7 +113,7 @@ export default function AdminDashboard(){
            <p className="mt-2 max-w-2xl text-sm leading-7 text-white/75 print:text-[#496b79]">متابعة الطلبات ومؤشرات الأداء وتنبيهات المخزون من مكان واحد، اعتماداً على البيانات المسجلة في المتجر.</p>
          </div>
          <div className="flex flex-wrap items-center gap-2 print:hidden">
-           <Link href="/admin/orders" className="inline-flex min-h-11 items-center gap-2 rounded-full bg-white px-4 text-xs font-black text-[#0b5675] hover:bg-cyan-50">افتح الطلبات <ArrowUpLeft size={16}/></Link>
+           <Link href="/admin/orders" className="thanaya-admin-hero-action inline-flex min-h-11 items-center gap-2 rounded-full bg-white px-4 text-xs font-black text-[#0b5675] hover:bg-cyan-50">افتح الطلبات <ArrowUpLeft size={16}/></Link>
            <button onClick={()=>setRevision(v=>v+1)} disabled={refreshing} className="inline-flex min-h-11 items-center gap-2 rounded-full border border-white/30 bg-white/10 px-4 text-xs font-bold text-white hover:bg-white/20 disabled:opacity-60">
              <RefreshCw size={16} className={refreshing?'animate-spin':''}/>{refreshing?'جاري التحديث':'تحديث الآن'}
            </button>
