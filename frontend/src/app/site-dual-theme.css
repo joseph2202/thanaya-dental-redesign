@@ -351,3 +351,21 @@ html[data-thanaya-theme="dark"] .thanaya-admin-hero-action {
 html[data-thanaya-theme="dark"] .thanaya-admin-hero-action:hover {
  background:#fff!important;
 }
+
+/* Moving information ribbon follows the selected palette without losing contrast. */
+html[data-thanaya-theme="dark"] .thanaya-ticker {
+  background: linear-gradient(90deg,#133647,#1c475a 50%,#133647);
+  border-color: #3c6c7e;
+  color: #e0f4fc;
+}
+html[data-thanaya-theme="dark"] .thanaya-ticker-icon {
+  color: #8ce4f8;
+}
+html[data-thanaya-theme="light"] .thanaya-ticker {
+  background: #e9f7fb;
+  border-color: #c7e7f0;
+  color: #2c6479;
+}
+html[data-thanaya-theme="light"] .thanaya-ticker-icon {
+  color: #078eb9;
+}
