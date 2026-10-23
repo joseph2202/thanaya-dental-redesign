@@ -1,0 +1,173 @@
+/* Thanaya dual-theme design system. Dark is default; Light is user-selectable.
+   The design lab owns its own palettes and remains independent. */
+html[data-thanaya-theme="dark"] {
+ color-scheme:dark;
+ --color-ink:#eefaff;
+ --color-paper:#0b202c;
+ --color-paper2:#112b38;
+ --color-brand-light:#82dff5;
+ --th-surface:#153442;
+ --th-surface2:#1b3c4d;
+ --th-border:#31586b;
+ --th-muted:#aec9d5;
+ --th-title:#f1fbff;
+ --th-focus:#94e6fb;
+}
+html[data-thanaya-theme="light"] {
+ color-scheme:light;
+ --color-ink:#2e2e2d;
+ --color-paper:#f1f5f6;
+ --color-paper2:#e8eef1;
+ --th-surface:#fff;
+ --th-surface2:#e9f6fa;
+ --th-border:#c8e4ed;
+ --th-muted:#667f8c;
+ --th-title:#244656;
+ --th-focus:#059bd0;
+}
+html[data-thanaya-theme="dark"] body {background:#0b202c;color:#eefaff;}
+html[data-thanaya-theme="dark"] body::before{
+ background-image:radial-gradient(#7bc9e516 1px,transparent 1px);
+ background-size:32px 32px;
+}
+html[data-thanaya-theme="dark"] .fixed[aria-hidden="true"] [style*="medical-plus"],
+html[data-thanaya-theme="dark"] div[aria-hidden="true"][style*="medical-plus"]{opacity:.09;}
+html[data-thanaya-theme="dark"] .site-surface,
+html[data-thanaya-theme="dark"] .site-card,
+html[data-thanaya-theme="dark"] .signature-card,
+html[data-thanaya-theme="dark"] .signature-detail-sheet,
+html[data-thanaya-theme="dark"] .signature-cart-summary,
+html[data-thanaya-theme="dark"] .signature-order-card{
+ background:var(--th-surface);
+ border-color:var(--th-border);
+ color:var(--th-title);
+ box-shadow:0 12px 36px #00000018;
+}
+html[data-thanaya-theme="dark"] :is(.site-input,.site-btn-outline){
+ background:#1b3e50;color:#eefaff;border-color:#42697b;
+}
+html[data-thanaya-theme="dark"] .site-btn-outline:hover {background:#265267;border-color:#81dff7;}
+html[data-thanaya-theme="dark"] .site-muted {color:var(--th-muted);}
+html[data-thanaya-theme="dark"] :is(.signature-section-heading,.site-heading,.site-page-title) {color:var(--th-title);}
+html[data-thanaya-theme="dark"] .site-eyebrow {color:#83dbf1;}
+html[data-thanaya-theme="dark"] .site-product-visual {background:radial-gradient(circle,#28586a,#1e4355 75%,#1a3747);color:#91def3;}
+html[data-thanaya-theme="dark"] .signature-card-media {background:#1b4355;}
+html[data-thanaya-theme="dark"] .signature-hero {border-bottom:1px solid #3e6b7b;}
+html[data-thanaya-theme="dark"] .signature-hero-cta {background:#94e7f8;color:#103343;}
+html[data-thanaya-theme="dark"] .signature-showcase-tile {border-color:#497b8e;}
+html[data-thanaya-theme="dark"] .thanaya-site-header {
+ background:rgba(17,43,56,.96)!important;border-bottom-color:#32596a!important;
+ box-shadow:0 6px 27px #00000020;
+}
+html[data-thanaya-theme="light"] .thanaya-site-header {background:rgba(255,255,255,.96);}
+html[data-thanaya-theme="dark"] .thanaya-site-header input[type="search"] {
+ background:#173849!important;border-color:#406a7d!important;color:#f3fbff!important;
+}
+html[data-thanaya-theme="dark"] .thanaya-site-header input::placeholder {color:#a1c0cd;}
+html[data-thanaya-theme="dark"] .thanaya-site-header nav a {color:#c6dfe9;}
+html[data-thanaya-theme="dark"] .thanaya-site-header nav a[aria-current="page"] {color:#8ce4f8;}
+html[data-thanaya-theme="dark"] .thanaya-site-header nav a:hover {color:#a8edfd;}
+html[data-thanaya-theme="dark"] .thanaya-site-header .thanaya-brand-title {color:#fff;}
+html[data-thanaya-theme="dark"] .thanaya-mobile-navigation {background:#143344!important;border-color:#315a6b!important;}
+html[data-thanaya-theme="dark"] .thanaya-mobile-navigation a,
+html[data-thanaya-theme="dark"] .thanaya-mobile-navigation button {background:#1f4659!important;color:#ebf8ff!important;}
+.thanaya-theme-toggle {
+ display:inline-flex;align-items:center;justify-content:center;gap:7px;
+ min-width:43px;min-height:41px;padding:8px 11px;
+ border:1px solid var(--th-border,#bbddea);border-radius:13px;
+ background:var(--th-surface,#fff);color:var(--th-title,#203f4e);
+ font-size:12px;font-weight:900;transition:background .18s,border-color .18s,transform .18s;
+}
+.thanaya-theme-toggle:hover {border-color:#65c6e6;transform:translateY(-1px);}
+.thanaya-theme-toggle:focus-visible {outline:3px solid var(--th-focus,#059bd0);outline-offset:3px;}
+/* The default Tailwind arbitrary light colors in business forms are mapped to
+   meaningful dark surfaces; status/success/destructive reds and greens stay unchanged. */
+html[data-thanaya-theme="dark"] :is(
+ [class~="bg-white"],[class~="bg-white/95"],[class~="bg-white/90"],[class~="bg-white/85"],
+ [class~="bg-white/80"],[class~="bg-[#f9fdff]"],[class~="bg-[#f5fbfe]"],
+ [class~="bg-[#f5fafc]"],[class~="bg-[#f3f9fb]"],[class~="bg-[#f2fafc]"],
+ [class~="bg-[#f4fafc]"],[class~="bg-[#f7fcfe]"],[class~="bg-[#fbfdfe]"],
+ [class~="bg-[#eef9fd]"],[class~="bg-[#eff8fb]"],[class~="bg-[#eaf8fc]"],
+ [class~="bg-[#f1faff]"],[class~="bg-[#e8f7fc]"],[class~="bg-[#f0f9fc]"],
+ [class~="bg-[#e9f8fd]"],[class~="bg-[#e7f7fc]"],[class~="bg-[#edf7fb]"]
+ ){
+ background-color:var(--th-surface2)!important;
+ color:var(--th-title);
+}
+html[data-thanaya-theme="dark"] :is(
+ [class~="text-[#233943]"],[class~="text-[#244653]"],[class~="text-[#234757]"],
+ [class~="text-[#234454]"],[class~="text-[#254353]"],[class~="text-[#254656]"],
+ [class~="text-[#203f4e]"],[class~="text-[#1f4050]"],[class~="text-[#173e50]"],
+ [class~="text-[#174457]"],[class~="text-[#1d4b60]"],[class~="text-[#234451]"],
+ [class~="text-[#254858]"],[class~="text-[#244454]"],[class~="text-[#244855]"],
+ [class~="text-[#315465]"],[class~="text-[#2e5264]"],[class~="text-[#243d4a]"],
+ [class~="text-[#26404f]"],[class~="text-[#2E2E2D]"],[class~="text-[#213b49]"],
+ [class~="text-[#243e4d]"],[class~="text-[#234757]"],[class~="text-[#24445a]"],
+ [class~="text-neutral-800"],[class~="text-neutral-900"],[class~="text-gray-900"]
+ ){color:#eaf7fe!important;}
+html[data-thanaya-theme="dark"] :is(
+ [class~="text-[#5d7b88]"],[class~="text-[#647e8b]"],[class~="text-[#63818e]"],
+ [class~="text-[#668491]"],[class~="text-[#647e8a]"],[class~="text-[#6c8692]"],
+ [class~="text-[#627b87]"],[class~="text-[#6f8994]"],[class~="text-[#718e9b]"],
+ [class~="text-[#7e9aaa]"],[class~="text-[#657b88]"],[class~="text-neutral-500"],
+ [class~="text-neutral-600"],[class~="text-neutral-700"],[class~="text-gray-500"],
+ [class~="text-[#6d8997]"],[class~="text-[#70909e]"],[class~="text-[#627e8b]"]
+ ){color:#aac6d3!important;}
+html[data-thanaya-theme="dark"] :is(input,select,textarea){
+ color-scheme:dark;
+}
+html[data-thanaya-theme="dark"] input:not([type="checkbox"]):not([type="radio"]),
+html[data-thanaya-theme="dark"] select,
+html[data-thanaya-theme="dark"] textarea{
+ background:#1b3e50;color:#eefaff;border-color:#42697b;
+}
+html[data-thanaya-theme="dark"] input::placeholder,
+html[data-thanaya-theme="dark"] textarea::placeholder{color:#9cbac8;}
+html[data-thanaya-theme="dark"] select option {background:#1b3e50;color:#eefaff;}
+html[data-thanaya-theme="dark"] .thanaya-editorial-panel{
+ background:linear-gradient(145deg,#1b4557,#132d3b)!important;
+ border-color:#3c687a!important;color:#eaf7ff;
+}
+html[data-thanaya-theme="dark"] .thanaya-editorial-panel h3 {color:#f3fbff!important;}
+html[data-thanaya-theme="dark"] .thanaya-editorial-panel h3 span {color:#8ce3f8!important;}
+html[data-thanaya-theme="dark"] .thanaya-editorial-panel p {color:#b8d5e0!important;}
+html[data-thanaya-theme="dark"] .thanaya-product-price {color:#f0faff!important;}
+html[data-thanaya-theme="dark"] .thanaya-product-price strong {color:#f0faff!important;}
+html[data-thanaya-theme="dark"] .thanaya-card-category {color:#91e3fa!important;}
+html[data-thanaya-theme="dark"] .thanaya-offer-banner{
+ background:linear-gradient(110deg,#174459,#0c3548)!important;
+ border:1px solid #3d7186;
+}
+html[data-thanaya-theme="light"] .thanaya-offer-banner{
+ background:linear-gradient(110deg,#e3f6fc,#b9e7f5)!important;
+ border:1px solid #a8dceb;color:#164455!important;
+}
+html[data-thanaya-theme="light"] .thanaya-offer-banner :is(h2,p,span){color:#164455;}
+html[data-thanaya-theme="light"] .thanaya-offer-banner .site-btn-outline{background:#fff;color:#17445a;}
+html[data-thanaya-theme="dark"] .thanaya-site-footer {background:#102936!important;color:#e6f7fd;}
+html[data-thanaya-theme="dark"] .thanaya-admin-shell {background:#0b202c!important;color:#eaf7ff;}
+html[data-thanaya-theme="dark"] .thanaya-admin-sidebar {background:#112b38!important;}
+html[data-thanaya-theme="dark"] .thanaya-admin-header {background:#112f3e!important;border-color:#345b6e!important;}
+html[data-thanaya-theme="dark"] .thanaya-admin-header p,
+html[data-thanaya-theme="dark"] .thanaya-admin-header span{color:#ecf9ff!important;}
+html[data-thanaya-theme="dark"] .thanaya-admin-shell .signature-order-card {border-color:#335d6d;}
+html[data-thanaya-theme="dark"] .thanaya-admin-shell :is(.site-surface,.site-card){background:#173748;}
+html[data-thanaya-theme="dark"] .thanaya-admin-shell table{color:#f1fbff;}
+html[data-thanaya-theme="dark"] .thanaya-admin-shell th{background:#244858!important;color:#d9f2fb!important;}
+html[data-thanaya-theme="dark"] .thanaya-admin-shell td{border-color:#2a5163!important;}
+html[data-thanaya-theme="dark"] .thanaya-admin-shell [class~="bg-paper2/30"]{background:#173646!important;}
+html[data-thanaya-theme="dark"] .thanaya-admin-shell [class~="bg-brand"]{color:#fff;}
+html[data-thanaya-theme="dark"] dialog:not(.thl-shell dialog){
+ color:#eaf7ff;background:#173748;border-color:#416c7b;
+}
+html[data-thanaya-theme="dark"] dialog:not(.thl-shell dialog) form>div:first-child{
+ background:linear-gradient(125deg,#1f4659,#173849);
+}
+html[data-thanaya-theme="dark"] dialog:not(.thl-shell dialog) h2 {color:#f4fcff!important;}
+html[data-thanaya-theme="dark"] dialog:not(.thl-shell dialog) p {color:#b7d3df;}
+html[data-thanaya-theme="dark"] .signature-hero [class~="bg-white/10"] {background:rgba(255,255,255,.1)!important;}
+html[data-thanaya-theme="dark"] .signature-hero [class~="bg-white/[.08]"] {background:rgba(255,255,255,.08)!important;}
+@media (prefers-reduced-motion:reduce){
+ .thanaya-theme-toggle {transition:none;}
+ .thanaya-theme-toggle:hover {transform:none;}
+}
