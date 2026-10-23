@@ -41,9 +41,9 @@ router.get('/orders',requireAdmin,async(req,res)=>{
     id:true,customerName:true,status:true,total:true,createdAt:true,
     paymentEvents:{select:{kind:true,amountIqd:true}}
    },
-   take:12,orderBy:[{createdAt:'desc'},{id:'desc'}]
+   take:13,orderBy:[{createdAt:'desc'},{id:'desc'}]
   });
-  const orders=rows.map(({paymentEvents,...order})=>{
+  const orders=rows.slice(0,12).map(({paymentEvents,...order})=>{
    const collectedIqd=paymentEvents
     .filter(e=>e.kind==='collection').reduce((n,e)=>n+e.amountIqd,0);
    const refundedIqd=paymentEvents
@@ -52,7 +52,7 @@ router.get('/orders',requireAdmin,async(req,res)=>{
     collectionRemainingIqd:Math.max(0,order.total-collectedIqd)};
   });
   res.setHeader('Cache-Control','no-store');
-  res.json({orders,limit:12,hasMore:rows.length===12});
+  res.json({orders,limit:12,hasMore:rows.length>12});
  }catch(e){failure(res,e,'finance order finder');}
 });
 
