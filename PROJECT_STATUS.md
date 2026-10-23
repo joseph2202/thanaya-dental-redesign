@@ -9,7 +9,7 @@
 - Refunds require itemized received merchandise returns, are capped by actually recorded collections and returned-item value net of order discount. Shipping not automatically refundable.
 - New **read-only rehearsal** `backend/scripts/rehearse_finance_ledger.py` clones source into a disposable private SQLite file, adds the schema there only and verifies all existing rows unchanged.
 - GitHub CI run **40001449503 PASS**: previous order/return suites, 7 finance-rehearsal checks, 11 isolated finance API tests including concurrency and refund limits, Backend TypeScript, Frontend Next.js build.
-- **Safety gate:** live SQLite schema has NOT been upgraded. DO NOT switch running backend to this branch, and DO NOT run `prisma db push` on real `dev.db`. Next task is verified fresh private backup then creation/testing of guarded apply migration before making new finance UI active.
+- **Safety gate (updated 2026-10-23):** `backend/scripts/apply_finance_ledger.py` guarded apply tool is now created and passed **13 synthetic/temporary SQLite tests** in GitHub Actions run **40003756259** (also 7 rehearsal, 11 finance API, 25 order tests and full builds PASS). It has **NOT run on real shop data**. Next task: stop all local servers and tunnel, take verified private backup, switch branch only after shutdown, run `rehearse_finance_ledger.py` and `apply_finance_ledger.py --preflight` read-only. STOP; do not use `--apply` or start new backend until separately authorized. NEVER run Prisma db push on live `dev.db`.
 - See `docs/FINANCIAL_LEDGER_ROLLOUT.md` for boundaries, verification and full safe rollout.
 
 
