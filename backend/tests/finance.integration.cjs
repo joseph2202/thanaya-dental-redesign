@@ -89,6 +89,39 @@ async function main(){
     assert.equal(w.status,credential?403:401);
    }
   });
+  await test('finance order finder is owner-only and never leaks phone or items',async()=>{
+   for(const credential of [undefined,sales]){
+    const blocked=await request(base,'/api/finance/orders','GET',undefined,credential);
+    assert.equal(blocked.status,credential?403:401);
+   }
+   const found=await request(base,'/api/finance/orders','GET',undefined,auth);
+   assert.equal(found.status,200,JSON.stringify(found));
+   assert.equal(found.body.orders.some(o=>o.id===first.id),true);
+   assert.equal(found.body.orders.find(o=>o.id===first.id).collectionRemainingIqd,85000);
+   const sample=found.body.orders[0];
+   assert.equal(Object.hasOwn(sample,'customerPhone'),false);
+   assert.equal(Object.hasOwn(sample,'items'),false);
+   assert.equal(Object.hasOwn(sample,'paymentEvents'),false);
+   const filtered=await request(base,
+    '/api/finance/orders?search='+encodeURIComponent(first.id),'GET',undefined,auth);
+   assert.equal(filtered.status,200);
+   assert.equal(filtered.body.orders.length,1);
+   assert.equal(filtered.body.orders[0].id,first.id);
+   assert.equal(await prisma.orderPaymentEvent.count(),0);
+  });
+  await test('finance order finder validates search and excludes undelivered orders',async()=>{
+   const notReady=await order('pending');
+   const missing=await request(base,
+    '/api/finance/orders?search='+encodeURIComponent(notReady.id),'GET',undefined,auth);
+   assert.equal(missing.status,200);
+   assert.equal(missing.body.orders.length,0);
+   const tooLong=await request(base,'/api/finance/orders?search='+('x'.repeat(101)),
+    'GET',undefined,auth);
+   assert.equal(tooLong.status,400);
+   const extraParam=await request(base,'/api/finance/orders?search=&foo=bar',
+    'GET',undefined,auth);
+   assert.equal(extraParam.status,400);
+  });
   await test('delivered value does not auto-create cashflow',async()=>{
    const r=await request(base,endpoint,'GET',undefined,auth);
    assert.equal(r.status,200);

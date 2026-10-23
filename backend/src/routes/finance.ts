@@ -21,6 +21,41 @@ function failure(res:import('express').Response,error:unknown,context:string){
 }
 const validOrderId=(id:unknown):id is string=>typeof id==='string'&&id.length>=3&&id.length<=120;
 
+// Read-only, owner/admin order finder. Only orders eligible for financial
+// review are listed; never performs a collection or changes order state.
+router.get('/orders',requireAdmin,async(req,res)=>{
+ const raw=typeof req.query.search==='string'?req.query.search.trim():'';
+ if(raw.length>100||Object.keys(req.query).some(k=>k!=='search')||
+    (req.query.search!==undefined&&typeof req.query.search!=='string'))
+  return res.status(400).json({error:'بحث الطلبات غير صالح'});
+ try{
+  const where:Prisma.OrderWhereInput={
+   status:{in:['delivered','returned']},
+   ...(raw?{OR:[
+    {id:{contains:raw}},{customerName:{contains:raw}},{customerPhone:{contains:raw}}
+   ]}:{})
+  };
+  const rows=await prisma.order.findMany({
+   where,
+   select:{
+    id:true,customerName:true,status:true,total:true,createdAt:true,
+    paymentEvents:{select:{kind:true,amountIqd:true}}
+   },
+   take:13,orderBy:[{createdAt:'desc'},{id:'desc'}]
+  });
+  const orders=rows.slice(0,12).map(({paymentEvents,...order})=>{
+   const collectedIqd=paymentEvents
+    .filter(e=>e.kind==='collection').reduce((n,e)=>n+e.amountIqd,0);
+   const refundedIqd=paymentEvents
+    .filter(e=>e.kind==='refund').reduce((n,e)=>n+e.amountIqd,0);
+   return {...order,collectedIqd,refundedIqd,
+    collectionRemainingIqd:Math.max(0,order.total-collectedIqd)};
+  });
+  res.setHeader('Cache-Control','no-store');
+  res.json({orders,limit:12,hasMore:rows.length>12});
+ }catch(e){failure(res,e,'finance order finder');}
+});
+
 router.get('/orders/:id',requireAdmin,async(req,res)=>{
  const orderId=req.params.id;
  if(!validOrderId(orderId))return res.status(400).json({error:'رقم الطلب غير صالح'});

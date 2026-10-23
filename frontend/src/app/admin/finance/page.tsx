@@ -1,10 +1,10 @@
 "use client";
-import {useCallback,useEffect,useState} from 'react';
+import {useCallback,useEffect,useRef,useState} from 'react';
 import AdminLayout from '@/components/admin/AdminLayout';
 import SiteActionDialog from '@/components/ui/SiteActionDialog';
 import Link from 'next/link';
-import {financeAPI,type FinancialSummary,type OrderFinancialLedger} from '@/lib/api';
-import {ArrowUpLeft,BadgeCheck,HandCoins,History,RefreshCw,RotateCcw,ShieldAlert,Wallet} from 'lucide-react';
+import {financeAPI,type FinancialSummary,type OrderFinancialLedger,type FinanceOrderChoice} from '@/lib/api';
+import {ArrowUpLeft,BadgeCheck,HandCoins,History,RefreshCw,RotateCcw,Search,ShieldAlert,Wallet} from 'lucide-react';
 
 type Mode='collection'|'refund';
 type Method='cash'|'bank_transfer'|'card'|'other';
@@ -16,8 +16,17 @@ const periods:[FinancialSummary['range'],string][]=[['7','7 أيام'],['30','30
 export default function FinancePage(){
  const [period,setPeriod]=useState<'7'|'30'|'90'|'all'>('30');
  const [summary,setSummary]=useState<FinancialSummary|null>(null);
+ const [summaryLoading,setSummaryLoading]=useState(true);
+ const summarySeq=useRef(0);
  const [summaryError,setSummaryError]=useState('');
  const [orderId,setOrderId]=useState('');
+ const [finderTerm,setFinderTerm]=useState('');
+ const [choices,setChoices]=useState<FinanceOrderChoice[]>([]);
+ const [finding,setFinding]=useState(false);
+ const [finderError,setFinderError]=useState('');
+ const [finderLoaded,setFinderLoaded]=useState(false);
+ const finderSeq=useRef(0);
+ const ledgerSeq=useRef(0);
  const [ledger,setLedger]=useState<OrderFinancialLedger|null>(null);
  const [loading,setLoading]=useState(false);
  const [busy,setBusy]=useState(false);
@@ -30,19 +39,45 @@ export default function FinancePage(){
  const [draft,setDraft]=useState<Draft|null>(null);
 
  const refreshSummary=useCallback(async()=>{
-  try{setSummaryError('');setSummary(await financeAPI.summary(period));}
-  catch(e){setSummaryError(e instanceof Error?e.message:'تعذّر تحميل سجل التحصيل');}
+  const sequence=++summarySeq.current;
+  setSummary(null);setSummaryLoading(true);setSummaryError('');
+  try{
+   const latest=await financeAPI.summary(period);
+   if(sequence===summarySeq.current)setSummary(latest);
+  }catch(e){
+   if(sequence===summarySeq.current){
+    setSummaryError(e instanceof Error?e.message:'تعذّر تحميل سجل التحصيل');
+   }
+  }finally{if(sequence===summarySeq.current)setSummaryLoading(false);}
  },[period]);
  useEffect(()=>{void refreshSummary();},[refreshSummary]);
+ async function findOrders(term:string){
+  const sequence=++finderSeq.current;
+  setFinding(true);setFinderError('');setChoices([]);setFinderLoaded(false);
+  try{
+   const result=await financeAPI.findOrders(term.trim());
+   if(sequence!==finderSeq.current)return;
+   setChoices(result.orders);setFinderLoaded(true);
+  }catch(e){
+   if(sequence!==finderSeq.current)return;
+   setFinderError(e instanceof Error?e.message:'تعذّر جلب الطلبات الجاهزة للمراجعة');
+  }finally{if(sequence===finderSeq.current)setFinding(false);}
+ }
+ useEffect(()=>{void findOrders('');},[]);
 
  async function loadOrder(id:string){
-  if(!id.trim())return;
-  setLoading(true);setError('');setNotice('');
+  if(!id.trim()||busy)return;
+  const sequence=++ledgerSeq.current;
+  setLoading(true);setError('');setNotice('');setLedger(null);
+  setAmount('');setNote('');
   try{
    const detail=await financeAPI.order(id.trim());
+   if(sequence!==ledgerSeq.current)return;
    setLedger(detail);setOrderId(detail.order.id);
-  }catch(e){setLedger(null);setError(e instanceof Error?e.message:'تعذّر تحميل سجل الطلب');}
-  finally{setLoading(false);}
+  }catch(e){
+   if(sequence!==ledgerSeq.current)return;
+   setLedger(null);setError(e instanceof Error?e.message:'تعذّر تحميل سجل الطلب');
+  }finally{if(sequence===ledgerSeq.current)setLoading(false);}
  }
  useEffect(()=>{
   const id=new URLSearchParams(window.location.search).get('orderId');
@@ -104,6 +139,7 @@ export default function FinancePage(){
      <button type="button" key={key} aria-pressed={period===key} onClick={()=>setPeriod(key as typeof period)}
       className={`rounded-full border px-3 py-2 text-xs font-black ${period===key?'border-brand bg-brand text-white':'border-brand/20 bg-paper2 text-ink'}`}>{label}</button>)}</div>
    </div>
+   {summaryLoading&&<p role="status" className="site-muted mb-4 text-sm">جاري تحديث الحركات المالية للفترة المختارة...</p>}
    {summaryError&&<p role="alert" className="mb-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{summaryError}</p>}
    {summary&&<div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
     {[
@@ -119,6 +155,40 @@ export default function FinancePage(){
 
   <section className="signature-detail-sheet p-5 sm:p-6" aria-labelledby="order-finance-title">
    <h2 id="order-finance-title" className="text-xl font-black">السجل المالي لطلب محدد</h2>
+   <section className="mt-4 rounded-2xl border border-brand/20 bg-paper2/25 p-3 sm:p-4" aria-label="البحث عن طلب للتحصيل">
+    <h3 className="flex items-center gap-2 text-sm font-black"><Search size={17} className="text-brand"/> اختر طلباً جاهزاً للمراجعة</h3>
+    <p className="site-muted mt-1 text-xs">أحدث الطلبات المسلّمة أو المرتجعة، وتگدر تبحث بالاسم أو رقم الطلب أو الهاتف.</p>
+    <form onSubmit={e=>{e.preventDefault();void findOrders(finderTerm)}} className="mt-3 flex flex-wrap gap-2">
+     <input aria-label="بحث طلب للتحصيل" className="site-input min-w-[180px] flex-1 px-3"
+      maxLength={100} value={finderTerm} onChange={e=>setFinderTerm(e.target.value)}
+      placeholder="ابحث عن اسم أو رقم طلب..."/>
+     <button type="submit" disabled={finding} className="site-btn site-btn-outline">
+      {finding?'جاري البحث...':'بحث'} <Search size={16}/>
+     </button>
+    </form>
+    {finderError&&<p role="alert" className="mt-3 text-xs font-bold text-red-500">{finderError}</p>}
+    {finderLoaded&&choices.length===0&&!finderError&&
+     <p role="status" className="site-muted mt-3 rounded-xl border border-dashed border-brand/25 p-4 text-sm">
+      ماكو طلبات مسلّمة أو مرتجعة تطابق البحث. مو معناته ماكو طلبات جديدة؛ التحصيل يُسجّل بعد التسليم فقط.
+     </p>}
+    {choices.length>0&&<div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+     {choices.map(item=><button key={item.id} type="button"
+      disabled={loading||busy} onClick={()=>{void loadOrder(item.id)}}
+      aria-pressed={ledger?.order.id===item.id}
+      className={ledger?.order.id===item.id
+        ?'min-w-0 rounded-xl border border-brand bg-brand/10 p-3 text-right transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand'
+        :'min-w-0 rounded-xl border border-brand/20 bg-paper2/40 p-3 text-right transition hover:border-brand/60 hover:bg-brand/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand'}>
+      <span className="block truncate text-sm font-black">{item.customerName}</span>
+      <span className="site-muted mt-1 block truncate text-[11px]" dir="ltr">#{item.id}</span>
+      <span className="mt-2 flex items-center justify-between gap-2 text-xs">
+       <span className="site-muted">{item.status==='delivered'?'مُسلّم':'مرتجع'}</span>
+       <strong>{money(item.total)}</strong>
+      </span>
+      <span className="site-muted mt-1 block text-[11px]">متبقّي للتحصيل: {money(item.collectionRemainingIqd)}</span>
+     </button>)}
+    </div>}
+    {choices.length===12&&<p className="site-muted mt-3 text-xs">تظهر آخر 12 نتيجة. للعثور على طلب أقدم، ابحث باسمه أو رقمه.</p>}
+   </section>
    <form onSubmit={e=>{e.preventDefault();void loadOrder(orderId)}} className="mt-4 flex flex-wrap gap-3">
     <label className="min-w-[220px] flex-1"><span className="mb-1 block text-xs font-bold">رقم الطلب الكامل</span>
      <input className="site-input w-full px-3" required maxLength={120} value={orderId} onChange={e=>setOrderId(e.target.value)} placeholder="انسخ رقم الطلب من صفحة إدارة الطلبات"/></label>

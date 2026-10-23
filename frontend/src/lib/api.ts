@@ -242,7 +242,13 @@ export type FinancialSummary={
  range:string;receivedIqd:number;refundedIqd:number;netRecordedIqd:number;
  receipts:number;refunds:number;deliveredWithoutReceipt:number;generatedAt:string;explanation:string
 };
+export type FinanceOrderChoice={
+ id:string;customerName:string;status:'delivered'|'returned';total:number;
+ createdAt:string;collectedIqd:number;refundedIqd:number;collectionRemainingIqd:number
+};
+export type FinanceOrderFinder={orders:FinanceOrderChoice[];limit:number;hasMore:boolean};
 export const financeAPI={
+ findOrders:(search:string):Promise<FinanceOrderFinder>=>apiRequest('/finance/orders?'+new URLSearchParams({search}).toString()),
  summary:(range:'7'|'30'|'90'|'all'):Promise<FinancialSummary>=>apiRequest('/finance/summary?range='+range),
  order:(id:string):Promise<OrderFinancialLedger>=>apiRequest('/finance/orders/'+encodeURIComponent(id)),
  record:(id:string,event:{requestId:string;kind:'collection'|'refund';method:'cash'|'bank_transfer'|'card'|'other';amountIqd:number;note:string}):
