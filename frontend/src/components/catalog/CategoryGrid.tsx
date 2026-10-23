@@ -62,7 +62,7 @@ export default function CategoryGrid({ variant = 'home', onCountChange }: { vari
       className="site-card group flex min-h-[112px] items-center gap-4 border-[#c6e8f4] p-3 sm:gap-4 sm:p-4"
       aria-label={`${category.name}، ${category.count} منتج`}
     >
-      <span className="grid h-[80px] w-[80px] shrink-0 place-items-center rounded-2xl bg-[linear-gradient(135deg,#dff5fb,#e9f0f8)] text-[#1687b2] sm:h-[92px] sm:w-[92px]" aria-hidden="true">
+      <span className="thanaya-category-image grid h-[80px] w-[80px] shrink-0 place-items-center rounded-2xl bg-[linear-gradient(135deg,#dff5fb,#e9f0f8)] text-[#1687b2] sm:h-[92px] sm:w-[92px]" aria-hidden="true">
         <ProductIcon name={category.product.icon || 'Package'} size={45} />
       </span>
       <span className="flex min-w-0 flex-1 flex-col gap-2">

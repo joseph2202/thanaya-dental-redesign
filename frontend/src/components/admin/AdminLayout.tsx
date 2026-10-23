@@ -9,6 +9,7 @@ import {
   ArrowRight,LogOut,Bell,ChartNoAxesCombined,Menu,X,ExternalLink
 } from 'lucide-react';
 import {useAuth} from '@/context/AuthContext';
+import ThemeToggle from '@/components/theme/ThemeToggle';
 
 const navItems = [
   {href:'/admin',label:'لوحة التحكم',icon:LayoutDashboard},
@@ -72,8 +73,8 @@ export default function AdminLayout({children}:{children:ReactNode}){
       <Icon size={19} aria-hidden="true"/>{label}
     </Link>);
 
-  return <div className="min-h-screen bg-paper lg:flex">
-    <aside className="hidden bg-ink text-white lg:sticky lg:top-0 lg:flex lg:h-screen lg:w-64 lg:shrink-0 lg:flex-col print:hidden">
+  return <div className="thanaya-admin-shell min-h-screen bg-paper lg:flex">
+    <aside className="thanaya-admin-sidebar hidden bg-ink text-white lg:sticky lg:top-0 lg:flex lg:h-screen lg:w-64 lg:shrink-0 lg:flex-col print:hidden">
       <div className="flex items-center gap-3 border-b border-white/10 px-5 py-4">
         <Image src="/logo-icon.png" alt="" width={37} height={37} className="h-9 w-9"/>
         <span><strong className="block text-lg">ثنايا</strong><small className="text-[10px] text-white/55">مساحة إدارة المتجر</small></span>
@@ -107,7 +108,7 @@ export default function AdminLayout({children}:{children:ReactNode}){
     </dialog>
 
     <div className="min-w-0 flex-1">
-      <div className="sticky top-0 z-30 border-b border-[#d9e9ef] bg-white/95 px-4 py-3 backdrop-blur-md md:px-7 print:hidden">
+      <div className="thanaya-admin-header sticky top-0 z-30 border-b border-[#d9e9ef] bg-white/95 px-4 py-3 backdrop-blur-md md:px-7 print:hidden">
         <div className="flex items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-3">
             <button type="button" onClick={()=>setMenuOpen(true)} aria-label="فتح قائمة الإدارة"
@@ -119,7 +120,7 @@ export default function AdminLayout({children}:{children:ReactNode}){
               <p className="truncate font-black text-[#233e4d]">{current?.label||'لوحة الإدارة'}</p>
             </div>
           </div>
-          <Link href="/" className="shrink-0 text-xs font-black text-brand hover:underline lg:hidden">عرض المتجر</Link>
+          <div className="flex items-center gap-2"><ThemeToggle compact/><Link href="/" className="shrink-0 text-xs font-black text-brand hover:underline lg:hidden">عرض المتجر</Link></div>
           <span className="hidden text-xs font-bold text-[#6e8791] lg:block">{user.name}</span>
         </div>
         <nav aria-label="الوصول السريع" className="mt-3 flex gap-2 overflow-x-auto pb-0.5 lg:hidden">

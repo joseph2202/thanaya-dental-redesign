@@ -36,14 +36,14 @@ const navigation=[
 ];
 
 function Metric({icon:Icon,title,value,note,href,accent}:{icon:typeof Package;title:string;value:string;note:string;href:string;accent:string}){
- return <Link href={href} className="group min-w-0 rounded-[20px] border border-[#cee8f0] bg-white p-4 transition hover:border-brand hover:shadow-[0_8px_26px_rgba(7,91,123,.07)] sm:p-5">
+ return <Link href={href} className="thanaya-dashboard-metric group min-w-0 rounded-[20px] border border-[#cee8f0] bg-white p-4 transition hover:border-brand hover:shadow-[0_8px_26px_rgba(7,91,123,.07)] sm:p-5">
    <div className="flex items-start justify-between gap-2">
      <div className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${accent}`}><Icon size={20} aria-hidden="true"/></div>
      <ArrowUpLeft size={17} className="text-[#a1bfca] transition group-hover:text-brand" aria-hidden="true"/>
    </div>
-   <p className="mt-3 text-xs font-bold text-[#65818d]">{title}</p>
-   <p className="mt-1 break-words text-[clamp(1.3rem,2.6vw,2rem)] font-black tracking-tight text-[#203e4c]" dir="auto">{value}</p>
-   <p className="mt-1 text-[11px] leading-5 text-[#7a939e]">{note}</p>
+   <p className="thanaya-dashboard-metric-label mt-3 text-xs font-bold text-[#65818d]">{title}</p>
+   <p className="thanaya-dashboard-metric-value mt-1 break-words text-[clamp(1.3rem,2.6vw,2rem)] font-black tracking-tight text-[#203e4c]" dir="auto">{value}</p>
+   <p className="thanaya-dashboard-metric-note mt-1 text-[11px] leading-5 text-[#7a939e]">{note}</p>
  </Link>;
 }
 
@@ -92,7 +92,7 @@ export default function AdminDashboard(){
  if(user?.role==='inventory'||user?.role==='sales'){
    const inventory=user.role==='inventory';
    return <AdminLayout>
-     <div className="rounded-3xl border border-[#d0e8f1] bg-[linear-gradient(125deg,#e6f7fd,#fff)] p-6 sm:p-8">
+     <div className="thanaya-admin-welcome rounded-3xl border border-[#d0e8f1] bg-[linear-gradient(125deg,#e6f7fd,#fff)] p-6 sm:p-8">
        <span className="site-eyebrow">THANAYA / WORKSPACE</span>
        <h1 className="mt-2 text-2xl font-black sm:text-3xl">أهلاً {user.name}</h1>
        <p className="mt-2 text-sm text-[#587786]">واجهة عملك حسب الصلاحيات الممنوحة لحسابك.</p>
@@ -113,7 +113,7 @@ export default function AdminDashboard(){
            <p className="mt-2 max-w-2xl text-sm leading-7 text-white/75 print:text-[#496b79]">متابعة الطلبات ومؤشرات الأداء وتنبيهات المخزون من مكان واحد، اعتماداً على البيانات المسجلة في المتجر.</p>
          </div>
          <div className="flex flex-wrap items-center gap-2 print:hidden">
-           <Link href="/admin/orders" className="inline-flex min-h-11 items-center gap-2 rounded-full bg-white px-4 text-xs font-black text-[#0b5675] hover:bg-cyan-50">افتح الطلبات <ArrowUpLeft size={16}/></Link>
+           <Link href="/admin/orders" className="thanaya-admin-hero-action inline-flex min-h-11 items-center gap-2 rounded-full bg-white px-4 text-xs font-black text-[#0b5675] hover:bg-cyan-50">افتح الطلبات <ArrowUpLeft size={16}/></Link>
            <button onClick={()=>setRevision(v=>v+1)} disabled={refreshing} className="inline-flex min-h-11 items-center gap-2 rounded-full border border-white/30 bg-white/10 px-4 text-xs font-bold text-white hover:bg-white/20 disabled:opacity-60">
              <RefreshCw size={16} className={refreshing?'animate-spin':''}/>{refreshing?'جاري التحديث':'تحديث الآن'}
            </button>
@@ -128,8 +128,8 @@ export default function AdminDashboard(){
      </header>
 
      <div className="flex flex-wrap items-center justify-between gap-3">
-       <h2 className="text-lg font-black text-[#203e4c]">ملخص أداء المتجر <span className="text-xs font-normal text-[#718d9a]">— الفترة المختارة</span></h2>
-       <div className="inline-flex flex-wrap items-center gap-1 rounded-full border border-[#cfe4ee] bg-white p-1" aria-label="فترة التقرير">
+       <h2 className="thanaya-admin-overview-heading text-lg font-black text-[#203e4c]">ملخص أداء المتجر <span className="text-xs font-normal text-[#718d9a]">— الفترة المختارة</span></h2>
+       <div className="thanaya-admin-range inline-flex flex-wrap items-center gap-1 rounded-full border border-[#cfe4ee] bg-white p-1" aria-label="فترة التقرير">
          {([['7','7 أيام'],['30','30 يوم'],['90','90 يوم'],['all','الكل']] as const).map(([value,label])=>
            <button key={value} aria-pressed={range===value} disabled={refreshing} onClick={()=>setRange(value)} className={`rounded-full px-3 py-2 text-xs font-bold transition disabled:opacity-60 ${range===value?'bg-brand text-white':'text-[#506f80] hover:bg-[#edf7fb]'}`}>{label}</button>
          )}

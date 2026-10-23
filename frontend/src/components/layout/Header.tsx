@@ -6,6 +6,7 @@ import { useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { Search, ShoppingBag, UserRound, LogOut, LayoutDashboard, Menu, X } from "lucide-react";
 import { useCart } from "@/context/CartContext";
+import ThemeToggle from "@/components/theme/ThemeToggle";
 import { useAuth } from "@/context/AuthContext";
 
 const navigation = [
@@ -56,13 +57,13 @@ export default function Header() {
   );
 
   return (
-    <header className="sticky top-0 z-50 border-b border-[#dceaf1] border-t-[3px] border-t-[#059BD0] bg-white/95 shadow-[0_4px_22px_rgba(5,64,102,.035)] backdrop-blur-xl">
+    <header className="thanaya-site-header sticky top-0 z-50 border-b border-[#dceaf1] border-t-[3px] border-t-[#059BD0] bg-white/95 shadow-[0_4px_22px_rgba(5,64,102,.035)] backdrop-blur-xl">
       <div className="site-container">
         <div className="flex min-h-[64px] items-center gap-3 py-1.5 xl:gap-5">
           <Link href="/" aria-label="ثنايا — الصفحة الرئيسية" className="flex shrink-0 items-center gap-2">
             <Image src="/logo-icon.png" width={42} height={42} priority alt="" className="h-11 w-11 object-contain" />
             <span className="leading-tight">
-              <strong className="block text-[25px] font-black text-[#2E2E2D]">ثنايا</strong>
+              <strong className="thanaya-brand-title block text-[25px] font-black text-[#2E2E2D]">ثنايا</strong>
               <small className="block text-[8px] font-black tracking-[.15em] text-[#059BD0]" dir="ltr">THANAYA MEDICAL</small>
             </span>
           </Link>
@@ -82,17 +83,18 @@ export default function Header() {
           </nav>
 
           <div className="mr-auto flex shrink-0 items-center gap-1.5 sm:gap-2.5">
+            <ThemeToggle compact/>
             {user ? (
               <>
                 {["owner","admin","inventory","sales"].includes(user.role) && (
-                  <Link href="/admin" className="hidden items-center gap-1 text-xs font-bold text-[#37546d] hover:text-brand xl:inline-flex" aria-label="لوحة الإدارة">
+                  <Link href="/admin" className="thanaya-header-admin-link hidden items-center gap-1 text-xs font-bold text-[#37546d] hover:text-brand xl:inline-flex" aria-label="لوحة الإدارة">
                     <LayoutDashboard size={16} /> الإدارة
                   </Link>
                 )}
                 <Link href="/account" aria-label="حسابي" className="site-btn site-btn-outline site-btn-sm gap-1.5">
                   <UserRound size={17} /> <span className="hidden sm:inline">حسابي</span>
                 </Link>
-                <button type="button" onClick={logout} className="hidden items-center gap-1 text-xs font-semibold text-[#5b7385] hover:text-brand lg:inline-flex">
+                <button type="button" onClick={logout} className="thanaya-header-logout-link hidden items-center gap-1 text-xs font-semibold text-[#5b7385] hover:text-brand lg:inline-flex">
                   <LogOut size={15} /> خروج
                 </button>
               </>
@@ -123,7 +125,7 @@ export default function Header() {
       </div>
 
       {menuOpen && (
-        <nav id="mobile-navigation" aria-label="قائمة التنقل" className="border-t border-[#e5eff4] bg-white px-5 py-3 xl:hidden">
+        <nav id="mobile-navigation" aria-label="قائمة التنقل" className="thanaya-mobile-navigation border-t border-[#e5eff4] bg-white px-5 py-3 xl:hidden">
           <div className="mx-auto grid max-w-[1220px] grid-cols-2 gap-2 sm:grid-cols-4">
             {navigation.map((item) => (
               <Link key={item.href} href={item.href} onClick={() => setMenuOpen(false)}

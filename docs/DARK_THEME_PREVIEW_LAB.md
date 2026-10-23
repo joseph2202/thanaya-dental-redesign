@@ -13,7 +13,7 @@ The lab has 5 representative screens:
 4. Cart: **preview-only local state**; add/remove/change quantities and view layout. No real shopping cart, no order creation, no inventory changes, checkout disabled.
 5. Admin: styling prototype that displays published catalog items, with placeholder views for orders/reports. **No private customer order data queried or invented**, no admin mutations.
 
-The **Dark / Light** switch only changes styles inside this standalone route. It does not set browser storage, cookies or change other pages. The "Original site" link opens the unchanged actual storefront.
+On this dual-theme candidate branch, the **Dark / Light** choice also saves a *visual preference only* in browser local storage and applies to the actual shop pages in this same browser. It never changes inventory, orders, server settings or other customer data. The "Original site" link opens the fully functional storefront with the same saved theme; the lab's cart still cannot checkout.
 
 This route is not linked from real store navigation, and is `noindex, nofollow`. Layout CSS is namespaced to `.thl-shell`; the production pages keep their existing themes.
 
@@ -31,4 +31,4 @@ Dark background `#0b202c`, navy surfaces `#153442` / `#193d4f`, cyan accents `#8
 
 ## Decision checkpoint
 
-The user explicitly asked to TEST FIRST, then approve the change. **Do not merge this branch, do not copy its CSS to existing pages, and do not announce a global dark theme until the user has seen and approved the result.**
+The user explicitly asked to TEST FIRST, then approve the change. **The original lab branch stays unmerged. The approved dual-theme implementation lives on a separate Draft PR and must undergo real visual review before any merge/rollout.**

@@ -38,7 +38,7 @@ export default function CatalogProductCard({product}:{product:CatalogCardProduct
   </div>
 
   <div className="flex min-w-0 flex-1 flex-col px-3.5 pb-3.5 pt-3.5 sm:px-4.5 sm:pb-4.5">
-   <div className="flex min-w-0 items-center gap-2 text-[10px] font-extrabold text-[#167ba0] sm:text-[11px]">
+   <div className="thanaya-card-category flex min-w-0 items-center gap-2 text-[10px] font-extrabold text-[#167ba0] sm:text-[11px]">
     <Box size={14} className="shrink-0" aria-hidden="true"/>
     <span className="truncate">{product.category||'المستلزمات الطبية'}</span>
    </div>
@@ -46,7 +46,7 @@ export default function CatalogProductCard({product}:{product:CatalogCardProduct
     {product.name}
    </Link>
    {product.brand&&<p className="mt-1 truncate text-[11px] font-medium text-[#6f8994]">{product.brand}</p>}
-   <div className="mt-auto border-t border-[#edf3f5] pt-3.5">
+   <div className="thanaya-product-price mt-auto border-t border-[#edf3f5] pt-3.5">
     <p className="text-[10px] font-semibold text-[#8499a3]">السعر / {saleUnit}</p>
     <div className="mt-0.5 flex flex-wrap items-end gap-1.5">
      <strong className="text-xl font-black tabular-nums tracking-tight text-[#173e50] sm:text-[23px]">{product.price.toLocaleString('en-US')}</strong>

@@ -44,7 +44,7 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
 
 
   return <><Header /><main className="site-container site-main py-5 md:py-8">
-    <div className="mb-5 rounded-[26px] border border-[#d0eaf5] bg-[linear-gradient(110deg,#e5f7fd,#ffffff)] px-5 py-6 md:px-9 md:py-7"><span className="site-eyebrow">THANAYA / CATALOG</span><h1 className="mt-2 text-3xl font-black text-ink md:text-5xl">كل احتياجات عيادتك بمكان واحد.</h1><p className="site-muted mt-3 text-sm">تصفّح المنتجات المتوفرة حسب القسم والماركة، ورتّبها حسب احتياجك.</p></div>
+    <div className="thanaya-catalog-hero mb-5 rounded-[26px] border border-[#d0eaf5] bg-[linear-gradient(110deg,#e5f7fd,#ffffff)] px-5 py-6 md:px-9 md:py-7"><span className="site-eyebrow">THANAYA / CATALOG</span><h1 className="mt-2 text-3xl font-black text-ink md:text-5xl">كل احتياجات عيادتك بمكان واحد.</h1><p className="site-muted mt-3 text-sm">تصفّح المنتجات المتوفرة حسب القسم والماركة، ورتّبها حسب احتياجك.</p></div>
     <div className="grid lg:grid-cols-[240px_1fr] gap-5">
       <CatalogFilters key={JSON.stringify(params)} initial={{search:params.search||'',category:params.category||'',brand:params.brand||'',sort:params.sort||'',minPrice:params.minPrice||'',maxPrice:params.maxPrice||'',inStock:stockOnly}} categories={categories} brands={brands} />
       <div>

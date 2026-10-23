@@ -47,7 +47,7 @@ export default async function ProductPage({params}:{params:Promise<{id:string}>}
     <span className="max-w-[280px] truncate text-[#234654]">{product.name}</span>
    </nav>
    <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1.07fr)_minmax(0,.93fr)] lg:gap-7">
-    <section aria-label={`صور ${product.name}`} className="min-w-0 rounded-[27px] border border-[#c8e4ed] bg-[linear-gradient(160deg,#f0f9fc,#fff)] p-3.5 shadow-[0_14px_38px_rgba(18,78,101,.045)] sm:p-5">
+    <section aria-label={`صور ${product.name}`} className="thanaya-gallery-shell min-w-0 rounded-[27px] border border-[#c8e4ed] bg-[linear-gradient(160deg,#f0f9fc,#fff)] p-3.5 shadow-[0_14px_38px_rgba(18,78,101,.045)] sm:p-5">
      <div className="mb-3 flex flex-wrap items-center justify-between gap-3 px-1.5">
       <span className="inline-flex items-center gap-2 text-[11px] font-black text-[#397991]"><Layers3 size={16} aria-hidden="true"/> معرض المنتج</span>
       <span className="rounded-full border border-[#d5ebf3] bg-white/80 px-3 py-1.5 text-[10px] font-bold text-[#60808e]">THANAYA / CATALOG</span>

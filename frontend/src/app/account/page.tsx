@@ -83,7 +83,7 @@ export default function AccountPage(){
  );
 
  return <><Header/><main className="site-container site-main py-5 md:py-8">
-   <header className="relative overflow-hidden rounded-[28px] border border-[#cce8f1] bg-[linear-gradient(115deg,#e0f5fb_0%,#f4fbfe_66%,#fff_100%)] px-5 py-6 sm:px-7 sm:py-7">
+   <header className="thanaya-account-hero relative overflow-hidden rounded-[28px] border border-[#cce8f1] bg-[linear-gradient(115deg,#e0f5fb_0%,#f4fbfe_66%,#fff_100%)] px-5 py-6 sm:px-7 sm:py-7">
      <div className="absolute -left-8 -top-16 h-44 w-44 rounded-full border-[30px] border-[#9bdcec]/15" aria-hidden="true"/>
      <div className="relative flex flex-wrap items-center justify-between gap-4">
        <div><span className="site-eyebrow">THANAYA / MY ACCOUNT</span>

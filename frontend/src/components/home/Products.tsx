@@ -42,7 +42,7 @@ export default function Products() {
         'grid-cols-1 min-[390px]:grid-cols-2 lg:grid-cols-3':
         'grid-cols-1 min-[390px]:grid-cols-2 lg:grid-cols-4'}`}>
         {products.map(p=><CatalogProductCard key={p.id} product={p}/>)}
-        {products.length<=2&&<aside className="relative hidden min-w-0 flex-col justify-between overflow-hidden rounded-[25px] border border-[#bedfea] bg-[linear-gradient(145deg,#dff3f8_0%,#f6fbfd_78%)] p-6 lg:flex lg:p-7" aria-label="مساعدة باختيار المنتج">
+        {products.length<=2&&<aside className="thanaya-editorial-panel relative hidden min-w-0 flex-col justify-between overflow-hidden rounded-[25px] border border-[#bedfea] bg-[linear-gradient(145deg,#dff3f8_0%,#f6fbfd_78%)] p-6 lg:flex lg:p-7" aria-label="مساعدة باختيار المنتج">
           <div aria-hidden="true" className="pointer-events-none absolute -left-24 -top-24 h-56 w-56 rounded-full border-[35px] border-[#cae9f3]/55"/>
           <div className="relative">
             <span className="site-eyebrow" dir="ltr">BUILT FOR YOUR CLINIC</span>
