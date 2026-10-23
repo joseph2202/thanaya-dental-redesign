@@ -1,10 +1,10 @@
 "use client";
-import {useCallback,useEffect,useState} from 'react';
+import {useCallback,useEffect,useRef,useState} from 'react';
 import AdminLayout from '@/components/admin/AdminLayout';
 import SiteActionDialog from '@/components/ui/SiteActionDialog';
 import Link from 'next/link';
-import {financeAPI,type FinancialSummary,type OrderFinancialLedger} from '@/lib/api';
-import {ArrowUpLeft,BadgeCheck,HandCoins,History,RefreshCw,RotateCcw,ShieldAlert,Wallet} from 'lucide-react';
+import {financeAPI,type FinancialSummary,type OrderFinancialLedger,type FinanceOrderChoice} from '@/lib/api';
+import {ArrowUpLeft,BadgeCheck,HandCoins,History,RefreshCw,RotateCcw,Search,ShieldAlert,Wallet} from 'lucide-react';
 
 type Mode='collection'|'refund';
 type Method='cash'|'bank_transfer'|'card'|'other';
@@ -18,6 +18,13 @@ export default function FinancePage(){
  const [summary,setSummary]=useState<FinancialSummary|null>(null);
  const [summaryError,setSummaryError]=useState('');
  const [orderId,setOrderId]=useState('');
+ const [finderTerm,setFinderTerm]=useState('');
+ const [choices,setChoices]=useState<FinanceOrderChoice[]>([]);
+ const [finding,setFinding]=useState(false);
+ const [finderError,setFinderError]=useState('');
+ const [finderLoaded,setFinderLoaded]=useState(false);
+ const finderSeq=useRef(0);
+ const ledgerSeq=useRef(0);
  const [ledger,setLedger]=useState<OrderFinancialLedger|null>(null);
  const [loading,setLoading]=useState(false);
  const [busy,setBusy]=useState(false);
@@ -34,15 +41,33 @@ export default function FinancePage(){
   catch(e){setSummaryError(e instanceof Error?e.message:'تعذّر تحميل سجل التحصيل');}
  },[period]);
  useEffect(()=>{void refreshSummary();},[refreshSummary]);
+ async function findOrders(term:string){
+  const sequence=++finderSeq.current;
+  setFinding(true);setFinderError('');
+  try{
+   const result=await financeAPI.findOrders(term.trim());
+   if(sequence!==finderSeq.current)return;
+   setChoices(result.orders);setFinderLoaded(true);
+  }catch(e){
+   if(sequence!==finderSeq.current)return;
+   setFinderError(e instanceof Error?e.message:'تعذّر جلب الطلبات الجاهزة للمراجعة');
+  }finally{if(sequence===finderSeq.current)setFinding(false);}
+ }
+ useEffect(()=>{void findOrders('');},[]);
 
  async function loadOrder(id:string){
-  if(!id.trim())return;
+  if(!id.trim()||busy)return;
+  const sequence=++ledgerSeq.current;
   setLoading(true);setError('');setNotice('');
+  setAmount('');setNote('');
   try{
    const detail=await financeAPI.order(id.trim());
+   if(sequence!==ledgerSeq.current)return;
    setLedger(detail);setOrderId(detail.order.id);
-  }catch(e){setLedger(null);setError(e instanceof Error?e.message:'تعذّر تحميل سجل الطلب');}
-  finally{setLoading(false);}
+  }catch(e){
+   if(sequence!==ledgerSeq.current)return;
+   setLedger(null);setError(e instanceof Error?e.message:'تعذّر تحميل سجل الطلب');
+  }finally{if(sequence===ledgerSeq.current)setLoading(false);}
  }
  useEffect(()=>{
   const id=new URLSearchParams(window.location.search).get('orderId');
