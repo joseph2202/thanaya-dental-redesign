@@ -1,10 +1,6 @@
-'use client';
-
-import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ArrowUpLeft } from 'lucide-react';
+import {ArrowUpLeft} from 'lucide-react';
 import ProductIcon from '@/components/ui/ProductIcon';
-import { productsAPI } from '@/lib/api';
 
 type CatalogProduct = { name: string; category: string; image?: string | null; icon?: string | null };
 type CatalogCategory = { name: string; count: number; product: CatalogProduct };
@@ -21,30 +17,15 @@ function groupProducts(products: CatalogProduct[]): CatalogCategory[] {
   return [...groups.values()].sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, 'ar'));
 }
 
-export default function CategoryGrid({ variant = 'home', onCountChange }: { variant?: 'home' | 'page'; onCountChange?: (count: number) => void }) {
-  const [categories, setCategories] = useState<CatalogCategory[]>([]);
-  const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
 
-  useEffect(() => {
-    productsAPI.getAll()
-      .then((products: CatalogProduct[]) => { const groups=groupProducts(products); setCategories(groups); onCountChange?.(groups.length); setStatus('ready'); })
-      .catch(() => setStatus('error'));
-  }, [onCountChange]);
-
-  if (status === 'loading') return <div className="grid gap-4 md:grid-cols-2" role="status" aria-label="جاري تحميل الأقسام">
-    {[0, 1].map(key => <div key={key} className="site-card flex animate-pulse items-center gap-4 p-4" aria-hidden="true">
-      <div className="h-[88px] w-[88px] shrink-0 rounded-2xl bg-[#dcecf2]" />
-      <div className="flex-1">
-        <div className="h-3 w-1/3 rounded-full bg-[#dcecf2]" />
-        <div className="mt-4 h-5 w-3/4 rounded-full bg-[#dcecf2]" />
-        <div className="mt-3 h-3 w-1/2 rounded-full bg-[#dcecf2]" />
-      </div>
-    </div>)}
-    <span className="sr-only">جاري تحميل الأقسام...</span>
-  </div>;
-  if (status === 'error') return <div className="site-surface p-8 text-center site-muted" role="status">تعذّر تحميل الأقسام. تأكد من تشغيل خادم المتجر ثم حدّث الصفحة.</div>;
-  if (!categories.length) return <div className="site-surface p-8 text-center site-muted">ماكو أقسام فيها منتجات بعد. راح تظهر هنا أول ما تضيف منتجات للمتجر.</div>;
-
+// Render categories from server-provided real catalog data.
+// This markup is included in the page HTML even without browser JavaScript.
+export default function CategoryGrid({products,variant='home'}:
+ {products:CatalogProduct[];variant?:'home'|'page'}){
+ const categories=groupProducts(products);
+ if(!categories.length)return <div className="site-surface p-8 text-center site-muted">
+   ماكو أقسام فيها منتجات بعد. راح تظهر هنا أول ما تضيف منتجات للمتجر.
+ </div>;
   // With one or two real categories, use all available horizontal space instead of
   // leaving empty cells in a fixed three-column catalog grid.
   const gridColumns = categories.length === 1
