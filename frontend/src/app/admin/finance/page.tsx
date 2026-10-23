@@ -44,6 +44,12 @@ export default function FinancePage(){
   }catch(e){setLedger(null);setError(e instanceof Error?e.message:'تعذّر تحميل سجل الطلب');}
   finally{setLoading(false);}
  }
+ useEffect(()=>{
+  const id=new URLSearchParams(window.location.search).get('orderId');
+  if(id&&id.length<=120){setOrderId(id);void loadOrder(id);}
+  // Only inspect the URL when this workspace first opens.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+ },[]);
  function prepare(e:React.FormEvent){
   e.preventDefault();
   if(!ledger||busy)return;
