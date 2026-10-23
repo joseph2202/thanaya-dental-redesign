@@ -213,3 +213,108 @@ html[data-thanaya-theme="dark"] .signature-card :is(h2,h3,strong) {color:#f1faff
 html[data-thanaya-theme="dark"] .signature-card .thanaya-product-price strong{color:#f4fbff;}
 html[data-thanaya-theme="dark"] [class~="text-black"] {color:#eefaff;}
 html[data-thanaya-theme="dark"] .site-main [class~="border-white"] {border-color:#456a78;}
+
+/* Contrast repair — October 2026: fixes verified from real dark-theme screenshots.
+   Scope rules to their components; never recolor status/alert chips wholesale. */
+html[data-thanaya-theme="dark"] .thanaya-category-hero {
+  background:linear-gradient(118deg,#173e50 0%,#1d5065 55%,#143548 100%)!important;
+  border-color:#49748a!important;
+  box-shadow:0 16px 38px #00000019;
+}
+html[data-thanaya-theme="dark"] .thanaya-category-hero .thanaya-category-hero-title {
+  color:#f5fcff!important;
+  opacity:1!important;
+  text-shadow:none;
+}
+html[data-thanaya-theme="dark"] .thanaya-category-hero .thanaya-category-hero-description {
+  color:#c9e3ed!important;
+  opacity:1!important;
+}
+html[data-thanaya-theme="dark"] .thanaya-category-hero .site-eyebrow {
+  color:#8fe6fa!important;
+  opacity:1!important;
+}
+html[data-thanaya-theme="dark"] .thanaya-dashboard-metric {
+  background:#193d4e!important;
+  border-color:#4b7889!important;
+}
+html[data-thanaya-theme="dark"] .thanaya-dashboard-metric .thanaya-dashboard-metric-label {
+  color:#c5dce5!important;
+  opacity:1!important;
+}
+html[data-thanaya-theme="dark"] .thanaya-dashboard-metric .thanaya-dashboard-metric-value {
+  color:#f5fcff!important;
+  opacity:1!important;
+  font-variant-numeric:tabular-nums;
+}
+html[data-thanaya-theme="dark"] .thanaya-dashboard-metric .thanaya-dashboard-metric-note {
+  color:#b3d0dd!important;
+  opacity:1!important;
+}
+html[data-thanaya-theme="dark"] .thanaya-dashboard-metric:hover {
+  border-color:#78cde6!important;
+  box-shadow:0 14px 35px #00000025;
+}
+html[data-thanaya-theme="dark"] .thanaya-admin-overview-heading {
+  color:#f0faff!important;
+}
+html[data-thanaya-theme="dark"] .thanaya-admin-overview-heading span {
+  color:#b7d2de!important;
+}
+html[data-thanaya-theme="dark"] .thanaya-admin-range {
+  background:#1a3b4d!important;
+  border-color:#4a7486!important;
+}
+html[data-thanaya-theme="dark"] .thanaya-admin-range button:not([aria-pressed="true"]) {
+  color:#c8dee8!important;
+}
+html[data-thanaya-theme="dark"] .thanaya-admin-range button[aria-pressed="true"] {
+  background:#079bcc!important;
+  color:#fff!important;
+}
+html[data-thanaya-theme="dark"] .thanaya-admin-range button:not([aria-pressed="true"]):hover {
+  background:#295367!important;
+}
+html[data-thanaya-theme="dark"] .thanaya-admin-shell :is(h2,h3)[class*="text-[#"] {
+  color:#f0faff!important;
+}
+/* The sales panels and order items use a few unlisted light-mode hex values. */
+html[data-thanaya-theme="dark"] .thanaya-admin-shell :is(
+  [class~="text-[#284551]"],[class~="text-[#36596d]"],[class~="text-[#365662]"],
+  [class~="text-[#2e5263]"],[class~="text-[#506f80]"],
+  [class~="text-[#527384]"],[class~="text-[#587483]"]
+) {color:#d5e8ef!important;}
+html[data-thanaya-theme="dark"] .thanaya-admin-shell :is(
+  [class~="text-[#748b97]"],[class~="text-[#7a939e]"],
+  [class~="text-[#758f9b]"],[class~="text-[#8699a2]"],[class~="text-[#7992a1]"]
+) {color:#aecbd8!important;}
+html[data-thanaya-theme="dark"] .thanaya-header-admin-link,
+html[data-thanaya-theme="dark"] .thanaya-header-logout-link {
+  color:#c6e0eb!important;
+}
+html[data-thanaya-theme="dark"] .thanaya-header-admin-link:hover,
+html[data-thanaya-theme="dark"] .thanaya-header-logout-link:hover {
+  color:#96e9ff!important;
+}
+html[data-thanaya-theme="dark"] .thanaya-site-header .site-btn-outline {
+  color:#f2fbff!important;
+}
+html[data-thanaya-theme="dark"] .thanaya-site-footer [class~="text-white/65"] {
+  color:#c3d7e2;
+}
+html[data-thanaya-theme="dark"] .thanaya-site-footer [class~="text-white/45"] {
+  color:#aec5d0;
+}
+/* Printing remains on white paper regardless of which site theme was chosen. */
+@media print {
+ html[data-thanaya-theme="dark"] .thanaya-dashboard-metric {
+   background:#fff!important;border-color:#c7e2eb!important;
+ }
+ html[data-thanaya-theme="dark"] .thanaya-dashboard-metric :is(
+ .thanaya-dashboard-metric-label,.thanaya-dashboard-metric-value,.thanaya-dashboard-metric-note) {
+   color:#203e4c!important;
+ }
+ html[data-thanaya-theme="dark"] .thanaya-admin-overview-heading {
+   color:#203e4c!important;
+ }
+}
