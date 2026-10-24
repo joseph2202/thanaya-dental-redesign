@@ -40,14 +40,33 @@ export async function apiRequest(endpoint: string, options: RequestInit = {}) {
     },
   });
 
-  if (!response.ok) {
-    const error = await response.json();
-    const apiError = new Error(error.error || 'خطأ في الطلب') as Error & { status: number };
+  // A stopped backend or a failed Next.js rewrite can return plain text or
+  // HTML (e.g. "Internal Server Error"). Never JSON.parse these responses
+  // blindly and never expose a server stack trace to the storefront.
+  const body = await response.text();
+  let parsed: unknown;
+  try { parsed = JSON.parse(body); } catch { parsed = null; }
+  const data = parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+    ? parsed as Record<string, unknown> : null;
+
+  if (!response.ok || !data) {
+    const serverMessage = data && typeof data.error === 'string' ? data.error : null;
+    const fallback = response.status >= 500
+      ? 'تعذّر الاتصال بخدمة ثنايا. تحقق من تشغيل الـBackend على المنفذ 4000 وتحديث Prisma Client.'
+      : response.status === 404
+        ? 'مسار الخدمة غير موجود. تأكد من تحديث وتشغيل الـBackend الجديد.'
+        : response.status === 401
+          ? 'يرجى تسجيل الدخول مجدداً.'
+          : response.status === 403
+            ? 'لا توجد صلاحية للوصول لهذه البيانات.'
+            : 'تعذّر استلام رد صحيح من خدمة ثنايا.';
+    // Untrusted non-JSON response text is deliberately not displayed.
+    const apiError = new Error(serverMessage || fallback) as Error & { status: number };
     apiError.status = response.status;
     throw apiError;
   }
 
-  return normalizeLegacyUploadLinks(await response.json());
+  return normalizeLegacyUploadLinks(data);
 }
 
 // Auth API
