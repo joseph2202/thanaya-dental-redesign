@@ -29,7 +29,7 @@ function normalizeLegacyUploadLinks<T>(value: T): T {
   return value;
 }
 
-export async function apiRequest(endpoint: string, options: RequestInit = {}) {
+export async function apiRequest<T = any>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const token = typeof window !== 'undefined' ? localStorage.getItem('thanaya-token') : null;
   const response = await fetch(`${API_BASE}${endpoint}`, {
     ...options,
@@ -43,7 +43,7 @@ export async function apiRequest(endpoint: string, options: RequestInit = {}) {
   // A stopped backend or a failed Next.js rewrite can return plain text or
   // HTML (e.g. "Internal Server Error"). Never JSON.parse these responses
   // blindly and never expose a server stack trace to the storefront.
-  if (response.ok && response.status === 204) return undefined;
+  if (response.ok && response.status === 204) return undefined as T;
   const body = await response.text();
   let parsed: unknown;
   let validJson = false;
@@ -69,7 +69,7 @@ export async function apiRequest(endpoint: string, options: RequestInit = {}) {
     throw apiError;
   }
 
-  return normalizeLegacyUploadLinks(parsed);
+  return normalizeLegacyUploadLinks(parsed as T);
 }
 
 // Auth API
