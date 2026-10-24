@@ -118,7 +118,7 @@ def migrate(source: Path, folder: Path, *, confirmation: str,
             old_objects={x[1]:x for x in old_schema}
             new_objects={x[1]:x for x in schema_snapshot(current)
                          if x[2] not in excluded and
-                         not x[1].startswith(("Supplier_","PurchaseOrder_","PurchaseOrderLine_"))}
+                         not x[1].startswith(("Supplier_","PurchaseOrder_","PurchaseOrderLine_","PurchaseOrderEvent_"))}
             if new_objects!=old_objects:
                 raise RuntimeError("Unrelated SQLite schema changed; rolling back")
             if current.execute("PRAGMA foreign_key_check").fetchall():
@@ -154,7 +154,7 @@ if __name__=="__main__":
         else:
             data=migrate(database_path(),args.backup,confirmation=args.confirm)
             print("THANAYA ERP PROCUREMENT SCHEMA APPLIED — VERIFIED")
-            print("Added Supplier, PurchaseOrder and PurchaseOrderLine; all tables initially empty")
+            print("Added Supplier, PurchaseOrder, PurchaseOrderLine and PurchaseOrderEvent; all initially empty")
             print("Existing orders:",data.get("Order"),"Products:",data.get("Product"))
             print("BACKUP UNCHANGED. Generate new Prisma Client BEFORE starting new backend.")
     except (RuntimeError,OSError,ValueError,sqlite3.Error,json.JSONDecodeError) as exc:
