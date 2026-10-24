@@ -8,13 +8,13 @@ from __future__ import annotations
 
 from contextlib import closing
 import argparse
+import hashlib
 from pathlib import Path
 import sqlite3
 import sys
 import tempfile
 
 from safe_backup import database_path, integrity, read_only_connection
-from rehearse_finance_ledger import data_fingerprint
 
 TABLES = ("Supplier", "PurchaseOrder", "PurchaseOrderLine", "PurchaseOrderEvent")
 MIGRATION = [
@@ -84,6 +84,28 @@ def tables(db:sqlite3.Connection)->list[str]:
         "AND name NOT LIKE 'sqlite_%' ORDER BY name"
     )]
 
+def full_data_fingerprint(db:sqlite3.Connection, original_tables:list[str])->dict[str,tuple[int,str]]:
+    """All columns of EVERY legacy table, including paymentRevision.
+
+    Unlike finance's pre-financial-migration comparison, no column may be
+    excluded now that the financial schema has been activated on Mac.
+    """
+    result={}
+    for table in original_tables:
+        escaped=table.replace('"','""')
+        fields=[column[1] for column in db.execute('PRAGMA table_info("'+escaped+'")')]
+        if not fields:
+            raise RuntimeError("Missing legacy table during ERP comparison: "+table)
+        quoted=", ".join('"'+name.replace('"','""')+'"' for name in fields)
+        count,hashsum=0,hashlib.sha256()
+        for row in db.execute('SELECT '+quoted+' FROM "'+escaped+'" ORDER BY rowid'):
+            count+=1
+            hashsum.update(repr(tuple(row)).encode("utf-8"))
+            hashsum.update(b"\n")
+        result[table]=(count,hashsum.hexdigest())
+    return result
+
+
 def verify(db:sqlite3.Connection)->bool:
     integrity(db)
     if db.execute("PRAGMA foreign_key_check").fetchall():
@@ -114,24 +136,24 @@ def rehearse(path:Path)->dict:
     with closing(read_only_connection(source)) as original:
         already=verify(original)
         originals=tables(original)
-        before=data_fingerprint(original,originals)
+        before=full_data_fingerprint(original,originals)
         with tempfile.TemporaryDirectory(prefix="thanaya-erp-rehearsal-") as tmp:
             with closing(sqlite3.connect(Path(tmp)/"erp.sqlite")) as copy:
                 original.backup(copy)
-                if data_fingerprint(copy,originals)!=before:
+                if full_data_fingerprint(copy,originals)!=before:
                     raise RuntimeError("Temporary backup differs from source")
                 if not already:
                     with copy:
                         for statement in MIGRATION:copy.execute(statement)
                 if not verify(copy):
                     raise RuntimeError("New schema not present in clone")
-                if data_fingerprint(copy,originals)!=before:
+                if full_data_fingerprint(copy,originals)!=before:
                     raise RuntimeError("Legacy records changed in the clone")
                 if not already:
                     for name in TABLES:
                         if copy.execute('SELECT COUNT(*) FROM "'+name+'"').fetchone()[0]:
                             raise RuntimeError("New ERP table must start empty")
-        if data_fingerprint(original,originals)!=before:
+        if full_data_fingerprint(original,originals)!=before:
             raise RuntimeError("Source changed during rehearsal")
     return {"tables_preserved":len(originals),"already_applied":already}
 
