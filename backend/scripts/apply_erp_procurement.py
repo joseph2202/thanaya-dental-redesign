@@ -19,8 +19,7 @@ from urllib.parse import quote
 from safe_backup import (
     BACKUPS, database_path, digest, integrity, read_only_connection, verified_counts,
 )
-from rehearse_erp_procurement import MIGRATION, TABLES, verify, tables
-from rehearse_finance_ledger import data_fingerprint
+from rehearse_erp_procurement import MIGRATION, TABLES, verify, tables, full_data_fingerprint
 from apply_finance_ledger import schema_snapshot
 
 CONFIRMATION = "APPLY-THANAYA-ERP-PROCUREMENT"
@@ -71,7 +70,7 @@ def compare(current: sqlite3.Connection, backup: sqlite3.Connection, manifest: d
     if schema_snapshot(current)!=schema_snapshot(backup):
         raise RuntimeError("Database schema differs from verified backup")
     originals=tables(backup)
-    if data_fingerprint(current,originals)!=data_fingerprint(backup,originals):
+    if full_data_fingerprint(current,originals)!=full_data_fingerprint(backup,originals):
         raise RuntimeError("Database content differs from backup")
     integrity(current)
     return originals
@@ -100,13 +99,13 @@ def migrate(source: Path, folder: Path, *, confirmation: str,
             current.execute("BEGIN EXCLUSIVE")
             with closing(read_only_connection(dbfile)) as backup:
                 previous_tables=compare(current,backup,manifest)
-            rows=data_fingerprint(current,previous_tables)
+            rows=full_data_fingerprint(current,previous_tables)
             old_schema=schema_snapshot(current)
             for statement in MIGRATION:
                 current.execute(statement)
             if not verify(current):
                 raise RuntimeError("ERP schema incomplete; rolling back")
-            if data_fingerprint(current,previous_tables)!=rows:
+            if full_data_fingerprint(current,previous_tables)!=rows:
                 raise RuntimeError("Old orders, stock or financial rows changed; rolling back")
             if verified_counts(current)!=counts:
                 raise RuntimeError("Old table counts changed; rolling back")
