@@ -1,6 +1,7 @@
 "use client";
 import {useCallback,useEffect,useRef,useState} from 'react';
 import AdminLayout from '@/components/admin/AdminLayout';
+import {useAuth} from '@/context/AuthContext';
 import SiteActionDialog from '@/components/ui/SiteActionDialog';
 import {productsAPI,procurementAPI,type PurchaseDraftRecord,type SupplierRecord} from '@/lib/api';
 import {ArrowUpLeft,Building2,ClipboardList,FilePlus2,PackagePlus,RefreshCw,Search,ShieldCheck,Truck} from 'lucide-react';
@@ -10,8 +11,11 @@ type DraftLine={productId:string;quantity:string;unitCostIqd:string};
 const iqd=(num:number)=>num.toLocaleString('en-US')+' د.ع';
 const emptySupplier={code:'',name:'',contact:'',phone:'',email:'',city:'',address:'',note:''};
 const emptyLine=():DraftLine=>({productId:'',quantity:'1',unitCostIqd:''});
+const statuses:Record<PurchaseDraftRecord['status'],string>={draft:'مسودة',approved:'معتمد',ordered:'مرسل للمورد (يدوياً)',cancelled:'ملغي'};
+type PurchaseAction='approved'|'ordered'|'cancelled';
 
 export default function ProcurementPage(){
+ const {user}=useAuth();
  const [suppliers,setSuppliers]=useState<SupplierRecord[]>([]);
  const [drafts,setDrafts]=useState<PurchaseDraftRecord[]>([]);
  const [products,setProducts]=useState<ProductPick[]>([]);
@@ -24,6 +28,9 @@ export default function ProcurementPage(){
  const [supplierForm,setSupplierForm]=useState({...emptySupplier});
  const [showSupplierForm,setShowSupplierForm]=useState(false);
  const [archive,setArchive]=useState<SupplierRecord|null>(null);
+ const [decision,setDecision]=useState<{order:PurchaseDraftRecord;action:PurchaseAction;requestId:string}|null>(null);
+ const [decisionNote,setDecisionNote]=useState('');
+ const [decisionError,setDecisionError]=useState('');
  const [supplierId,setSupplierId]=useState('');
  const [draftNote,setDraftNote]=useState('');
  const [lines,setLines]=useState<DraftLine[]>([emptyLine()]);
@@ -118,6 +125,28 @@ export default function ProcurementPage(){
    setError(e instanceof Error?e.message:'تعذر تأكيد حفظ المسودة؛ لا تكررها بمعرّف مختلف قبل مراجعة السجل');
   }finally{setBusy(false);}
  }
+ function openDecision(order:PurchaseDraftRecord,action:PurchaseAction){
+  setDecision({order,action,requestId:crypto.randomUUID()});
+  setDecisionNote('');setDecisionError('');setError('');
+ }
+ async function submitDecision(){
+  if(!decision||busy)return;
+  if(decisionNote.trim().length<8){setDecisionError('اكتب سبب القرار أو مرجع إرسال الطلب (8 أحرف على الأقل)');return;}
+  setBusy(true);setDecisionError('');setError('');setNotice('');
+  try{
+   const result=await procurementAPI.decide(decision.order.id,{
+    requestId:decision.requestId,expectedRevision:decision.order.revision,
+    action:decision.action,note:decisionNote.trim()
+   });
+   const id=decision.order.id;
+   setDecision(null);setDecisionNote('');
+   await refresh();setOpenId(id);
+   setNotice(result.alreadyProcessed?'هذا القرار مسجّل سابقاً، وما تكرر.':result.message);
+  }catch(e){
+   // Same requestId is retained when a response is lost.
+   setDecisionError(e instanceof Error?e.message:'تعذّر التأكد من الحفظ، حدّث السجل قبل قرار جديد');
+  }finally{setBusy(false);}
+ }
  const shownSuppliers=suppliers.filter(s=>(s.name+' '+s.code+' '+(s.contact||'')).toLowerCase().includes(search.trim().toLowerCase()));
  const activeSuppliers=suppliers.filter(s=>s.active);
 
@@ -128,11 +157,34 @@ export default function ProcurementPage(){
    confirmLabel={archive?.active?'إيقاف المورد':'تفعيل المورد'} busy={busy}
    onClose={()=>{if(!busy)setArchive(null);}} onConfirm={toggleSupplier}/>
 
+  <SiteActionDialog open={decision!==null}
+   title={decision?.action==='approved'?'اعتماد أمر الشراء':decision?.action==='ordered'?'توثيق إرسال أمر الشراء للمورد':'إلغاء أمر الشراء'}
+   description={decision?.action==='approved'
+    ?'صاحب ثنايا يؤكد مراجعة الكميات والتكاليف. الاعتماد لا يرسل الطلب ولا يستلم البضاعة.'
+    :decision?.action==='ordered'
+     ?'سجّل هذا القرار فقط بعد إرسال الطلب للمورد خارج ثنايا. لا يوجد إرسال تلقائي.'
+     :'الإلغاء يحفظ المسودة وتاريخ القرارات، ولا يحذف البيانات.'}
+   confirmLabel={decision?.action==='approved'?'اعتمد أمر الشراء':decision?.action==='ordered'?'وثّق الإرسال اليدوي':'أكد الإلغاء'}
+   destructive={decision?.action==='cancelled'} busy={busy} error={decisionError}
+   confirmDisabled={decisionNote.trim().length<8}
+   onClose={()=>{if(!busy){setDecision(null);setDecisionError('')}}}
+   onConfirm={submitDecision}>
+   {decision&&<div className="space-y-3">
+    <p className="site-muted text-xs">المورد: {decision.order.supplier.name} • الإجمالي المخطط: {iqd(decision.order.totalIqd)}</p>
+    <label className="block"><span className="mb-1 block text-xs font-black">
+     {decision.action==='ordered'?'مرجع الإرسال الفعلي للمورد':'سبب القرار والتدقيق'}</span>
+     <textarea maxLength={300} rows={3} className="site-input w-full px-3 py-2"
+      value={decisionNote} onChange={e=>setDecisionNote(e.target.value)}
+      placeholder={decision.action==='ordered'?'مثلاً رقم واتساب المورد وتاريخ الإرسال':'اكتب سبب القرار بوضوح...'}/></label>
+    <p className="site-muted text-[11px]">الحركة توثيق داخلي فقط، ولا تغيّر المخزون أو الأموال. رقم المحاولة يبقى نفسه إذا انقطع الاتصال.</p>
+   </div>}
+  </SiteActionDialog>
+
   <header className="mb-6 flex flex-wrap items-end justify-between gap-4">
    <div>
     <span className="site-eyebrow">THANAYA / BUSINESS OPERATIONS / 01</span>
     <h1 className="mt-2 text-3xl font-black sm:text-4xl">الموردون والمشتريات</h1>
-    <p className="site-muted mt-2 text-sm leading-7">أول وحدة من نظام إدارة شركة ثنايا: بيانات الموردين ومسودات شراء موثقة قبل استلام البضاعة.</p>
+    <p className="site-muted mt-2 text-sm leading-7">نظام ثنايا للموردين ومسودات الشراء والاعتماد وتوثيق الإرسال اليدوي، بدون تغيير المخزون أو الحسابات.</p>
    </div>
    <button type="button" className="site-btn site-btn-outline" onClick={()=>void refresh()} disabled={loading||busy}>
     <RefreshCw size={17}/> تحديث
@@ -141,7 +193,7 @@ export default function ProcurementPage(){
   <div className="mb-5 flex items-start gap-3 rounded-2xl border border-brand/35 bg-paper2/40 p-4 text-sm">
    <ShieldCheck size={21} className="mt-1 shrink-0 text-brand"/>
    <div><strong>نظام مشتريات آمن — المرحلة الأولى</strong>
-    <p className="site-muted mt-1 leading-7">كل طلب شراء هنا مسودة داخلية فقط، وما يعتبر فاتورة مورد أو استلام مخزني. الكميات والأموال الحالية تبقى بدون تغيير.</p></div>
+    <p className="site-muted mt-1 leading-7">مسودات الشراء تُراجع ويعتمدها صاحب ثنايا؛ توثيق إرسال الطلب لا يرسل رسالة تلقائياً ولا يضيف بضاعة أو التزامات مالية.</p></div>
   </div>
   <div className="grid gap-3 sm:grid-cols-3">
    {[
@@ -216,7 +268,7 @@ export default function ProcurementPage(){
 
   {section==='drafts'&&<section className="site-surface rounded-3xl border p-4 sm:p-6">
    <div><h2 className="text-xl font-black">مسودات الشراء من الموردين</h2>
-    <p className="site-muted mt-1 text-xs">خطط مشترياتك بالتكلفة الكاملة بالدينار. الإرسال والاستلام لاحقاً بعد اعتماد إجراء رسمي.</p></div>
+    <p className="site-muted mt-1 text-xs">خطط بالكلفة بالدينار، ثم اعتمد قرار الشراء ووثّق إرسال الطلب فعلياً للمورد، بدون استلام مخزني.</p></div>
    <form onSubmit={saveDraft} className="mt-5 grid gap-4 rounded-2xl border border-brand/20 bg-paper2/30 p-4">
     <label><span className="mb-2 block text-xs font-black">المورد</span>
      <select className="site-input w-full px-3" required value={supplierId}
@@ -247,12 +299,12 @@ export default function ProcurementPage(){
     <button type="submit" disabled={busy||!activeSuppliers.length||!products.length}
      className="site-btn site-btn-primary w-fit"><ClipboardList size={17}/>{busy?'جاري الحفظ...':'حفظ مسودة شراء داخلية'}</button>
    </form>
-   <h3 className="mt-8 text-lg font-black">المسودات المحفوظة</h3>
+   <h3 className="mt-8 text-lg font-black">أوامر الشراء وسجل القرارات</h3>
    {!drafts.length&&!loading?<p className="site-muted mt-3 rounded-xl border border-dashed border-brand/20 p-5 text-center text-sm">ماكو مسودات شراء محفوظة بعد.</p>:
     <div className="mt-3 space-y-3">{drafts.map(d=><article key={d.id} className="rounded-xl border border-brand/20 bg-paper2/25 p-4">
      <button type="button" className="flex w-full flex-wrap items-center justify-between gap-3 text-right" onClick={()=>setOpenId(openId===d.id?null:d.id)}
       aria-expanded={openId===d.id}>
-      <div><strong>{d.supplier.name}</strong><p className="site-muted mt-1 text-xs">مسودة داخلية • {new Date(d.createdAt).toLocaleDateString('ar-IQ')} • بواسطة {d.createdBy.name}</p></div>
+      <div><strong>{d.supplier.name}</strong><p className="site-muted mt-1 text-xs">{statuses[d.status]} • {new Date(d.createdAt).toLocaleDateString('ar-IQ')} • بواسطة {d.createdBy.name}</p></div>
       <strong>{iqd(d.totalIqd)}</strong>
      </button>
      {openId===d.id&&<div className="mt-3 space-y-2 border-t border-brand/20 pt-3">
@@ -261,7 +313,24 @@ export default function ProcurementPage(){
        <span className="site-muted">{iqd(line.unitCostIqd)} للوحدة</span>
       </div>)}
       {d.note&&<p className="site-muted text-xs">ملاحظة: {d.note}</p>}
-      <p className="site-muted text-xs">غير مرسلة للمورد • لا حركة مخزون • لا ذمم مالية</p>
+      <div className="mt-4 flex flex-wrap gap-2">
+        {user?.role==='owner'&&d.status==='draft'&&
+         <button type="button" className="site-btn site-btn-primary !min-h-9 !px-3 !text-xs"
+          disabled={busy} onClick={()=>openDecision(d,'approved')}>اعتماد الأمر</button>}
+        {(user?.role==='owner'||user?.role==='admin')&&d.status==='approved'&&
+         <button type="button" className="site-btn site-btn-primary !min-h-9 !px-3 !text-xs"
+          disabled={busy||!d.supplier.active} onClick={()=>openDecision(d,'ordered')}>تأكيد الإرسال للمورد</button>}
+        {user?.role==='owner'&&['draft','approved'].includes(d.status)&&
+         <button type="button" className="site-btn site-btn-outline !min-h-9 !px-3 !text-xs"
+          disabled={busy} onClick={()=>openDecision(d,'cancelled')}>إلغاء الطلب</button>}
+       </div>
+       <h4 className="mt-4 text-xs font-black">سجل القرارات ({d.events.length})</h4>
+       {d.events.length===0?<p className="site-muted text-xs">ماكو قرارات مسجلة بعد.</p>:
+        <ol className="mt-2 space-y-2">{d.events.map(evt=><li key={evt.id} className="rounded-xl border border-brand/15 p-3 text-xs">
+         <span className="font-black">{statuses[evt.toStatus]}</span> • {evt.actor.name} • {new Date(evt.createdAt).toLocaleString('ar-IQ')}
+         <p className="site-muted mt-1 break-words">{evt.note}</p>
+        </li>)}</ol>}
+       <p className="site-muted mt-3 text-xs">حالة المستند: {statuses[d.status]} • لا استلام مخزني ولا ذمم مالية</p>
      </div>}
     </article>)}</div>}
   </section>}
