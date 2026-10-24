@@ -34,6 +34,10 @@ jobs:
         run: python3 -m unittest discover -s backend/tests -p 'test_rehearse_finance_ledger.py' -v
       - name: Verify guarded finance apply on disposable databases
         run: python3 -m unittest discover -s backend/tests -p 'test_apply_finance_ledger.py' -v
+      - name: Rehearse ERP tables on disposable SQLite without touching shop
+        run: python3 -m unittest discover -s backend/tests -p 'test_rehearse_erp_procurement.py' -v
+      - name: Guarded ERP migration checks on temporary backups
+        run: python3 -m unittest discover -s backend/tests -p 'test_apply_erp_procurement.py' -v
       - name: Install backend dependencies
         run: npm ci
         working-directory: backend
@@ -46,6 +50,12 @@ jobs:
           JWT_SECRET: ci-placeholder-not-used-by-live-store
       - name: Isolated financial ledger checks
         run: node tests/finance.integration.cjs
+        working-directory: backend
+        env:
+          NODE_ENV: test
+          JWT_SECRET: ci-placeholder-not-used-by-live-store
+      - name: Isolated ERP supplier and purchasing checks
+        run: node tests/procurement.integration.cjs
         working-directory: backend
         env:
           NODE_ENV: test

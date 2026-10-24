@@ -13,6 +13,7 @@ import deliveryRoutes from './routes/delivery';
 import notificationsRoutes from './routes/notifications';
 import reportsRoutes from './routes/reports';
 import financeRoutes from './routes/finance';
+import procurementRoutes from './routes/procurement';
 import exportsRoutes from './routes/exports';
 import addressesRoutes from './routes/addresses';
 
@@ -146,11 +147,24 @@ app.use('/api/delivery', deliveryRoutes);
 app.use('/api/notifications', notificationsRoutes);
 app.use('/api/reports', reportsRoutes);
 app.use('/api/finance', financeRoutes);
+app.use('/api/procurement', procurementRoutes);
 app.use('/api/exports', exportsRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Thanaya API is running' });
 });
+
+// Always return structured errors from /api, including unknown paths and
+// unexpected errors forwarded by Express 5 asynchronous route handlers.
+// Details remain in local backend logs, never in the browser response.
+app.use('/api', (_req, res) => {
+  res.status(404).json({ error: 'مسار API غير موجود. تحقق من نسخة الباكند.' });
+});
+app.use(((error: unknown, req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  console.error('Unexpected API error', req.method, req.path, error);
+  if (res.headersSent) return;
+  res.status(500).json({ error: 'تعذّر تنفيذ الطلب في خادم ثنايا. راجع سجل الباكند.' });
+}) as express.ErrorRequestHandler);
 
 app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);

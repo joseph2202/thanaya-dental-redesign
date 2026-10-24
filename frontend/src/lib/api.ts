@@ -29,7 +29,7 @@ function normalizeLegacyUploadLinks<T>(value: T): T {
   return value;
 }
 
-export async function apiRequest(endpoint: string, options: RequestInit = {}) {
+export async function apiRequest<T = any>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const token = typeof window !== 'undefined' ? localStorage.getItem('thanaya-token') : null;
   const response = await fetch(`${API_BASE}${endpoint}`, {
     ...options,
@@ -40,14 +40,36 @@ export async function apiRequest(endpoint: string, options: RequestInit = {}) {
     },
   });
 
-  if (!response.ok) {
-    const error = await response.json();
-    const apiError = new Error(error.error || 'خطأ في الطلب') as Error & { status: number };
+  // A stopped backend or a failed Next.js rewrite can return plain text or
+  // HTML (e.g. "Internal Server Error"). Never JSON.parse these responses
+  // blindly and never expose a server stack trace to the storefront.
+  if (response.ok && response.status === 204) return undefined as T;
+  const body = await response.text();
+  let parsed: unknown;
+  let validJson = false;
+  try { parsed = JSON.parse(body); validJson = true; } catch { parsed = null; }
+  const errorBody = parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+    ? parsed as Record<string, unknown> : null;
+
+  // JSON arrays are valid for products, suppliers, orders, categories, etc.
+  if (!response.ok || !validJson) {
+    const serverMessage = errorBody && typeof errorBody.error === 'string' ? errorBody.error : null;
+    const fallback = response.status >= 500
+      ? 'تعذّر الاتصال بخدمة ثنايا. تحقق من تشغيل الـBackend على المنفذ 4000 وتحديث Prisma Client.'
+      : response.status === 404
+        ? 'مسار الخدمة غير موجود. تأكد من تحديث وتشغيل الـBackend الجديد.'
+        : response.status === 401
+          ? 'يرجى تسجيل الدخول مجدداً.'
+          : response.status === 403
+            ? 'لا توجد صلاحية للوصول لهذه البيانات.'
+            : 'تعذّر استلام رد صحيح من خدمة ثنايا.';
+    // Untrusted non-JSON response text is deliberately not displayed.
+    const apiError = new Error(serverMessage || fallback) as Error & { status: number };
     apiError.status = response.status;
     throw apiError;
   }
 
-  return normalizeLegacyUploadLinks(await response.json());
+  return normalizeLegacyUploadLinks(parsed as T);
 }
 
 // Auth API
@@ -254,4 +276,50 @@ export const financeAPI={
  record:(id:string,event:{requestId:string;kind:'collection'|'refund';method:'cash'|'bank_transfer'|'card'|'other';amountIqd:number;note:string}):
   Promise<{id:string;kind:string;amountIqd:number;alreadyProcessed:boolean}>=>
   apiRequest('/finance/orders/'+encodeURIComponent(id)+'/events',{method:'POST',body:JSON.stringify(event)})
+};
+
+export type SupplierRecord={
+ id:string;code:string;name:string;contact:string|null;phone:string|null;
+ email:string|null;city:string|null;address:string|null;note:string|null;
+ active:boolean;revision:number;createdAt:string;updatedAt:string
+};
+export type SupplierInput={
+ code:string;name:string;contact?:string;phone?:string;email?:string;
+ city?:string;address?:string;note?:string
+};
+export type PurchaseDraftLine={
+ id:string;purchaseOrderId:string;productId:string;productName:string;sku:string|null;
+ quantity:number;unitCostIqd:number
+};
+export type PurchaseStatus='draft'|'approved'|'ordered'|'cancelled';
+export type PurchaseDecision={
+ id:string;requestId:string;actorId:string;action:'approved'|'ordered'|'cancelled';
+ fromStatus:PurchaseStatus;toStatus:PurchaseStatus;note:string;createdAt:string;
+ actor:{id:string;name:string};
+};
+export type PurchaseDraftRecord={
+ id:string;requestId:string;status:PurchaseStatus;revision:number;
+ supplierId:string;createdById:string;
+ note:string|null;createdAt:string;updatedAt:string;totalIqd:number;
+ supplier:{id:string;name:string;code:string;active:boolean};
+ createdBy:{id:string;name:string};lines:PurchaseDraftLine[];events:PurchaseDecision[]
+};
+export const procurementAPI={
+ suppliers:(search=''):Promise<SupplierRecord[]>=>
+  apiRequest('/procurement/suppliers?'+new URLSearchParams({search}).toString()),
+ createSupplier:(input:SupplierInput):Promise<SupplierRecord>=>
+  apiRequest('/procurement/suppliers',{method:'POST',body:JSON.stringify(input)}),
+ updateSupplier:(id:string,input:Partial<SupplierInput>&{active?:boolean;expectedRevision:number}):Promise<SupplierRecord>=>
+  apiRequest('/procurement/suppliers/'+encodeURIComponent(id),{method:'PATCH',body:JSON.stringify(input)}),
+ drafts:():Promise<PurchaseDraftRecord[]>=>apiRequest('/procurement/purchase-drafts'),
+ decide:(id:string,input:{requestId:string;expectedRevision:number;
+  action:'approved'|'ordered'|'cancelled';note:string}):
+  Promise<{eventId:string;alreadyProcessed:boolean;status:PurchaseStatus;message:string}>=>
+   apiRequest('/procurement/purchase-drafts/'+encodeURIComponent(id)+'/transitions',{
+    method:'POST',body:JSON.stringify(input)
+   }),
+ createDraft:(input:{requestId:string;supplierId:string;note?:string;
+  lines:{productId:string;quantity:number;unitCostIqd:number}[]}):
+  Promise<{id:string;alreadyCreated:boolean;notice:string}>=>
+  apiRequest('/procurement/purchase-drafts',{method:'POST',body:JSON.stringify(input)})
 };
