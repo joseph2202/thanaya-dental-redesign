@@ -17,7 +17,7 @@ SCHEMA="""
 PRAGMA foreign_keys=ON;
 CREATE TABLE "User"("id" TEXT PRIMARY KEY, "name" TEXT);
 CREATE TABLE "Product"("id" TEXT PRIMARY KEY, "stock" INTEGER);
-CREATE TABLE "Order"("id" TEXT PRIMARY KEY, "total" INTEGER);
+CREATE TABLE "Order"("id" TEXT PRIMARY KEY, "total" INTEGER, "paymentRevision" INTEGER NOT NULL DEFAULT 0);
 CREATE TABLE "OrderReturnLine"("id" TEXT PRIMARY KEY, "disposition" TEXT);
 CREATE TABLE "OrderPaymentEvent"("id" TEXT PRIMARY KEY);
 CREATE TABLE "InventoryMovement"("id" TEXT PRIMARY KEY, "delta" INTEGER);
@@ -86,6 +86,18 @@ class GuardedProcurementSafety(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError,"content|rows|changed"):
             self.apply()
         self.assertEqual(old,self.source.read_bytes())
+    def test_stale_backup_changed_payment_revision_blocks_apply(self):
+        # A previous finance-era row comparator excluded paymentRevision.
+        # ERP must compare every existing column, including CAS revisions.
+        with closing(sqlite3.connect(self.source)) as db:
+            db.execute('UPDATE "Order" SET "paymentRevision"=1')
+            db.commit()
+        before=self.source.read_bytes()
+        with self.assertRaisesRegex(RuntimeError,"content|rows|changed"):
+            self.apply()
+        self.assertEqual(self.source.read_bytes(),before)
+        with closing(sqlite3.connect(self.source)) as db:
+            self.assertFalse(verify(db))
     def test_blocks_tampered_backup(self):
         with closing(sqlite3.connect(self.backup)) as db:
             db.execute('UPDATE "Product" SET stock=1234')
