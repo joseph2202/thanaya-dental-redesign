@@ -4,7 +4,7 @@ import AdminLayout from '@/components/admin/AdminLayout';
 import {useAuth} from '@/context/AuthContext';
 import SiteActionDialog from '@/components/ui/SiteActionDialog';
 import {productsAPI,procurementAPI,type PurchaseDraftRecord,type SupplierRecord} from '@/lib/api';
-import {ArrowUpLeft,Building2,ClipboardList,FilePlus2,PackagePlus,RefreshCw,Search,ShieldCheck,Truck} from 'lucide-react';
+import {ArrowUpLeft,Building2,ClipboardList,Copy,FilePlus2,PackagePlus,RefreshCw,Search,ShieldCheck,Truck} from 'lucide-react';
 
 type ProductPick={id:string;name:string;sku?:string|null};
 type DraftLine={productId:string;quantity:string;unitCostIqd:string};
@@ -147,6 +147,29 @@ export default function ProcurementPage(){
    setDecisionError(e instanceof Error?e.message:'تعذّر التأكد من الحفظ، حدّث السجل قبل قرار جديد');
   }finally{setBusy(false);}
  }
+ async function copyPurchaseRequest(order:PurchaseDraftRecord){
+  const text=[
+   'ثنايا | طلب شراء للمورد',
+   'المورد: '+order.supplier.name+' ('+order.supplier.code+')',
+   'مرجع الطلب: '+order.id,
+   'الحالة: '+statuses[order.status],
+   '',
+   ...order.lines.map((line,i)=>(i+1)+'. '+line.productName+
+    (line.sku?' ['+line.sku+']':'')+' | الكمية: '+line.quantity+
+    ' | سعر شراء الوحدة: '+iqd(line.unitCostIqd)+
+    ' | الإجمالي: '+iqd(line.quantity*line.unitCostIqd)),
+   '',
+   'إجمالي الشراء المخطط: '+iqd(order.totalIqd),
+   'هذه قائمة طلب وليست فاتورة مورد أو إثبات استلام مخزني.'
+  ].join('\n');
+  try{
+   await navigator.clipboard.writeText(text);
+   setNotice('نُسخ نص طلب الشراء؛ الإرسال للمورد يظل يدوياً ولا يغيّر المخزون');
+   setError('');
+  }catch{
+   setError('المتصفح منع النسخ. فعّل صلاحية الحافظة أو استخدم اتصال HTTPS.');
+  }
+ }
  const shownSuppliers=suppliers.filter(s=>(s.name+' '+s.code+' '+(s.contact||'')).toLowerCase().includes(search.trim().toLowerCase()));
  const activeSuppliers=suppliers.filter(s=>s.active);
 
@@ -199,7 +222,7 @@ export default function ProcurementPage(){
    {[
     ['الموردون المسجلون',suppliers.length,Building2],
     ['موردون متاحون',activeSuppliers.length,Truck],
-    ['مسودات شراء',drafts.length,ClipboardList]
+    ['أوامر الشراء',drafts.length,ClipboardList]
    ].map(([label,value,Icon])=>{
     const Symbol=Icon as typeof Building2;
     return <div key={label as string} className="site-surface rounded-2xl border p-4">
@@ -208,6 +231,13 @@ export default function ProcurementPage(){
      <p className="mt-1 text-2xl font-black">{loading?'—':value as number}</p>
     </div>;
    })}
+  </div>
+  <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+   {(['draft','approved','ordered','cancelled'] as const).map(status=><div key={status}
+    className="flex items-center justify-between gap-2 rounded-xl border border-brand/20 bg-paper2/30 px-3 py-2.5 text-xs">
+    <span className="site-muted">{statuses[status]}</span>
+    <strong>{drafts.filter(o=>o.status===status).length}</strong>
+   </div>)}
   </div>
   <div role="tablist" aria-label="أقسام المشتريات" className="mt-6 mb-5 flex flex-wrap gap-2">
    <button role="tab" type="button" aria-selected={section==='suppliers'} onClick={()=>setSection('suppliers')}
@@ -314,6 +344,9 @@ export default function ProcurementPage(){
       </div>)}
       {d.note&&<p className="site-muted text-xs">ملاحظة: {d.note}</p>}
       <div className="mt-4 flex flex-wrap gap-2">
+        {['approved','ordered'].includes(d.status)&&
+         <button type="button" className="site-btn site-btn-outline !min-h-9 !px-3 !text-xs"
+          onClick={()=>void copyPurchaseRequest(d)}><Copy size={14}/> نسخ نص طلب المورد</button>}
         {user?.role==='owner'&&d.status==='draft'&&
          <button type="button" className="site-btn site-btn-primary !min-h-9 !px-3 !text-xs"
           disabled={busy} onClick={()=>openDecision(d,'approved')}>اعتماد الأمر</button>}
