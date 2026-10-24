@@ -340,6 +340,7 @@ model Supplier {
   address   String?
   note      String?
   active    Boolean   @default(true)
+  revision  Int       @default(0) // Compare-and-swap supplier edits
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   purchaseOrders PurchaseOrder[]
