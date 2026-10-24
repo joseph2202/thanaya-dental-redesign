@@ -22,6 +22,7 @@ model User {
   notifications Notification[]
   savedAddresses CustomerAddress[]
   createdPurchaseOrders PurchaseOrder[] @relation("PurchaseOrderCreator")
+  purchaseDecisions PurchaseOrderEvent[] @relation("PurchaseOrderEventActor")
 }
 
 // Address book is private to one user. Order address fields are immutable snapshots.
@@ -354,13 +355,15 @@ model PurchaseOrder {
   requestId   String   @unique
   supplierId  String
   createdById String
-  status      String   @default("draft") // Phase 1 always draft; not sent/received
+  status      String   @default("draft") // draft | approved | ordered | cancelled
+  revision    Int      @default(0) // Optimistic guard against concurrent transitions
   note        String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   supplier    Supplier @relation(fields:[supplierId],references:[id],onDelete:Restrict)
   createdBy   User     @relation("PurchaseOrderCreator",fields:[createdById],references:[id],onDelete:Restrict)
   lines       PurchaseOrderLine[]
+  events      PurchaseOrderEvent[]
 
   @@index([supplierId,createdAt])
   @@index([createdAt])
@@ -379,4 +382,24 @@ model PurchaseOrderLine {
 
   @@index([purchaseOrderId])
   @@index([productId])
+}
+
+// A purchase status is never silently inferred. Every transition is attested
+// by a logged-in staff member. This is not a goods receipt or payment event.
+model PurchaseOrderEvent {
+  id              String   @id @default(cuid())
+  purchaseOrderId String
+  requestId       String
+  actorId         String
+  action          String   // approved | ordered | cancelled
+  fromStatus      String
+  toStatus        String
+  note            String   // Decision rationale or manual supplier-send reference
+  createdAt       DateTime @default(now())
+  purchaseOrder   PurchaseOrder @relation(fields:[purchaseOrderId],references:[id],onDelete:Restrict)
+  actor           User     @relation("PurchaseOrderEventActor",fields:[actorId],references:[id],onDelete:Restrict)
+
+  @@unique([purchaseOrderId,requestId])
+  @@index([purchaseOrderId,createdAt])
+  @@index([actorId,createdAt])
 }
