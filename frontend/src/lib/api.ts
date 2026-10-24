@@ -43,14 +43,17 @@ export async function apiRequest(endpoint: string, options: RequestInit = {}) {
   // A stopped backend or a failed Next.js rewrite can return plain text or
   // HTML (e.g. "Internal Server Error"). Never JSON.parse these responses
   // blindly and never expose a server stack trace to the storefront.
+  if (response.ok && response.status === 204) return undefined;
   const body = await response.text();
   let parsed: unknown;
-  try { parsed = JSON.parse(body); } catch { parsed = null; }
-  const data = parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+  let validJson = false;
+  try { parsed = JSON.parse(body); validJson = true; } catch { parsed = null; }
+  const errorBody = parsed && typeof parsed === 'object' && !Array.isArray(parsed)
     ? parsed as Record<string, unknown> : null;
 
-  if (!response.ok || !data) {
-    const serverMessage = data && typeof data.error === 'string' ? data.error : null;
+  // JSON arrays are valid for products, suppliers, orders, categories, etc.
+  if (!response.ok || !validJson) {
+    const serverMessage = errorBody && typeof errorBody.error === 'string' ? errorBody.error : null;
     const fallback = response.status >= 500
       ? 'تعذّر الاتصال بخدمة ثنايا. تحقق من تشغيل الـBackend على المنفذ 4000 وتحديث Prisma Client.'
       : response.status === 404
@@ -66,7 +69,7 @@ export async function apiRequest(endpoint: string, options: RequestInit = {}) {
     throw apiError;
   }
 
-  return normalizeLegacyUploadLinks(data);
+  return normalizeLegacyUploadLinks(parsed);
 }
 
 // Auth API
