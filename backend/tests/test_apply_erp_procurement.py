@@ -23,7 +23,7 @@ CREATE TABLE "OrderPaymentEvent"("id" TEXT PRIMARY KEY);
 CREATE TABLE "InventoryMovement"("id" TEXT PRIMARY KEY, "delta" INTEGER);
 INSERT INTO "User" VALUES ('owner-1','Owner');
 INSERT INTO "Product" VALUES ('product-1',17);
-INSERT INTO "Order" VALUES ('order-1',85000);
+INSERT INTO "Order" ("id","total") VALUES ('order-1',85000);
 INSERT INTO "InventoryMovement" VALUES ('move-1',-3);
 """
 
