@@ -255,3 +255,36 @@ export const financeAPI={
   Promise<{id:string;kind:string;amountIqd:number;alreadyProcessed:boolean}>=>
   apiRequest('/finance/orders/'+encodeURIComponent(id)+'/events',{method:'POST',body:JSON.stringify(event)})
 };
+
+export type SupplierRecord={
+ id:string;code:string;name:string;contact:string|null;phone:string|null;
+ email:string|null;city:string|null;address:string|null;note:string|null;
+ active:boolean;revision:number;createdAt:string;updatedAt:string
+};
+export type SupplierInput={
+ code:string;name:string;contact?:string;phone?:string;email?:string;
+ city?:string;address?:string;note?:string
+};
+export type PurchaseDraftLine={
+ id:string;purchaseOrderId:string;productId:string;productName:string;sku:string|null;
+ quantity:number;unitCostIqd:number
+};
+export type PurchaseDraftRecord={
+ id:string;requestId:string;status:'draft';supplierId:string;createdById:string;
+ note:string|null;createdAt:string;updatedAt:string;totalIqd:number;
+ supplier:{id:string;name:string;code:string;active:boolean};
+ createdBy:{id:string;name:string};lines:PurchaseDraftLine[]
+};
+export const procurementAPI={
+ suppliers:(search=''):Promise<SupplierRecord[]>=>
+  apiRequest('/procurement/suppliers?'+new URLSearchParams({search}).toString()),
+ createSupplier:(input:SupplierInput):Promise<SupplierRecord>=>
+  apiRequest('/procurement/suppliers',{method:'POST',body:JSON.stringify(input)}),
+ updateSupplier:(id:string,input:Partial<SupplierInput>&{active?:boolean;expectedRevision:number}):Promise<SupplierRecord>=>
+  apiRequest('/procurement/suppliers/'+encodeURIComponent(id),{method:'PATCH',body:JSON.stringify(input)}),
+ drafts:():Promise<PurchaseDraftRecord[]>=>apiRequest('/procurement/purchase-drafts'),
+ createDraft:(input:{requestId:string;supplierId:string;note?:string;
+  lines:{productId:string;quantity:number;unitCostIqd:number}[]}):
+  Promise<{id:string;alreadyCreated:boolean;notice:string}>=>
+  apiRequest('/procurement/purchase-drafts',{method:'POST',body:JSON.stringify(input)})
+};
