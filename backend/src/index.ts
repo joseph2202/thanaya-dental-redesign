@@ -13,6 +13,7 @@ import deliveryRoutes from './routes/delivery';
 import notificationsRoutes from './routes/notifications';
 import reportsRoutes from './routes/reports';
 import financeRoutes from './routes/finance';
+import procurementRoutes from './routes/procurement';
 import exportsRoutes from './routes/exports';
 import addressesRoutes from './routes/addresses';
 
@@ -146,6 +147,7 @@ app.use('/api/delivery', deliveryRoutes);
 app.use('/api/notifications', notificationsRoutes);
 app.use('/api/reports', reportsRoutes);
 app.use('/api/finance', financeRoutes);
+app.use('/api/procurement', procurementRoutes);
 app.use('/api/exports', exportsRoutes);
 
 app.get('/api/health', (req, res) => {
