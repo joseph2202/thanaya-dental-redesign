@@ -16,7 +16,7 @@ import tempfile
 from safe_backup import database_path, integrity, read_only_connection
 from rehearse_finance_ledger import data_fingerprint
 
-TABLES = ("Supplier", "PurchaseOrder", "PurchaseOrderLine")
+TABLES = ("Supplier", "PurchaseOrder", "PurchaseOrderLine", "PurchaseOrderEvent")
 MIGRATION = [
     """CREATE TABLE "Supplier" (
         "id" TEXT NOT NULL PRIMARY KEY,
@@ -32,6 +32,7 @@ MIGRATION = [
         "id" TEXT NOT NULL PRIMARY KEY,
         "requestId" TEXT NOT NULL, "supplierId" TEXT NOT NULL,
         "createdById" TEXT NOT NULL, "status" TEXT NOT NULL DEFAULT 'draft',
+        "revision" INTEGER NOT NULL DEFAULT 0,
         "note" TEXT, "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
         "updatedAt" DATETIME NOT NULL,
         FOREIGN KEY ("supplierId") REFERENCES "Supplier" ("id")
@@ -49,6 +50,24 @@ MIGRATION = [
         FOREIGN KEY ("productId") REFERENCES "Product" ("id")
           ON DELETE RESTRICT ON UPDATE CASCADE
     )""",
+    """CREATE TABLE "PurchaseOrderEvent" (
+        "id" TEXT NOT NULL PRIMARY KEY,
+        "purchaseOrderId" TEXT NOT NULL,
+        "requestId" TEXT NOT NULL,
+        "actorId" TEXT NOT NULL,
+        "action" TEXT NOT NULL,
+        "fromStatus" TEXT NOT NULL,
+        "toStatus" TEXT NOT NULL,
+        "note" TEXT NOT NULL,
+        "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY ("purchaseOrderId") REFERENCES "PurchaseOrder" ("id")
+          ON DELETE RESTRICT ON UPDATE CASCADE,
+        FOREIGN KEY ("actorId") REFERENCES "User" ("id")
+          ON DELETE RESTRICT ON UPDATE CASCADE
+    )""",
+    'CREATE UNIQUE INDEX "PurchaseOrderEvent_purchaseOrderId_requestId_key" ON "PurchaseOrderEvent" ("purchaseOrderId","requestId")',
+    'CREATE INDEX "PurchaseOrderEvent_purchaseOrderId_createdAt_idx" ON "PurchaseOrderEvent" ("purchaseOrderId","createdAt")',
+    'CREATE INDEX "PurchaseOrderEvent_actorId_createdAt_idx" ON "PurchaseOrderEvent" ("actorId","createdAt")',
     'CREATE UNIQUE INDEX "Supplier_code_key" ON "Supplier" ("code")',
     'CREATE INDEX "Supplier_name_idx" ON "Supplier" ("name")',
     'CREATE INDEX "Supplier_active_idx" ON "Supplier" ("active")',
@@ -78,8 +97,9 @@ def verify(db:sqlite3.Connection)->bool:
     if existing:
         expected={
             "Supplier":{"id","code","name","active","revision","updatedAt"},
-            "PurchaseOrder":{"id","supplierId","requestId","createdById","status"},
-            "PurchaseOrderLine":{"id","purchaseOrderId","productId","quantity","unitCostIqd"}
+            "PurchaseOrder":{"id","supplierId","requestId","createdById","status","revision"},
+            "PurchaseOrderLine":{"id","purchaseOrderId","productId","quantity","unitCostIqd"},
+            "PurchaseOrderEvent":{"id","purchaseOrderId","requestId","actorId","action","fromStatus","toStatus","note"}
         }
         for name,required in expected.items():
             found={column[1] for column in db.execute('PRAGMA table_info("'+name+'")')}
