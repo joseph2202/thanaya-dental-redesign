@@ -22,6 +22,7 @@ export default function ProcurementPage(){
  const [loading,setLoading]=useState(true);
  const [busy,setBusy]=useState(false);
  const [error,setError]=useState('');
+ const [failedSources,setFailedSources]=useState<string[]>([]);
  const [notice,setNotice]=useState('');
  const [search,setSearch]=useState('');
  const [section,setSection]=useState<'suppliers'|'drafts'>('suppliers');
@@ -40,17 +41,27 @@ export default function ProcurementPage(){
 
  const refresh=useCallback(async()=>{
   const seq=++loadSequence.current;
-  setLoading(true);setError('');
-  try{
-   const [supplierList,draftList,productList]=await Promise.all([
-    procurementAPI.suppliers(),procurementAPI.drafts(),productsAPI.manage()
-   ]);
-   if(seq!==loadSequence.current)return;
-   setSuppliers(supplierList);setDrafts(draftList);setProducts(productList);
-  }catch(e){
-   if(seq!==loadSequence.current)return;
-   setError(e instanceof Error?e.message:'تعذر تحميل بيانات المشتريات');
-  }finally{if(seq===loadSequence.current)setLoading(false);}
+  setLoading(true);setError('');setFailedSources([]);
+  // The catalog, suppliers and purchase orders are independent sources.
+  // A problem in one must not hide the other two or turn missing data into 0.
+  const [s,d,p]=await Promise.allSettled([
+   procurementAPI.suppliers(),procurementAPI.drafts(),productsAPI.manage()
+  ]);
+  if(seq!==loadSequence.current)return;
+  const failed:string[]=[];
+  if(s.status==='fulfilled')setSuppliers(s.value);
+  else {setSuppliers([]);failed.push('الموردين');}
+  if(d.status==='fulfilled')setDrafts(d.value);
+  else {setDrafts([]);failed.push('أوامر الشراء');}
+  if(p.status==='fulfilled')setProducts(p.value);
+  else {setProducts([]);failed.push('المنتجات');}
+  setFailedSources(failed);
+  if(failed.length){
+   const firstError=([s,d,p].find(result=>result.status==='rejected') as PromiseRejectedResult).reason;
+   const details=firstError instanceof Error?firstError.message:'خدمة البيانات غير متاحة';
+   setError('تعذّر تحميل: '+failed.join('، ')+'. '+details);
+  }
+  setLoading(false);
  },[]);
  useEffect(()=>{void refresh();},[refresh]);
 
@@ -228,7 +239,11 @@ export default function ProcurementPage(){
     return <div key={label as string} className="site-surface rounded-2xl border p-4">
      <Symbol size={21} className="mb-3 text-brand"/>
      <p className="site-muted text-xs">{label as string}</p>
-     <p className="mt-1 text-2xl font-black">{loading?'—':value as number}</p>
+     <p className="mt-1 text-2xl font-black">{loading||(
+      label==='الموردون المسجلون'&&failedSources.includes('الموردين')||
+      label==='موردون متاحون'&&failedSources.includes('الموردين')||
+      label==='أوامر الشراء'&&failedSources.includes('أوامر الشراء')
+     )?'—':value as number}</p>
     </div>;
    })}
   </div>
@@ -280,7 +295,7 @@ export default function ProcurementPage(){
     <input className="w-full min-w-0 bg-transparent text-sm outline-none" value={search}
       onChange={e=>setSearch(e.target.value)} placeholder="ابحث بالاسم أو رمز المورد..."/>
    </label>
-   {shownSuppliers.length===0&&!loading?<p className="site-muted mt-5 rounded-xl border border-dashed border-brand/20 p-5 text-center text-sm">ماكو موردين مطابقين بعد. ابدأ بإضافة أول مورد تتعامل وياه ثنايا.</p>:
+   {shownSuppliers.length===0&&!loading&&!failedSources.includes('الموردين')?<p className="site-muted mt-5 rounded-xl border border-dashed border-brand/20 p-5 text-center text-sm">ماكو موردين مطابقين بعد. ابدأ بإضافة أول مورد تتعامل وياه ثنايا.</p>:
     <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">{shownSuppliers.map(s=><article key={s.id}
      className="rounded-2xl border border-brand/20 bg-paper2/25 p-4">
      <div className="flex items-start justify-between gap-2">
@@ -330,7 +345,7 @@ export default function ProcurementPage(){
      className="site-btn site-btn-primary w-fit"><ClipboardList size={17}/>{busy?'جاري الحفظ...':'حفظ مسودة شراء داخلية'}</button>
    </form>
    <h3 className="mt-8 text-lg font-black">أوامر الشراء وسجل القرارات</h3>
-   {!drafts.length&&!loading?<p className="site-muted mt-3 rounded-xl border border-dashed border-brand/20 p-5 text-center text-sm">ماكو مسودات شراء محفوظة بعد.</p>:
+   {!drafts.length&&!loading&&!failedSources.includes('أوامر الشراء')?<p className="site-muted mt-3 rounded-xl border border-dashed border-brand/20 p-5 text-center text-sm">ماكو مسودات شراء محفوظة بعد.</p>:
     <div className="mt-3 space-y-3">{drafts.map(d=><article key={d.id} className="rounded-xl border border-brand/20 bg-paper2/25 p-4">
      <button type="button" className="flex w-full flex-wrap items-center justify-between gap-3 text-right" onClick={()=>setOpenId(openId===d.id?null:d.id)}
       aria-expanded={openId===d.id}>
