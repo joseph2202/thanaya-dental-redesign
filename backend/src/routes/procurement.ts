@@ -57,6 +57,8 @@ function handle(res:import('express').Response,err:unknown,where:string){
  if(err instanceof Prisma.PrismaClientKnownRequestError){
   if(err.code==='P2002')return res.status(409).json({error:'هناك سجل بنفس الرمز أو معرّف العملية'});
   if(err.code==='P2025')return res.status(404).json({error:'السجل المطلوب غير موجود'});
+  if(['P2034','P1008','P2028','P2010'].includes(err.code))
+   return res.status(409).json({error:'عملية متزامنة أو انشغال بقاعدة البيانات؛ حدّث السجل وحاول مجدداً'});
  }
  console.error(where,err);
  return res.status(500).json({error:'تعذر إكمال العملية؛ راجع الإدارة'});
@@ -118,7 +120,8 @@ router.patch('/suppliers/:id',async(req,res)=>{
 });
 
 const details={supplier:{select:{id:true,name:true,code:true,active:true}},
- createdBy:{select:{id:true,name:true}},lines:{orderBy:{id:'asc' as const}}};
+ createdBy:{select:{id:true,name:true}},lines:{orderBy:{id:'asc' as const}},
+ events:{orderBy:{createdAt:'asc' as const},include:{actor:{select:{id:true,name:true}}}}};
 router.get('/purchase-drafts',async(req,res)=>{
  try{
   if(Object.keys(req.query).length)throw new ProcurementError(400,'معلمات الطلب غير صالحة');
@@ -205,4 +208,75 @@ router.post('/purchase-drafts',async(req,res)=>{
   return handle(res,e,'create purchase draft');
  }
 });
+
+type PurchaseAction='approved'|'ordered'|'cancelled';
+const statusAfter:Record<PurchaseAction,string>={
+ approved:'approved',ordered:'ordered',cancelled:'cancelled'
+};
+const expectedStatus:Record<PurchaseAction,string[]>={
+ approved:['draft'],ordered:['approved'],cancelled:['draft','approved']
+};
+
+// Changes to a purchase order require an independently attested decision.
+// "ordered" means the staff member confirms an EXTERNAL supplier submission;
+// we do NOT send any email/message, receive stock or create supplier debt.
+router.post('/purchase-drafts/:id/transitions',async(req,res)=>{
+ try{
+  const id=req.params.id;
+  if(!validId(id))throw new ProcurementError(400,'معرّف الشراء غير صالح');
+  const input=object(req.body);
+  keys(input,['requestId','expectedRevision','action','note']);
+  if(!exactUuid(input.requestId))throw new ProcurementError(400,'رقم عملية الاعتماد غير صالح');
+  if(!Number.isSafeInteger(input.expectedRevision)||Number(input.expectedRevision)<0)
+   throw new ProcurementError(400,'رقم إصدار طلب الشراء مطلوب');
+  if(!['approved','ordered','cancelled'].includes(input.action as string))
+   throw new ProcurementError(400,'نوع قرار الشراء غير صالح');
+  const action=input.action as PurchaseAction;
+  const note=nonempty(input.note,300,action==='ordered'?'مرجع إرسال الطلب للمورد':'سبب قرار الشراء');
+  if(note.length<8)throw new ProcurementError(400,'اشرح القرار أو مرجع الإرسال بثمانية أحرف على الأقل');
+  const role=res.locals.staffRole as string,actorId=res.locals.adminUserId as string;
+  if((action==='approved'||action==='cancelled')&&role!=='owner')
+   throw new ProcurementError(403,'الاعتماد والإلغاء محصوران بصاحب ثنايا');
+  const result=await db.$transaction(async(tx)=>{
+   const existing=await tx.purchaseOrderEvent.findUnique({
+    where:{purchaseOrderId_requestId:{purchaseOrderId:id,requestId:input.requestId as string}}
+   });
+   if(existing){
+    if(existing.actorId!==actorId||existing.action!==action||existing.note!==note)
+     throw new ProcurementError(409,'هذا المرجع مستخدم لقرار شراء مختلف');
+    return {alreadyProcessed:true,event:existing};
+   }
+   const purchase=await tx.purchaseOrder.findUnique({
+    where:{id},include:{supplier:{select:{active:true}}}
+   });
+   if(!purchase)throw new ProcurementError(404,'أمر الشراء غير موجود');
+   if(purchase.revision!==input.expectedRevision)
+    throw new ProcurementError(409,'أمر الشراء تغيّر من جهاز آخر؛ حدّث السجل قبل القرار');
+   if(!expectedStatus[action].includes(purchase.status))
+    throw new ProcurementError(409,'هذا الانتقال غير متاح لحالة أمر الشراء الحالية');
+   if(action==='ordered'&&!purchase.supplier.active)
+    throw new ProcurementError(409,'المورد موقوف؛ لا يمكنك توثيق إرسال طلب شراء جديد له');
+   const revision=await tx.purchaseOrder.updateMany({
+    where:{id,status:purchase.status,revision:purchase.revision},
+    data:{status:statusAfter[action],revision:{increment:1}}
+   });
+   if(revision.count!==1)
+    throw new ProcurementError(409,'تغيّرت حالة أمر الشراء؛ أعد التحميل قبل المتابعة');
+   const event=await tx.purchaseOrderEvent.create({
+    data:{purchaseOrderId:id,requestId:input.requestId as string,actorId,
+     action,fromStatus:purchase.status,toStatus:statusAfter[action],note}
+   });
+   return {alreadyProcessed:false,event};
+  },{maxWait:2000,timeout:8000});
+  res.setHeader('Cache-Control','no-store');
+  return res.status(result.alreadyProcessed?200:201).json({
+   alreadyProcessed:result.alreadyProcessed,eventId:result.event.id,
+   status:result.event.toStatus,
+   message:action==='ordered'
+    ?'تم توثيق إرسال أمر الشراء خارج النظام؛ لم يتغير المخزون ولم تُنشأ ذمم أو دفعات'
+    :'تم توثيق القرار بسجل تدقيق؛ لا تغيير في المخزون أو الأموال'
+  });
+ }catch(e){return handle(res,e,'purchase order transition');}
+});
+
 export default router;
