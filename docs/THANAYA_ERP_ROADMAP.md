@@ -35,10 +35,13 @@
 - مسودات الشراء لا تحتوي أي endpoint لإرسال المورد أو إدخال مخزون أو فاتورة مستحقة.
 - `backend/tests/procurement.integration.cjs` يفحص السلوك على قاعدة SQLite مؤقتة فقط.
 - `backend/scripts/rehearse_erp_procurement.py` يحاكي إضافة الجداول على نسخة SQLite مؤقتة دون تغيير الأصل.
+- `backend/scripts/apply_erp_procurement.py` يضيف حاجزًا ثانيًا: فحص قراءة فقط `--preflight` مقابل النسخة الاحتياطية المتحقق منها SHA-256، مقارنة الجداول وصفوفها ومخططها، ومعاملة SQLite بقفل حصري لا تنفذ دون `--apply` وموافقة نصية منفصلة. اختبارات الحاجز `backend/tests/test_apply_erp_procurement.py` تعمل فقط على بيانات وهمية ولا تقترب من Mac.
 
 ## مهم في وقت التشغيل
 
-هذه الدفعة **تضيف ثلاثة جداول**؛ لا تُشغّل Backend الفرع الجديد على `backend/prisma/dev.db` قبل نسخة احتياطية حديثة وترحيل منفصل محمي. لا تستعمل `prisma db push` على قاعدة المستخدم.
+هذه الدفعة **تضيف ثلاثة جداول**. أداة الترحيل المحمي جاهزة للاختبار، لكن **لم تُشغّل على Mac**. لا تشغّل Backend الفرع الجديد على `backend/prisma/dev.db` قبل إيقاف الخدمات وCloudflare، وعمل نسخة احتياطية جديدة خاصة، وفحص البروفة و`--preflight`، وبعدها موافقة منفصلة على الترحيل. لا تستعمل `prisma db push` على قاعدة المستخدم.
+
+**ترتيب الاستخدام لاحقاً (ليس مطلوباً الآن):** بعد النسخ الاحتياطي وفصل الزوار: تشغيل `python3 backend/scripts/rehearse_erp_procurement.py` (قراءة فقط)، ثم `python3 backend/scripts/apply_erp_procurement.py --preflight --backup <verified-THANAYA-backup-folder>` (قراءة فقط). **توقّف بعد نتيجة Preflight**؛ لا تنفّذ `--apply` إلا بعد مراجعة النتيجة وتفويض صاحب المشروع. بعد تطبيق محمي ناجح، `npx prisma generate` قبل تشغيل الباكند الجديد.
 
 الفرع الحالي الذي عاينه المستخدم `feature/finance-order-finder-ux` يظل الخيار الآمن للتشغيل إلى أن تنتهي مرحلة ترحيل ERP. تظل جميع مسودات الموردين التجريبية في CI ولا تُنقل إلى قاعدة متجر ثنايا.
 
