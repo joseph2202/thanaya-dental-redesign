@@ -19,7 +19,9 @@ async function req(base,route,method='GET',body,auth){
  const result=await fetch(base+route,{method,headers:{
   ...(auth?{Authorization:'Bearer '+auth}:{}),...(body?{'Content-Type':'application/json'}:{})
  },body:body?JSON.stringify(body):undefined,signal:AbortSignal.timeout(12000)});
- return {status:result.status,data:await result.json()};
+ const raw=await result.text();
+ let data;try{data=JSON.parse(raw);}catch{data={nonJsonResponse:true};}
+ return {status:result.status,data};
 }
 async function ready(base){
  for(let attempt=0;attempt<75;attempt++){
