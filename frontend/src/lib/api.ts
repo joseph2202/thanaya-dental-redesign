@@ -269,11 +269,18 @@ export type PurchaseDraftLine={
  id:string;purchaseOrderId:string;productId:string;productName:string;sku:string|null;
  quantity:number;unitCostIqd:number
 };
+export type PurchaseStatus='draft'|'approved'|'ordered'|'cancelled';
+export type PurchaseDecision={
+ id:string;requestId:string;actorId:string;action:'approved'|'ordered'|'cancelled';
+ fromStatus:PurchaseStatus;toStatus:PurchaseStatus;note:string;createdAt:string;
+ actor:{id:string;name:string};
+};
 export type PurchaseDraftRecord={
- id:string;requestId:string;status:'draft';supplierId:string;createdById:string;
+ id:string;requestId:string;status:PurchaseStatus;revision:number;
+ supplierId:string;createdById:string;
  note:string|null;createdAt:string;updatedAt:string;totalIqd:number;
  supplier:{id:string;name:string;code:string;active:boolean};
- createdBy:{id:string;name:string};lines:PurchaseDraftLine[]
+ createdBy:{id:string;name:string};lines:PurchaseDraftLine[];events:PurchaseDecision[]
 };
 export const procurementAPI={
  suppliers:(search=''):Promise<SupplierRecord[]>=>
@@ -283,6 +290,12 @@ export const procurementAPI={
  updateSupplier:(id:string,input:Partial<SupplierInput>&{active?:boolean;expectedRevision:number}):Promise<SupplierRecord>=>
   apiRequest('/procurement/suppliers/'+encodeURIComponent(id),{method:'PATCH',body:JSON.stringify(input)}),
  drafts:():Promise<PurchaseDraftRecord[]>=>apiRequest('/procurement/purchase-drafts'),
+ decide:(id:string,input:{requestId:string;expectedRevision:number;
+  action:'approved'|'ordered'|'cancelled';note:string}):
+  Promise<{eventId:string;alreadyProcessed:boolean;status:PurchaseStatus;message:string}>=>
+   apiRequest('/procurement/purchase-drafts/'+encodeURIComponent(id)+'/transitions',{
+    method:'POST',body:JSON.stringify(input)
+   }),
  createDraft:(input:{requestId:string;supplierId:string;note?:string;
   lines:{productId:string;quantity:number;unitCostIqd:number}[]}):
   Promise<{id:string;alreadyCreated:boolean;notice:string}>=>
