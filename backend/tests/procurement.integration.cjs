@@ -40,8 +40,9 @@ async function run(){
  db=new PrismaClient({datasources:{db:{url}}});
  const owner=await db.user.create({data:{name:'Owner',email:'erpowner@invalid.test',phone:'07800000001',password:'unused',role:'owner'}});
  const sales=await db.user.create({data:{name:'Sales',email:'erpsales@invalid.test',phone:'07800000002',password:'unused',role:'sales'}});
+ const admin=await db.user.create({data:{name:'Admin',email:'erpadmin@invalid.test',phone:'07800000003',password:'unused',role:'admin'}});
  const token=u=>jwt.sign({userId:u.id},secret,{expiresIn:'1h'});
- const ownerToken=token(owner),salesToken=token(sales);
+ const ownerToken=token(owner),salesToken=token(sales),adminToken=token(admin);
  const product=await db.product.create({data:{
   name:'مستلزمات أسنان',description:'Test item',price:80000,usdPrice:1,
   category:'طب الأسنان',brand:'Test',icon:'Package',stock:17,sku:'SKU-PO-1'
@@ -133,6 +134,103 @@ async function run(){
    }
    assert.equal(await db.purchaseOrder.count(),1);
   });
+  const transitionUrl=drafts+'/'+first.data.id+'/transitions';
+  const decision=(action,expectedRevision,note)=>({
+   requestId:randomUUID(),expectedRevision,action,note
+  });
+  await check('only owner may approve or cancel a purchase',async()=>{
+   const blocked=await req(base,transitionUrl,'POST',
+    decision('approved',0,'Manager approved stock budget'),adminToken);
+   assert.equal(blocked.status,403,JSON.stringify(blocked));
+   const anonymous=await req(base,transitionUrl,'POST',
+    decision('approved',0,'Manager approved stock budget'));
+   assert.equal(anonymous.status,401);
+   assert.equal(await db.purchaseOrderEvent.count(),0);
+  });
+  await check('reject bad approval notes, forged fields and illegal transitions',async()=>{
+   const bad=[
+    {...decision('approved',0,'short')},
+    {...decision('ordered',0,'Sent by phone to supplier'),overrides:true},
+    {...decision('ordered',0,'Sent by phone to supplier')},
+    {...decision('approved',22,'Approved item quantity and budget')}
+   ];
+   const codes=[400,400,409,409];
+   for(let i=0;i<bad.length;i++){
+    const r=await req(base,transitionUrl,'POST',bad[i],ownerToken);
+    assert.equal(r.status,codes[i],JSON.stringify(r));
+   }
+   assert.equal(await db.purchaseOrderEvent.count(),0);
+  });
+  const approval=decision('approved',0,'مراجعة الأصناف والكميات والتكاليف وإقرار الشراء');
+  await check('owner approval records event and revision without stock movement',async()=>{
+   const r=await req(base,transitionUrl,'POST',approval,ownerToken);
+   assert.equal(r.status,201,JSON.stringify(r));
+   assert.equal(r.data.status,'approved');
+   const doc=await db.purchaseOrder.findUnique({where:{id:first.data.id}});
+   assert.equal(doc.status,'approved');assert.equal(doc.revision,1);
+   const event=await db.purchaseOrderEvent.findFirst({where:{purchaseOrderId:doc.id}});
+   assert.equal(event.actorId,owner.id);
+   assert.equal(event.fromStatus,'draft');assert.equal(event.toStatus,'approved');
+   assert.equal(await db.inventoryMovement.count(),0);
+   assert.equal(await db.orderPaymentEvent.count(),0);
+  });
+  await check('idempotent approval replay cannot create a second decision',async()=>{
+   const duplicate=await req(base,transitionUrl,'POST',approval,ownerToken);
+   assert.equal(duplicate.status,200,JSON.stringify(duplicate));
+   assert.equal(duplicate.data.alreadyProcessed,true);
+   const conflicting=await req(base,transitionUrl,'POST',
+    {...approval,note:'changed decision text'},ownerToken);
+   assert.equal(conflicting.status,409);
+   assert.equal(await db.purchaseOrderEvent.count(),1);
+  });
+  await check('administration may attest actual external send only after approval',async()=>{
+   const sent=decision('ordered',1,'أُرسل فعلياً للمورد عبر واتساب برقم مرجع PO-2026-01');
+   const result=await req(base,transitionUrl,'POST',sent,adminToken);
+   assert.equal(result.status,201,JSON.stringify(result));
+   assert.equal(result.data.status,'ordered');
+   const list=await req(base,drafts,'GET',undefined,ownerToken);
+   const record=list.data.find(x=>x.id===first.data.id);
+   assert.equal(record.revision,2);
+   assert.equal(record.status,'ordered');
+   assert.equal(record.events.length,2);
+   assert.equal(record.events[1].actor.name,'Admin');
+   const replay=await req(base,transitionUrl,'POST',sent,adminToken);
+   assert.equal(replay.status,200);
+   const third=await req(base,transitionUrl,'POST',
+    decision('approved',2,'Try to approve a sent order again'),ownerToken);
+   assert.equal(third.status,409);
+   const cancelled=await req(base,transitionUrl,'POST',
+    decision('cancelled',2,'Attempt cancelling already sent order'),ownerToken);
+   assert.equal(cancelled.status,409);
+   assert.equal(await db.orderPaymentEvent.count(),0);
+  });
+  await check('owner can cancel a new draft without affecting stock or old orders',async()=>{
+   const created=await req(base,drafts,'POST',{...payload,requestId:randomUUID()},adminToken);
+   assert.equal(created.status,201,JSON.stringify(created));
+   const path=drafts+'/'+created.data.id+'/transitions';
+   const r=await req(base,path,'POST',
+    decision('cancelled',0,'شراء المورد لا يلزم بعد تغيير الخطة'),ownerToken);
+   assert.equal(r.status,201,JSON.stringify(r));
+   assert.equal(r.data.status,'cancelled');
+   const retry=await req(base,path,'POST',
+    decision('approved',1,'approved after cancellation not valid'),ownerToken);
+   assert.equal(retry.status,409);
+   assert.equal((await db.product.findUnique({where:{id:product.id}})).stock,17);
+  });
+  await check('simultaneous owner approvals never cause double status transitions',async()=>{
+   const created=await req(base,drafts,'POST',{...payload,requestId:randomUUID()},ownerToken);
+   assert.equal(created.status,201);
+   const path=drafts+'/'+created.data.id+'/transitions';
+   const [a,b]=await Promise.all([
+    req(base,path,'POST',decision('approved',0,'Budget verified by owner'),ownerToken),
+    req(base,path,'POST',decision('approved',0,'Budget verified by owner'),ownerToken)
+   ]);
+   assert.equal([a.status,b.status].filter(x=>x===201).length,1,JSON.stringify([a,b]));
+   assert.equal([a.status,b.status].filter(x=>x===409).length,1,JSON.stringify([a,b]));
+   const events=await db.purchaseOrderEvent.findMany({where:{purchaseOrderId:created.data.id}});
+   assert.equal(events.length,1);
+   assert.equal(events[0].toStatus,'approved');
+  });
   await check('archive supplier atomically prevents new drafts and preserves old',async()=>{
    const archived=await req(base,suppliers+'/'+supplier.data.id,'PATCH',
     {active:false,expectedRevision:0},ownerToken);
@@ -143,9 +241,9 @@ async function run(){
    assert.equal(stale.status,409);
    const denied=await req(base,drafts,'POST',{...payload,requestId:randomUUID()},ownerToken);
    assert.equal(denied.status,409);
-   assert.equal(await db.purchaseOrder.count(),1);
+   assert.equal(await db.purchaseOrder.count(),3);
    const listed=await req(base,drafts,'GET',undefined,ownerToken);
-   assert.equal(listed.data[0].supplier.name,'المجهز الطبي');
+   assert.equal(listed.data.every(x=>x.supplier.name==='المجهز الطبي'),true);
   });
   await check('not possible to send, receive or post supplier invoices from this phase',async()=>{
    const r=await req(base,drafts+'/'+first.data.id+'/receive','POST',{},ownerToken);
