@@ -83,7 +83,16 @@ router.get('/suppliers',async(req,res)=>{
 router.post('/suppliers',async(req,res)=>{
  try{
   const data=normalizeFields(object(req.body),true);
-  const supplier=await db.supplier.create({data:data as Prisma.SupplierCreateInput});
+  const supplier=await db.supplier.create({data:{
+   code:data.code as string,name:data.name as string,
+   contact:data.contact as string|null|undefined,
+   phone:data.phone as string|null|undefined,
+   email:data.email as string|null|undefined,
+   city:data.city as string|null|undefined,
+   address:data.address as string|null|undefined,
+   note:data.note as string|null|undefined,
+   active:(data.active as boolean|undefined)??true
+  }});
   res.setHeader('Cache-Control','no-store');
   return res.status(201).json(supplier);
  }catch(e){return handle(res,e,'create supplier');}
