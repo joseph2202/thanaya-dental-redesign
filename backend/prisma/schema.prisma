@@ -21,6 +21,7 @@ model User {
   deliveryChanges DeliverySettingsChange[] @relation("DeliveryChangeActor")
   notifications Notification[]
   savedAddresses CustomerAddress[]
+  createdPurchaseOrders PurchaseOrder[] @relation("PurchaseOrderCreator")
 }
 
 // Address book is private to one user. Order address fields are immutable snapshots.
@@ -65,6 +66,7 @@ model Product {
   createdAt   DateTime    @default(now())
   orderItems  OrderItem[]
   inventoryMovements InventoryMovement[]
+  purchaseOrderLines PurchaseOrderLine[]
 }
 
 // Append-only purchase-cost change audit. Does not mutate historic orders.
@@ -323,4 +325,57 @@ model OrderPaymentEvent {
   @@unique([orderId,requestId])
   @@index([orderId,createdAt])
   @@index([createdAt])
+}
+
+// ERP phase 1: suppliers and UNSENT draft purchase orders.
+// This is intentionally not a goods receipt and MUST NOT move stock or cash.
+model Supplier {
+  id        String    @id @default(cuid())
+  code      String    @unique
+  name      String
+  contact   String?
+  phone     String?
+  email     String?
+  city      String?
+  address   String?
+  note      String?
+  active    Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  purchaseOrders PurchaseOrder[]
+
+  @@index([name])
+  @@index([active])
+}
+
+model PurchaseOrder {
+  id          String   @id @default(cuid())
+  requestId   String   @unique
+  supplierId  String
+  createdById String
+  status      String   @default("draft") // Phase 1 always draft; not sent/received
+  note        String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  supplier    Supplier @relation(fields:[supplierId],references:[id],onDelete:Restrict)
+  createdBy   User     @relation("PurchaseOrderCreator",fields:[createdById],references:[id],onDelete:Restrict)
+  lines       PurchaseOrderLine[]
+
+  @@index([supplierId,createdAt])
+  @@index([createdAt])
+}
+
+model PurchaseOrderLine {
+  id              String @id @default(cuid())
+  purchaseOrderId String
+  productId       String
+  productName     String // Snapshot; never use a later product rename
+  sku             String?
+  quantity        Int    // Positive quantity; planned only
+  unitCostIqd     Int    // Unit COST entered in full IQD
+  purchaseOrder   PurchaseOrder @relation(fields:[purchaseOrderId],references:[id],onDelete:Restrict)
+  product         Product       @relation(fields:[productId],references:[id],onDelete:Restrict)
+
+  @@index([purchaseOrderId])
+  @@index([productId])
 }
