@@ -1,5 +1,5 @@
 "use client";
-import {Banknote,CheckCircle2,CreditCard,LockKeyhole,ShieldCheck,WalletCards} from 'lucide-react';
+import {Banknote,CheckCircle2,CreditCard,WalletCards} from 'lucide-react';
 
 // A future payment gateway MUST supply its own hosted/card-tokenization UI.
 // This component deliberately collects NO card number, CVV or expiration date.
@@ -10,7 +10,7 @@ export default function PaymentMethodSelector(){
    <div>
     <span className="site-eyebrow">THANAYA / PAYMENT</span>
     <h3 id="checkout-payment-title" className="mt-1 text-lg font-black text-ink">اختَر طريقة الدفع</h3>
-    <p className="site-muted mt-1 text-xs leading-6">الدفع عند الاستلام متاح حالياً. واجهة البطاقات للمعاينة فقط إلى حين ربط مزود دفع معتمد.</p>
+    <p className="site-muted mt-1 text-xs leading-6">اختر طريقة الدفع المناسبة لإكمال طلبك.</p>
    </div>
    <div className="grid h-11 w-11 place-items-center rounded-2xl border border-brand/20 bg-paper text-brand"><WalletCards size={22}/></div>
   </div>
@@ -21,7 +21,7 @@ export default function PaymentMethodSelector(){
     <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-brand/10 text-brand"><Banknote size={23}/></span>
     <span className="min-w-0 flex-1">
      <span className="block text-sm font-black text-ink">الدفع النقدي عند الاستلام</span>
-     <span className="site-muted mt-1 block text-xs leading-6">تأكد الطلب الآن وادفع عند وصول المندوب، وفق مبلغ الطلب النهائي.</span>
+     <span className="site-muted mt-1 block text-xs leading-6">أكمل الطلب الآن وادفع عند استلامه.</span>
     </span>
     <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-1 text-[11px] font-black text-emerald-700">
      <CheckCircle2 size={13}/> متاح
@@ -34,16 +34,13 @@ export default function PaymentMethodSelector(){
      <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-brand/10 text-brand/70"><CreditCard size={23}/></span>
      <span className="min-w-0 flex-1">
       <span className="block text-sm font-black text-ink/85">الدفع ببطاقة ائتمانية أو بطاقة خصم</span>
-      <span className="site-muted mt-1 block text-xs leading-6">مخصص لدعم البطاقات التي يقبلها مزود الدفع عند ربطه، وليس لدينا قبول بطاقات مباشر حالياً.</span>
+      <span className="site-muted mt-1 block text-xs leading-6">هذه الطريقة غير متاحة حالياً.</span>
      </span>
-     <span className="shrink-0 rounded-full border border-amber-400/40 bg-amber-500/10 px-2 py-1 text-[11px] font-black text-amber-700">قريباً</span>
+     <span className="shrink-0 rounded-full border border-amber-400/40 bg-amber-500/10 px-2 py-1 text-[11px] font-black text-amber-700">غير متاح</span>
     </div>
-    <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-brand/15 bg-paper2/55 px-3 py-2">
-     <span className="site-muted flex items-center gap-2 text-[11px]"><LockKeyhole size={14}/> لا نطلب رقم البطاقة أو CVV أو تاريخ الانتهاء</span>
-     <span className="site-muted flex items-center gap-1 text-[11px]"><ShieldCheck size={14}/> الربط الآمن لاحقاً</span>
-    </div>
+
    </div>
   </div>
-  <p className="site-muted mt-3 text-xs leading-6" role="note">تأكيد الطلب أدناه يعني <strong>الدفع عند الاستلام فقط</strong>. لا يتم خصم أي مبلغ من بطاقة إلكترونياً.</p>
+
  </section>;
 }
