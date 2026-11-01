@@ -8,7 +8,7 @@ export const requireRoles = (...roles: StaffRole[]): RequestHandler => async (re
   const authorization = req.headers.authorization;
   if (!authorization?.startsWith('Bearer ')) {res.status(401).json({error:'يجب تسجيل الدخول'});return;}
   try {
-    const payload = jwt.verify(authorization.slice(7),getJwtSecret());
+    const payload = jwt.verify(authorization.slice(7),getJwtSecret(),{algorithms:['HS256']});
     if(typeof payload==='string'||typeof payload.userId!=='string'){res.status(401).json({error:'جلسة غير صالحة'});return;}
     const user=await prisma.user.findUnique({where:{id:payload.userId},select:{role:true}});
     if(!user){res.status(401).json({error:'جلسة غير صالحة'});return;}
