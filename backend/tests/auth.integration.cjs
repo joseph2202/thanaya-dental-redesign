@@ -208,6 +208,12 @@ async function main() {
   const foreign = await request(base, '/api/health', 'GET', undefined, undefined, 'https://untrusted.example');
   assert.equal(foreign.headers.get('access-control-allow-origin'), null,
     'untrusted origins must not be granted CORS');
+  const unknownRoute = await request(base, '/api/unknown-private-service', 'GET');
+  assert.equal(unknownRoute.status, 404);
+  assert.equal(typeof unknownRoute.body.error, 'string');
+  assert.equal(/backend|prisma|stack|terminal|trace/i.test(unknownRoute.body.error), false,
+    'API error responses must not expose internal development information');
+  console.log('PASS: unknown API routes return safe public errors');
   const publicHealth=await request(base,'/api/health','GET');
   assert.notEqual(publicHealth.headers.get('cache-control'),'no-store',
     'public health endpoint does not require private cache policy');
