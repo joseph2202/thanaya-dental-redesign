@@ -12,7 +12,7 @@ async function requireCustomer(req:Request,res:Response,next:NextFunction){
   const auth=req.headers.authorization;
   if(!auth?.startsWith('Bearer ')){res.status(401).json({error:'سجّل الدخول لإدارة عناوينك'});return}
   try{
-    const token=jwt.verify(auth.slice(7),getJwtSecret());
+    const token=jwt.verify(auth.slice(7),getJwtSecret(),{algorithms:['HS256']});
     if(typeof token==='string'||typeof token.userId!=='string'){res.status(401).json({error:'جلسة غير صالحة'});return}
     const user=await prisma.user.findUnique({where:{id:token.userId},select:{id:true}});
     if(!user){res.status(401).json({error:'الحساب غير موجود'});return}

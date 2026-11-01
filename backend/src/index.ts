@@ -21,6 +21,7 @@ import addressesRoutes from './routes/addresses';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+import { randomUUID } from 'node:crypto';
 import { getJwtSecret } from './config/auth';
 import { requireAdmin, requireInventory } from './middleware/requireAdmin';
 
@@ -44,6 +45,8 @@ app.use((_req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('X-Permitted-Cross-Domain-Policies', 'none');
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
   next();
 });
 app.use(cors({ origin: (origin, callback) => callback(null, !origin || allowedOrigins.has(origin)) }));
@@ -53,7 +56,8 @@ app.use(express.json());
 // Public product/catalog endpoints remain unaffected.
 const privateApiPrefixes=[
   '/api/auth','/api/orders','/api/addresses','/api/finance',
-  '/api/users','/api/procurement','/api/notifications','/api/exports'
+  '/api/users','/api/procurement','/api/notifications','/api/exports',
+  '/api/upload','/api/reports','/api/products/manage'
 ];
 app.use((req, res, next) => {
   if(privateApiPrefixes.some(prefix=>req.path===prefix||req.path.startsWith(prefix+'/'))){
@@ -66,7 +70,11 @@ app.use((req, res, next) => {
 // ==========================================
 // إعدادات رفع الصور (Multer)
 // ==========================================
-const uploadDir = path.join(__dirname, '../uploads');
+// Tests can explicitly isolate uploaded files in a disposable directory.
+// Never point test uploads at the real Mac store's backend/uploads directory.
+const uploadDir = process.env.THANAYA_UPLOAD_DIR
+  ? path.resolve(process.env.THANAYA_UPLOAD_DIR)
+  : path.join(__dirname, '../uploads');
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
@@ -82,8 +90,8 @@ const storage = multer.diskStorage({
     cb(null, uploadDir);
   },
   filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, uniqueSuffix + imageTypes[file.mimetype]);
+    // Never derive public filenames from user input or predictable timestamps.
+    cb(null, randomUUID() + imageTypes[file.mimetype]);
   }
 });
 
@@ -128,7 +136,7 @@ function hasImageSignature(filePath: string, type: string): boolean {
 // Uploaded media uses unique, never-overwritten filenames (timestamp + random suffix).
 // Let repeat visitors reuse thumbnails/product photos instead of downloading them
 // from the Mac again through a temporary tunnel on every page navigation.
-app.use('/uploads', express.static(path.join(__dirname, '../uploads'), {
+app.use('/uploads', express.static(uploadDir, {
   maxAge: '7d',
   immutable: true,
 }));
@@ -143,7 +151,8 @@ app.post('/api/upload', requireAdmin, uploadImage, (req, res) => {
     return res.status(400).json({ error: 'محتوى الملف ليس صورة مدعومة' });
   }
   // إرجاع رابط الصورة ليحفظه الفرونت إند في قاعدة البيانات
-  const imageUrl = `http://localhost:${PORT}/uploads/${req.file.filename}`;
+  // Use the existing same-origin Next.js rewrite, including private HTTPS previews.
+  const imageUrl = `/uploads/${req.file.filename}`;
   res.json({ url: imageUrl });
 });
 // ==========================================
@@ -172,12 +181,12 @@ app.get('/api/health', (req, res) => {
 // unexpected errors forwarded by Express 5 asynchronous route handlers.
 // Details remain in local backend logs, never in the browser response.
 app.use('/api', (_req, res) => {
-  res.status(404).json({ error: 'مسار API غير موجود. تحقق من نسخة الباكند.' });
+  res.status(404).json({ error: 'الخدمة المطلوبة غير موجودة.' });
 });
 app.use(((error: unknown, req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error('Unexpected API error', req.method, req.path, error);
   if (res.headersSent) return;
-  res.status(500).json({ error: 'تعذّر تنفيذ الطلب في خادم ثنايا. راجع سجل الباكند.' });
+  res.status(500).json({ error: 'تعذّر تنفيذ الطلب حالياً. يرجى المحاولة لاحقاً.' });
 }) as express.ErrorRequestHandler);
 
 app.listen(PORT, () => {

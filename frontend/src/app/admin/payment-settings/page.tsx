@@ -20,7 +20,7 @@ export default function PaymentSettings(){
     <div>
      <span className="site-eyebrow">THANAYA / PAYMENT OPERATIONS</span>
      <h1 className="mt-2 text-3xl font-black">إدارة طرق الدفع</h1>
-     <p className="site-muted mt-2 max-w-2xl text-sm leading-7">عرض واضح لطرق الدفع المتاحة والمراحل المطلوبة لربط البطاقات، بدون تخزين بيانات بطاقات أو تفعيل مزوّد غير موجود.</p>
+     <p className="site-muted mt-2 max-w-2xl text-sm leading-7">تابع طرق الدفع الحالية ومتطلبات إضافة الدفع الإلكتروني.</p>
     </div>
     <Link href="/admin/finance" className="site-btn site-btn-outline">سجل التحصيل والاسترداد <ArrowUpLeft size={17}/></Link>
    </header>
@@ -31,7 +31,7 @@ export default function PaymentSettings(){
       <span className="rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-black text-emerald-700">متاح الآن</span>
      </div>
      <h2 className="mt-4 text-xl font-black">الدفع النقدي عند الاستلام</h2>
-     <p className="site-muted mt-2 text-sm leading-7">الزبون يرسل الطلب بدون عملية خصم إلكترونية. تسليم الطلب لا يثبت استلام المال؛ وثّق التحصيل بشكل منفصل بعد قبض المبلغ.</p>
+     <p className="site-muted mt-2 text-sm leading-7">يسجّل الزبون طلبه ويدفع عند الاستلام. وثّق المبلغ عند قبضه فعلياً.</p>
      <p className="mt-3 flex items-center gap-2 text-xs font-bold text-emerald-700"><BadgeCheck size={16}/> لا حاجة إلى بوابة دفع إلكترونية</p>
     </article>
     <article className="site-surface rounded-3xl border border-amber-500/35 p-5">
@@ -40,7 +40,7 @@ export default function PaymentSettings(){
       <span className="rounded-full bg-amber-500/10 px-3 py-1 text-xs font-black text-amber-700">غير مفعّل</span>
      </div>
      <h2 className="mt-4 text-xl font-black">الدفع بالبطاقات الائتمانية وبطاقات الخصم</h2>
-     <p className="site-muted mt-2 text-sm leading-7">ظهرت طريقة الدفع كبطاقة معاينة في صفحة إتمام الطلب، لكن لا يمكن للزبون اختيارها أو إدخال بياناته أو تنفيذ دفع حقيقي.</p>
+     <p className="site-muted mt-2 text-sm leading-7">بانتظار ربط مزود دفع معتمد. لا يمكن الدفع بالبطاقة حالياً.</p>
      <p className="mt-3 flex items-center gap-2 text-xs font-bold text-amber-700"><ShieldAlert size={16}/> لا تضف بيانات بطاقات إلى الطلبات أو الملاحظات</p>
     </article>
    </div>
@@ -57,7 +57,7 @@ export default function PaymentSettings(){
      </div>)}
     </div>
     <p className="site-muted mt-4 flex items-start gap-2 text-xs leading-6"><LockKeyhole size={16} className="mt-1 shrink-0"/>
-     لا توجد حقول رقم بطاقة أو CVV في قاعدة بيانات ثنايا أو نموذج الدفع المعروض حالياً. هذه الصفحة للمتابعة وليست لوحة لإدخال مفاتيح دفع حساسة.
+     إدارة المفاتيح وبيانات البطاقات تتم عبر مزوّد الدفع المخصّص، ولا تُدخل في ملاحظات الطلب.
     </p>
    </section>
   </div>

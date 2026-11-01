@@ -34,7 +34,23 @@ async function main(){
  await eq('owner cannot create second owner','/api/users/'+customer.id+'/role','PATCH',{role:'owner'},toks.owner,400);
  await eq('inventory cannot edit product prices','/api/products','POST',{name:'x'},toks.inventory,403);
  await eq('sales cannot edit product prices','/api/products','POST',{name:'x'},toks.sales,403);
- await eq('sales can list orders','/api/orders','GET',null,toks.sales,200);
+ const privateCostProduct=await prisma.product.create({data:{
+  name:'Private supplier cost fixture',description:'isolated test only',
+  price:14000,usdPrice:0,category:'Dental',brand:'Thanaya',icon:'Package',
+  purchaseCostIqd:7100
+ }});
+ const privateCostOrder=await prisma.order.create({data:{
+  userId:customer.id,customerName:'Privacy Test',customerPhone:'07812345678',
+  customerAddress:'Basra synthetic address',customerCity:'البصرة',total:14000,
+  items:{create:[{productId:privateCostProduct.id,quantity:1,price:14000,productName:'Private supplier cost fixture'}]}
+ }});
+ const salesOrders=await eq('sales can list orders','/api/orders','GET',null,toks.sales,200);
+ const visibleItem=salesOrders.body.find(o=>o.id===privateCostOrder.id)?.items?.[0];
+ assert.ok(visibleItem?.product,'staff order list should still show product details');
+ assert.equal(visibleItem.product.purchaseCostIqd,undefined,'purchase cost is never exposed in sales order list');
+ assert.equal(visibleItem.product.costRevision,undefined,'internal cost revision stays private');
+ assert.equal(visibleItem.product.price,14000,'sale price remains visible');
+ console.log('PASS: staff order listings do not expose supplier costs');
  await eq('inventory cannot list all orders','/api/orders','GET',null,toks.inventory,403);
  await eq('inventory can view stock via endpoint','/api/products/missing/inventory','GET',null,toks.inventory,404);
  await eq('sales cannot adjust stock','/api/products/missing/stock-adjustment','POST',{delta:1,reason:'test'},toks.sales,403);

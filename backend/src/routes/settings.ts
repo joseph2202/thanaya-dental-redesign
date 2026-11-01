@@ -37,10 +37,15 @@ function validate(raw:any){
  const allowedBannerLinks=['/products','/categories','/offers','/account'];
  if(typeof raw.bannerButtonHref!=='string'||!allowedBannerLinks.includes(raw.bannerButtonHref))throw Error('رابط زر البنر غير مسموح');
  const bannerImage=raw.bannerImage;
- const uploadOrigin='http://localhost:'+String(process.env.PORT||4000)+'/uploads/';
+ // New uploads use an opaque UUID and a same-origin path. Keep old Mac
+ // timestamps/localhost references valid until images can be migrated safely.
+ const legacyOrigin='http://localhost:'+String(process.env.PORT||4000)+'/uploads/';
+ const fileName=typeof bannerImage!=='string' ? null :
+   bannerImage.startsWith('/uploads/') ? bannerImage.slice('/uploads/'.length) :
+   bannerImage.startsWith(legacyOrigin) ? bannerImage.slice(legacyOrigin.length) : null;
+ const safeFileName=/^(?:[0-9]+-[0-9]+|[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})\.(?:jpg|jpeg|png|webp)$/i;
  if(bannerImage!==null && (typeof bannerImage!=='string'||bannerImage.length>300||
-   !bannerImage.startsWith(uploadOrigin)||
-   !/^[0-9]+-[0-9]+\.(jpg|jpeg|png|webp)$/i.test(bannerImage.slice(uploadOrigin.length))))
+    fileName===null||!safeFileName.test(fileName)))
    throw Error('صورة البنر يجب أن تكون من صور المتجر المرفوعة');
  if(!Number.isSafeInteger(raw.revision)||raw.revision<0)throw Error('إصدار إعدادات غير صالح');
  return {...fields,usdToIqdRate:rate,showUsdApprox:raw.showUsdApprox,bannerEnabled:raw.bannerEnabled,

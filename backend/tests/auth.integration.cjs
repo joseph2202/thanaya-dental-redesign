@@ -2,7 +2,7 @@
 const assert = require('node:assert/strict');
 const { randomUUID } = require('node:crypto');
 const { spawn, spawnSync } = require('node:child_process');
-const { mkdtempSync, rmSync } = require('node:fs');
+const { mkdtempSync, rmSync, readdirSync, readFileSync } = require('node:fs');
 const path = require('node:path');
 const os = require('node:os');
 const net = require('node:net');
@@ -11,7 +11,8 @@ const cwd = path.resolve(__dirname, '..');
 const scratch = mkdtempSync(path.join(os.tmpdir(), 'thanaya-auth-'));
 const url = 'file:' + path.join(scratch, 'isolated.db');
 const secret = randomUUID() + randomUUID();
-const env = { ...process.env, DATABASE_URL: url, JWT_SECRET: secret, NODE_ENV: 'test' };
+const uploadDir = path.join(scratch, 'isolated-uploads');
+const env = { ...process.env, DATABASE_URL: url, JWT_SECRET: secret, NODE_ENV: 'test', THANAYA_UPLOAD_DIR: uploadDir };
 let server, prisma;
 
 async function openPort() {
@@ -72,6 +73,24 @@ async function main() {
     }
   });
 
+  // Weak production signing secrets must stop startup; never test this on a live process.
+  const { getJwtSecret } = require('../dist/config/auth');
+  const previousNodeEnv = process.env.NODE_ENV;
+  const previousJwtSecret = process.env.JWT_SECRET;
+  try {
+    process.env.NODE_ENV = 'production';
+    process.env.JWT_SECRET = 'short-unsafe-secret';
+    assert.throws(() => getJwtSecret(), /at least 32 bytes/, 'weak production secret must fail closed');
+    process.env.JWT_SECRET = secret;
+    assert.equal(getJwtSecret(), secret, 'strong production secret is accepted');
+  } finally {
+    if (previousNodeEnv === undefined) delete process.env.NODE_ENV;
+    else process.env.NODE_ENV = previousNodeEnv;
+    if (previousJwtSecret === undefined) delete process.env.JWT_SECRET;
+    else process.env.JWT_SECRET = previousJwtSecret;
+  }
+  console.log('PASS: production secrets are checked without affecting local development');
+
   const port = await openPort();
   const base = 'http://127.0.0.1:' + port;
   let logs = '';
@@ -111,11 +130,65 @@ async function main() {
   const login = await expected('new account can sign in', '/api/auth/login', 'POST',
     { email: 'newuser@example.test', password: 'LongerPass2026' }, 200);
   await expected('token can refresh account securely', '/api/auth/me', 'GET', undefined, 200, login.body.token);
+  const jwt = require('jsonwebtoken');
+  const alternateAlgorithmToken = jwt.sign(
+    { userId: registration.body.user.id, role: 'owner' }, secret,
+    { algorithm: 'HS384', expiresIn: '1h' }
+  );
+  await expected('HS384 token rejected for session validation',
+    '/api/auth/me', 'GET', undefined, 401, alternateAlgorithmToken);
+  await expected('HS384 token rejected for staff-only API',
+    '/api/users', 'GET', undefined, 401, alternateAlgorithmToken);
+  await expected('HS384 token rejected for customer orders',
+    '/api/orders/mine', 'GET', undefined, 401, alternateAlgorithmToken);
+  await expected('HS384 token rejected for saved addresses',
+    '/api/addresses', 'GET', undefined, 401, alternateAlgorithmToken);
+  await expected('HS384 token rejected for notifications',
+    '/api/notifications', 'GET', undefined, 401, alternateAlgorithmToken);
+  console.log('PASS: staff cannot be elevated using unsupported JWT signing algorithms');
   await expected('missing session is unauthorized', '/api/auth/me', 'GET', undefined, 401);
 
   const legacy = await expected('legacy owner with short existing password can still sign in',
     '/api/auth/login', 'POST', { email: 'Legacy.Owner@Test.invalid', password: 'legacy6' }, 200);
   assert.equal(legacy.body.user.role, 'owner');
+
+  // All test uploads go under scratch, never a real backend/uploads directory.
+  const postImage = async (token, bytes, mime) => {
+    const data = new FormData();
+    data.append('image', new Blob([bytes], { type: mime }), 'image.png');
+    const result = await fetch(base + '/api/upload', {
+      method: 'POST',
+      headers: token ? { Authorization: 'Bearer ' + token } : {},
+      body: data,
+      signal: AbortSignal.timeout(12000),
+    });
+    return { status: result.status, body: await result.json(), headers: result.headers };
+  };
+  const tinyPng = Buffer.from(
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO//lz8AAAAASUVORK5CYII=',
+    'base64'
+  );
+  assert.equal((await postImage(null, tinyPng, 'image/png')).status, 401,
+    'unauthenticated uploads must be blocked');
+  assert.equal((await postImage(login.body.token, tinyPng, 'image/png')).status, 403,
+    'regular customers must not upload catalog images');
+
+  const spoofedImage = await postImage(legacy.body.token, Buffer.from('not a real png'), 'image/png');
+  assert.equal(spoofedImage.status, 400, 'files spoofing an image MIME type must be rejected');
+  assert.equal(readdirSync(uploadDir).length, 0,
+    'rejected image must be deleted from isolated upload directory');
+
+  const validImage = await postImage(legacy.body.token, tinyPng, 'image/png');
+  assert.equal(validImage.status, 200, JSON.stringify(validImage.body));
+  assert.match(validImage.body.url, /^\/uploads\/[0-9a-f-]{36}\.png$/,
+    'image URL must be same-origin, opaque and independent from local server ports');
+  const imagePath = path.join(uploadDir, path.basename(validImage.body.url));
+  assert.deepEqual(readFileSync(imagePath), tinyPng, 'uploaded bytes match source image');
+  const publiclyServed = await fetch(base + validImage.body.url);
+  assert.equal(publiclyServed.status, 200);
+  assert.match(publiclyServed.headers.get('content-type') || '', /^image\/png/);
+  console.log('PASS: upload access control, signature validation and isolated same-origin image URL');
+
 
   for (let attempt = 1; attempt <= 10; attempt++) {
     const result = await request(base, '/api/auth/login', 'POST',
@@ -135,6 +208,12 @@ async function main() {
   const foreign = await request(base, '/api/health', 'GET', undefined, undefined, 'https://untrusted.example');
   assert.equal(foreign.headers.get('access-control-allow-origin'), null,
     'untrusted origins must not be granted CORS');
+  const unknownRoute = await request(base, '/api/unknown-private-service', 'GET');
+  assert.equal(unknownRoute.status, 404);
+  assert.equal(typeof unknownRoute.body.error, 'string');
+  assert.equal(/backend|prisma|stack|terminal|trace/i.test(unknownRoute.body.error), false,
+    'API error responses must not expose internal development information');
+  console.log('PASS: unknown API routes return safe public errors');
   const publicHealth=await request(base,'/api/health','GET');
   assert.notEqual(publicHealth.headers.get('cache-control'),'no-store',
     'public health endpoint does not require private cache policy');

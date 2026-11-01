@@ -95,7 +95,7 @@ router.get('/me', async (req, res) => {
     return res.status(401).json({ error: 'يجب تسجيل الدخول' });
   }
   try {
-    const payload = jwt.verify(authorization.slice(7), getJwtSecret());
+    const payload = jwt.verify(authorization.slice(7), getJwtSecret(), { algorithms: ['HS256'] });
     if (typeof payload === 'string' || typeof payload.userId !== 'string') {
       return res.status(401).json({ error: 'جلسة غير صالحة' });
     }

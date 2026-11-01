@@ -5,10 +5,11 @@ import jwt from 'jsonwebtoken';
 import {getJwtSecret} from '../config/auth';
 const prisma=new PrismaClient(),router=Router();
 router.use(async(req,res,next)=>{
- const token=req.headers.authorization?.replace(/^Bearer /,'');
- if(!token)return res.status(401).json({error:'سجل الدخول أولاً'});
+ const header=req.headers.authorization;
+ if(!header?.startsWith('Bearer '))return res.status(401).json({error:'سجل الدخول أولاً'});
+ const token=header.slice(7);
  try{
-  const payload=jwt.verify(token,getJwtSecret());
+  const payload=jwt.verify(token,getJwtSecret(),{algorithms:['HS256']});
   if(typeof payload==='string'||typeof payload.userId!=='string')return res.status(401).json({error:'جلسة غير صالحة'});
   const user=await prisma.user.findUnique({where:{id:payload.userId},select:{id:true,role:true}});
   if(!user)return res.status(401).json({error:'جلسة غير صالحة'});

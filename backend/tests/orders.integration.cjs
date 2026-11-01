@@ -168,7 +168,14 @@ async function main() {
       assert.equal(created.body.userId, alice.id);
       assert.equal(created.body.items[0].price, 19000);
       const forbidden = await request(base, '/api/orders/' + created.body.id, 'GET', undefined, bobToken);
-      assert.equal(forbidden.status, 403);
+      const missing = await request(base, '/api/orders/never-existed-check', 'GET', undefined, bobToken);
+      assert.equal(forbidden.status, 404, 'another customer cannot discover an existing order ID');
+      assert.deepEqual(forbidden.body, missing.body, 'private and missing order IDs have the same response');
+      assert.equal(JSON.stringify(forbidden.body).includes(customer.phone), false, 'no private contact details');
+      const owned = await request(base, '/api/orders/' + created.body.id, 'GET', undefined, aliceToken);
+      assert.equal(owned.status, 200, 'the actual purchaser can still access the order');
+      const staff = await request(base, '/api/orders/' + created.body.id, 'GET', undefined, adminToken);
+      assert.equal(staff.status, 200, 'authorized staff can still support the order');
       const mine = await request(base, '/api/orders/mine', 'GET', undefined, bobToken);
       assert.equal(mine.status, 200);
       assert.equal(mine.body.some(order => order.id === created.body.id), false);
