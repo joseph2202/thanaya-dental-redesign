@@ -107,7 +107,7 @@ function reportError(res: import('express').Response, error: unknown, context: s
 router.get('/', requireSales, async (_req, res) => {
   try {
     const orders = await prisma.order.findMany({
-      include: { items: { include: { product: true } } },
+      include: { items: { include: { product: { select: { id: true, name: true, image: true, price: true } } } } },
       orderBy: { createdAt: 'desc' }
     });
     res.json(orders);
