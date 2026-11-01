@@ -29,14 +29,29 @@ function normalizeLegacyUploadLinks<T>(value: T): T {
   return value;
 }
 
+// Only the session-bound CSRF proof is exposed to JavaScript, never the signed JWT.
+function csrfProof(): string | null {
+  if (typeof document === 'undefined') return null;
+  for (const name of ['__Host-thanaya_csrf', 'thanaya_csrf']) {
+    const pair = document.cookie.split(';').map(p => p.trim()).find(p => p.startsWith(name + '='));
+    if (pair) return pair.slice(name.length + 1);
+  }
+  return null;
+}
+function csrfHeader(method = 'GET'): Record<string, string> {
+  if (['GET','HEAD','OPTIONS'].includes(method.toUpperCase())) return {};
+  const proof = csrfProof();
+  return proof ? { 'X-Thanaya-CSRF': proof } : {};
+}
+
 export async function apiRequest<T = any>(endpoint: string, options: RequestInit = {}): Promise<T> {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('thanaya-token') : null;
   const response = await fetch(`${API_BASE}${endpoint}`, {
     ...options,
+    credentials: 'same-origin',
     headers: {
       'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...options.headers,
+      ...csrfHeader(options.method),
+      ...Object.fromEntries(new Headers(options.headers).entries()),
     },
   });
 
@@ -75,11 +90,12 @@ export async function apiRequest<T = any>(endpoint: string, options: RequestInit
 // Auth API
 export const authAPI = {
   register: (data: { name: string; email: string; phone: string; password: string }) =>
-    apiRequest('/auth/register', { method: 'POST', body: JSON.stringify(data) }),
+    apiRequest('/auth/register', { method: 'POST', body: JSON.stringify(data), headers: { 'X-Thanaya-Auth-Mode': 'cookie' } }),
   
   me: (signal?: AbortSignal) => apiRequest('/auth/me', { signal }),
   login: (email: string, password: string) =>
-    apiRequest('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) }),
+    apiRequest('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }), headers: { 'X-Thanaya-Auth-Mode': 'cookie' } }),
+  logout: () => apiRequest('/auth/logout', { method: 'POST' }),
 };
 
 // Products API
@@ -130,14 +146,11 @@ export const addressesAPI = {
   delete: (id:string):Promise<{deleted:boolean}> => apiRequest('/addresses/'+encodeURIComponent(id),{method:'DELETE'}),
 };
 
-// Downloads real XLSX archives. Authorization travels in the request header rather
-// than an exposed query parameter, and is checked again by the server.
+// XLSX downloads authenticate with same-origin HttpOnly session cookies.
 export const exportsAPI={
   download:async (kind:'orders'|'inventory',range:'7'|'30'|'90'|'all'='30')=>{
-    const token=localStorage.getItem('thanaya-token');
-    if(!token)throw new Error('سجّل دخولك أولاً');
     const pathname=kind==='orders'?'/exports/orders?range='+range:'/exports/inventory';
-    const response=await fetch(API_BASE+pathname,{headers:{Authorization:'Bearer '+token}});
+    const response=await fetch(API_BASE+pathname,{credentials:'same-origin'});
     if(!response.ok){
       const data=await response.json().catch(()=>({}));
       throw new Error(data.error||'تعذّر تصدير البيانات');
@@ -197,12 +210,11 @@ export const uploadAPI = {
   uploadImage: async (file: File): Promise<{ url: string }> => {
     const formData = new FormData();
     formData.append('image', file);
-    const token = localStorage.getItem('thanaya-token');
-    
     const response = await fetch(API_BASE + '/upload', {
       method: 'POST',
+      credentials: 'same-origin',
       body: formData,
-      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      headers: csrfHeader('POST'),
     });
 
     if (!response.ok) {

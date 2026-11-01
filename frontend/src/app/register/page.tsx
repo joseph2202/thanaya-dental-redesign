@@ -28,7 +28,7 @@ export default function RegisterPage() {
     const result = await registerUser(form.name, form.email, form.phone, form.password);
     
     if (result.user) {
-      refreshUser();
+      refreshUser(result.user);
       router.push('/account');
     } else {
       setError(result.error);

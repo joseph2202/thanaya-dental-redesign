@@ -24,7 +24,7 @@ function LoginContent() {
     const result = await loginUser(form.email, form.password);
     
     if (result.user) {
-      refreshUser();
+      refreshUser(result.user);
       const redirect = searchParams.get('redirect');
       router.replace(redirect?.startsWith('/admin') && ['owner','admin','inventory','sales'].includes(result.user.role) ? redirect : ['owner','admin','inventory','sales'].includes(result.user.role) ? '/admin' : '/account');
     } else {

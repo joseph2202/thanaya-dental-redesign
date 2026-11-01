@@ -93,6 +93,9 @@ jobs:
       - name: Production-dependency vulnerability scan (frontend)
         run: npm audit --omit=dev --audit-level=high
         working-directory: frontend
+      - name: Browser-token storage and cookie transport regression guard
+        run: node tests/auth-cookie-transport.cjs
+        working-directory: frontend
       - name: Production frontend build
         run: npm run build
         working-directory: frontend
