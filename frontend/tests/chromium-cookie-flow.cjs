@@ -138,8 +138,16 @@ async function chromiumCookieFlow(base) {
     console.log('PASS Chrome UI: logout clears cookie and blocks authentication');
   } finally {
     if (ws) ws.close();
-    if (chrome && chrome.exitCode === null) chrome.kill('SIGTERM');
-    rmSync(profile, { recursive: true, force: true });
+    if (chrome && chrome.exitCode === null) {
+      const exited = new Promise(done => chrome.once('exit', done));
+      chrome.kill('SIGTERM');
+      await Promise.race([exited, pause(3000)]);
+      if (chrome.exitCode === null) chrome.kill('SIGKILL');
+    }
+    // Never mask an original browser/React test failure with a temporary
+    // Chrome profile cleanup race (ENOTEMPTY is common on GitHub runners).
+    try { rmSync(profile, { recursive: true, force: true, maxRetries: 6, retryDelay: 150 }); }
+    catch (error) { console.warn('Chrome temp profile cleanup warning:', error.code); }
   }
 }
 module.exports = { chromiumCookieFlow };
