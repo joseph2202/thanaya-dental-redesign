@@ -65,6 +65,7 @@ export function trustedCookieOrigin(req: Request, allowedOrigins: ReadonlySet<st
 // Explicit Bearer authorization wins and never falls back to cookies.
 export function cookieSessionBridge(allowedOrigins: ReadonlySet<string>): RequestHandler {
   return (req, res, next) => {
+    if (req.path === '/api/auth/login' || req.path === '/api/auth/register') return next();
     if (req.headers.authorization) return next();
     const key = names();
     const token = parseCookieHeader(req.headers.cookie || '', key.session);
