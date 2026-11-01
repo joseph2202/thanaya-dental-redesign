@@ -101,6 +101,8 @@ async function main() {
     { name: 'New Tester', email: ' NewUser@Example.test ', phone: '07812345678', password: 'LongerPass2026' }, 200);
   assert.equal(registration.body.user.email, 'newuser@example.test');
   assert.equal(registration.body.user.role, 'customer');
+  assert.equal(registration.headers.get('cache-control'), 'no-store',
+    'auth responses must never be HTTP-cached');
   assert.equal(await prisma.user.count(), 2);
 
   await expected('duplicate signup rejected', '/api/auth/register', 'POST',
@@ -133,6 +135,12 @@ async function main() {
   const foreign = await request(base, '/api/health', 'GET', undefined, undefined, 'https://untrusted.example');
   assert.equal(foreign.headers.get('access-control-allow-origin'), null,
     'untrusted origins must not be granted CORS');
+  const publicHealth=await request(base,'/api/health','GET');
+  assert.notEqual(publicHealth.headers.get('cache-control'),'no-store',
+    'public health endpoint does not require private cache policy');
+  const privateOrders=await request(base,'/api/orders/mine','GET',undefined,login.body.token);
+  assert.equal(privateOrders.headers.get('cache-control'),'no-store',
+    'private customer orders must not be cached');
   const trusted = await request(base, '/api/health', 'GET', undefined, undefined, 'http://localhost:3000');
   assert.equal(trusted.headers.get('access-control-allow-origin'), 'http://localhost:3000');
   assert.equal(trusted.headers.get('x-content-type-options'), 'nosniff');

@@ -49,6 +49,20 @@ app.use((_req, res, next) => {
 app.use(cors({ origin: (origin, callback) => callback(null, !origin || allowedOrigins.has(origin)) }));
 app.use(express.json());
 
+// Sensitive customer and staff data must not enter shared/browser HTTP caches.
+// Public product/catalog endpoints remain unaffected.
+const privateApiPrefixes=[
+  '/api/auth','/api/orders','/api/addresses','/api/finance',
+  '/api/users','/api/procurement','/api/notifications','/api/exports'
+];
+app.use((req, res, next) => {
+  if(privateApiPrefixes.some(prefix=>req.path===prefix||req.path.startsWith(prefix+'/'))){
+    res.setHeader('Cache-Control','no-store');
+    res.setHeader('Content-Security-Policy',"frame-ancestors 'none'; object-src 'none'");
+  }
+  next();
+});
+
 // ==========================================
 // إعدادات رفع الصور (Multer)
 // ==========================================
