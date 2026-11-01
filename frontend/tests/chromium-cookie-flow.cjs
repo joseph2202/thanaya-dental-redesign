@@ -89,9 +89,12 @@ async function chromiumCookieFlow(base) {
       throw Error('Browser timeout waiting for ' + what + ': ' +
         (await evalJS('location.href').catch(() => '?')) + ' / ' +
         (await evalJS('document.body?.innerText.slice(0,400)').catch(() => '?')) +
-        ' / form:' + JSON.stringify(await evalJS("({valid:document.querySelector('form')?.checkValidity(),lengths:[...document.querySelectorAll('form input')].map(el=>el.value.length),error:document.querySelector('[role=alert]')?.textContent || null})").catch(() => ({}))));
+        ' / form:' + JSON.stringify(await evalJS("({valid:document.querySelector('form')?.checkValidity(),lengths:[...document.querySelectorAll('form input')].map(el=>el.value.length),error:document.querySelector('.bg-red-50')?.textContent || null,network:window.__thanayaAuthProbe || null})").catch(() => ({}))));
     };
 
+    // Test-only instrumentation: record whether the React form sent a request
+    // and whether the server rejected it, without recording submitted credentials.
+    await evalJS("(() => { const original = window.fetch.bind(window); window.__thanayaAuthProbe = { calls: 0, status: null, error: null }; window.fetch = async (...args) => { const destination = String(args[0] instanceof Request ? args[0].url : args[0]); const isSignup = destination.includes('/api/auth/register'); if (isSignup) window.__thanayaAuthProbe.calls++; try { const response = await original(...args); if (isSignup) { window.__thanayaAuthProbe.status = response.status; if (!response.ok) { const body = await response.clone().json().catch(() => ({})); window.__thanayaAuthProbe.error = typeof body.error === 'string' ? body.error.slice(0,150) : null; } } return response; } catch (err) { if (isSignup) window.__thanayaAuthProbe.error = err instanceof Error ? err.message.slice(0,150) : 'network error'; throw err; } }; return true; })()");
     await checkEventually("document.querySelector('form input[type=email]') !== null", 'register form');
     await pause(900);
     const email = 'chrome.' + randomUUID() + '@test.invalid';
