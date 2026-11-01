@@ -90,6 +90,37 @@ async function main() {
     else process.env.JWT_SECRET = previousJwtSecret;
   }
   console.log('PASS: production secrets are checked without affecting local development');
+  // Production cookie flags are critical behind HTTPS reverse proxies, even
+  // though regular auth integration tests run with NODE_ENV=test and loopback.
+  const sessionHelpers = require('../dist/lib/cookieSession');
+  const oldEnvironment = process.env.NODE_ENV;
+  const oldSecret = process.env.JWT_SECRET;
+  try {
+    process.env.NODE_ENV = 'production';
+    process.env.JWT_SECRET = secret;
+    const issued = [];
+    const cleared = [];
+    const mockResponse = {
+      cookie: (name, value, options) => { issued.push({ name, value, options }); return mockResponse; },
+      clearCookie: (name, options) => { cleared.push({ name, options }); return mockResponse; },
+    };
+    sessionHelpers.issueCookieSession(mockResponse, 'test-signed-session');
+    sessionHelpers.clearCookieSession(mockResponse);
+    assert.equal(issued.length, 2);
+    assert.equal(issued[0].name, '__Host-thanaya_session');
+    assert.equal(issued[1].name, '__Host-thanaya_csrf');
+    assert.equal(issued[0].options.httpOnly, true);
+    assert.equal(issued[1].options.httpOnly, false);
+    assert.ok(issued.every(x => x.options.secure && x.options.path === '/' && x.options.sameSite === 'lax'));
+    assert.ok(cleared.every(x => x.name.startsWith('__Host-') && x.options.secure && x.options.path === '/'));
+    console.log('PASS: production __Host cookie flags are secure and logout clears correctly');
+  } finally {
+    if (oldEnvironment === undefined) delete process.env.NODE_ENV;
+    else process.env.NODE_ENV = oldEnvironment;
+    if (oldSecret === undefined) delete process.env.JWT_SECRET;
+    else process.env.JWT_SECRET = oldSecret;
+  }
+
 
   const port = await openPort();
   const base = 'http://127.0.0.1:' + port;
