@@ -55,9 +55,9 @@ export async function apiRequest<T = any>(endpoint: string, options: RequestInit
   if (!response.ok || !validJson) {
     const serverMessage = errorBody && typeof errorBody.error === 'string' ? errorBody.error : null;
     const fallback = response.status >= 500
-      ? 'تعذّر الاتصال بخدمة ثنايا. تحقق من تشغيل الـBackend على المنفذ 4000 وتحديث Prisma Client.'
+      ? 'الخدمة غير متاحة مؤقتاً. يرجى المحاولة مرة أخرى بعد قليل.'
       : response.status === 404
-        ? 'مسار الخدمة غير موجود. تأكد من تحديث وتشغيل الـBackend الجديد.'
+        ? 'تعذّر العثور على الخدمة المطلوبة.'
         : response.status === 401
           ? 'يرجى تسجيل الدخول مجدداً.'
           : response.status === 403
