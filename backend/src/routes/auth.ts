@@ -1,8 +1,12 @@
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
 import { Prisma, PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { getJwtSecret } from '../config/auth';
+import {
+  cookieAllowedOrigins, trustedCookieOrigin, wantsCookieSession,
+  issueCookieSession, clearCookieSession
+} from '../lib/cookieSession';
 import {
   limitLoginTraffic, limitRegistrations, rejectRepeatedLoginFailures,
   noteFailedLogin, clearFailedLogins
@@ -14,9 +18,29 @@ const prisma = new PrismaClient();
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_PATTERN = /^07\d{9}$/;
 
+type AuthUser = { id: string; name: string; email: string; phone: string; role: string };
+function acceptCookieMode(req: Request, res: Response): boolean {
+  if (!wantsCookieSession(req)) return true;
+  if (!trustedCookieOrigin(req, cookieAllowedOrigins())) {
+    res.status(403).json({ error: 'مصدر طلب تسجيل الدخول غير مسموح' });
+    return false;
+  }
+  return true;
+}
+function respondWithSession(req: Request, res: Response, user: AuthUser) {
+  const publicUser = { id: user.id, name: user.name, email: user.email, phone: user.phone, role: user.role };
+  const token = jwt.sign({ userId: user.id, role: user.role }, getJwtSecret(), { algorithm: 'HS256', expiresIn: '7d' });
+  if (wantsCookieSession(req)) {
+    issueCookieSession(res, token);
+    return res.json({ user: publicUser }); // No JavaScript-readable bearer token.
+  }
+  return res.json({ user: publicUser, token }); // Legacy path during migration.
+}
+
 // Defensive checks are done on the API itself: browser validation can be bypassed.
 // Existing passwords remain valid for login, even if shorter than the NEW signup policy.
 router.post('/register', limitRegistrations, async (req, res) => {
+  if (!acceptCookieMode(req, res)) return;
   const input = req.body;
   if (!input || typeof input !== 'object' || Array.isArray(input)) {
     return res.status(400).json({ error: 'معلومات التسجيل غير صالحة' });
@@ -45,8 +69,7 @@ router.post('/register', limitRegistrations, async (req, res) => {
     const user = await prisma.user.create({
       data: { name: name.trim(), email: normalizedEmail, phone: phone.trim(), password: hashedPassword }
     });
-    const token = jwt.sign({ userId: user.id, role: user.role }, getJwtSecret(), { expiresIn: '7d' });
-    return res.json({ user: { id: user.id, name: user.name, email: user.email, phone: user.phone, role: user.role }, token });
+    return respondWithSession(req, res, user);
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
       return res.status(400).json({ error: 'البريد مسجل مسبقاً' });
@@ -57,6 +80,7 @@ router.post('/register', limitRegistrations, async (req, res) => {
 });
 
 router.post('/login', limitLoginTraffic, async (req, res) => {
+  if (!acceptCookieMode(req, res)) return;
   const input = req.body;
   const email = input && typeof input === 'object' && !Array.isArray(input) ? input.email : undefined;
   const password = input && typeof input === 'object' && !Array.isArray(input) ? input.password : undefined;
@@ -80,8 +104,7 @@ router.post('/login', limitLoginTraffic, async (req, res) => {
     }
 
     clearFailedLogins(normalizedEmail);
-    const token = jwt.sign({ userId: user.id, role: user.role }, getJwtSecret(), { expiresIn: '7d' });
-    return res.json({ user: { id: user.id, name: user.name, email: user.email, phone: user.phone, role: user.role }, token });
+    return respondWithSession(req, res, user);
   } catch (error) {
     console.error('auth login failed', error);
     return res.status(500).json({ error: 'خطأ في تسجيل الدخول' });
@@ -112,6 +135,15 @@ router.get('/me', async (req, res) => {
     console.error('auth /me', error);
     return res.status(500).json({ error: 'تعذر التحقق من الحساب' });
   }
+});
+
+// A write operation: cookie session requests must first pass the global CSRF bridge.
+router.post('/logout', (req, res) => {
+  if (!trustedCookieOrigin(req, cookieAllowedOrigins())) {
+    return res.status(403).json({ error: 'مصدر طلب الخروج غير مسموح' });
+  }
+  clearCookieSession(res);
+  return res.status(204).end();
 });
 
 export default router;
