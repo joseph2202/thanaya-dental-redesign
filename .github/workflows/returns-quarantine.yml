@@ -107,6 +107,9 @@ jobs:
         working-directory: frontend
         env:
           NODE_ENV: test
+      - name: Prepare browser E2E driver
+        run: npm install --no-save --package-lock=false playwright-core@1.56.1
+        working-directory: frontend
       - name: Full-stack session and CSRF smoke through Next.js API rewrite
         run: node tests/fullstack-session-proxy.cjs
         working-directory: frontend
