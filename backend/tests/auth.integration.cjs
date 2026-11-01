@@ -72,6 +72,24 @@ async function main() {
     }
   });
 
+  // Weak production signing secrets must stop startup; never test this on a live process.
+  const { getJwtSecret } = require('../dist/config/auth');
+  const previousNodeEnv = process.env.NODE_ENV;
+  const previousJwtSecret = process.env.JWT_SECRET;
+  try {
+    process.env.NODE_ENV = 'production';
+    process.env.JWT_SECRET = 'short-unsafe-secret';
+    assert.throws(() => getJwtSecret(), /at least 32 bytes/, 'weak production secret must fail closed');
+    process.env.JWT_SECRET = secret;
+    assert.equal(getJwtSecret(), secret, 'strong production secret is accepted');
+  } finally {
+    if (previousNodeEnv === undefined) delete process.env.NODE_ENV;
+    else process.env.NODE_ENV = previousNodeEnv;
+    if (previousJwtSecret === undefined) delete process.env.JWT_SECRET;
+    else process.env.JWT_SECRET = previousJwtSecret;
+  }
+  console.log('PASS: production secrets are checked without affecting local development');
+
   const port = await openPort();
   const base = 'http://127.0.0.1:' + port;
   let logs = '';
@@ -111,6 +129,16 @@ async function main() {
   const login = await expected('new account can sign in', '/api/auth/login', 'POST',
     { email: 'newuser@example.test', password: 'LongerPass2026' }, 200);
   await expected('token can refresh account securely', '/api/auth/me', 'GET', undefined, 200, login.body.token);
+  const jwt = require('jsonwebtoken');
+  const alternateAlgorithmToken = jwt.sign(
+    { userId: registration.body.user.id, role: 'owner' }, secret,
+    { algorithm: 'HS384', expiresIn: '1h' }
+  );
+  await expected('HS384 token rejected for session validation',
+    '/api/auth/me', 'GET', undefined, 401, alternateAlgorithmToken);
+  await expected('HS384 token rejected for staff-only API',
+    '/api/users', 'GET', undefined, 401, alternateAlgorithmToken);
+  console.log('PASS: staff cannot be elevated using unsupported JWT signing algorithms');
   await expected('missing session is unauthorized', '/api/auth/me', 'GET', undefined, 401);
 
   const legacy = await expected('legacy owner with short existing password can still sign in',
