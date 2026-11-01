@@ -173,6 +173,10 @@ async function main() {
     'browser with cleared cookies has no session');
   // A stolen stateless JWT is *not* revoked by this logout. Document this caveat.
   console.log('PASS: full-stack Next rewrite, HttpOnly cookie, customer isolation, CSRF, logout');
+
+  // Exercise an actual headless Chrome tab with React forms and real cookies.
+  // Reuses the disposable SQLite database and isolated Next/API servers above.
+  await require('./chromium-cookie-flow.cjs').chromiumCookieFlow(base);
 }
 
 main().catch(error => { console.error(error, logs); process.exitCode = 1; })
