@@ -99,3 +99,8 @@ jobs:
         env:
           NODE_ENV: production
           THANAYA_INTERNAL_API_ORIGIN: http://127.0.0.1:4000
+      - name: Verify production Next.js security response headers
+        run: node tests/security-headers.cjs
+        working-directory: frontend
+        env:
+          NODE_ENV: test
