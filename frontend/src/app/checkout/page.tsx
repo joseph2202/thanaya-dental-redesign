@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import ProductMedia from '@/components/ui/ProductMedia';
+import PaymentMethodSelector from '@/components/checkout/PaymentMethodSelector';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
 import { ordersAPI, couponsAPI, deliveryAPI, DeliveryConfig, productsAPI, CartQuote, addressesAPI, SavedAddress } from '@/lib/api';
@@ -282,16 +283,7 @@ export default function CheckoutPage() {
               {couponError&&<p role="alert" className="mt-2 text-sm font-bold text-red-700">{couponError}</p>}
               {coupon&&<div className="mt-2 flex justify-between gap-2 text-sm"><span className="font-bold text-green-700">كوبون {coupon.code} · خصم {coupon.discount.toLocaleString()} د.ع</span><button type="button" className="underline" onClick={()=>{setCoupon(null);setCouponInput('')}}>إزالة</button></div>}
             </div>
-            <div className="bg-paper2 border border-[#bbdeea] rounded-xl p-4">
-              <h3 className="font-black mb-2 text-ink">طريقة الدفع</h3>
-              <div className="flex items-center gap-3">
-                <span className="text-2xl">💵</span>
-                <div>
-                  <p className="font-bold text-ink">الدفع عند الاستلام</p>
-                  <p className="text-sm text-neutral-600">تدفع نقداً عند استلام الطلب</p>
-                </div>
-              </div>
-            </div>
+            <PaymentMethodSelector />
 
             {quoteLoading&&<p role="status" className="text-sm text-sky-700">جاري التأكد من سعر المنتجات والمخزون...</p>}
             {quoteError&&<p role="alert" className="text-sm font-bold text-red-700">{quoteError}</p>}
@@ -303,7 +295,7 @@ export default function CheckoutPage() {
               disabled={submitting || items.length === 0 || deliveryLoading || !!deliveryError || !delivery || deliveryUnavailable || quoteLoading || !!quoteError || !quote?.canCheckout || (priceChanged&&!priceAcknowledged)}
               className="site-btn site-btn-primary site-btn-lg w-full"
             >
-              {submitting ? 'جاري تأكيد الطلب...' : 'تأكيد الطلب'}
+              {submitting ? 'جاري تأكيد الطلب...' : 'تأكيد الطلب • الدفع عند الاستلام'}
             </button>
           </form>
 
