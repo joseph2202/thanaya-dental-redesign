@@ -139,6 +139,12 @@ async function main() {
     '/api/auth/me', 'GET', undefined, 401, alternateAlgorithmToken);
   await expected('HS384 token rejected for staff-only API',
     '/api/users', 'GET', undefined, 401, alternateAlgorithmToken);
+  await expected('HS384 token rejected for customer orders',
+    '/api/orders/mine', 'GET', undefined, 401, alternateAlgorithmToken);
+  await expected('HS384 token rejected for saved addresses',
+    '/api/addresses', 'GET', undefined, 401, alternateAlgorithmToken);
+  await expected('HS384 token rejected for notifications',
+    '/api/notifications', 'GET', undefined, 401, alternateAlgorithmToken);
   console.log('PASS: staff cannot be elevated using unsupported JWT signing algorithms');
   await expected('missing session is unauthorized', '/api/auth/me', 'GET', undefined, 401);
 
