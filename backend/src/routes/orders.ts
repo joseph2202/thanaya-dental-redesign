@@ -40,7 +40,7 @@ async function principalFromRequest(req: Request): Promise<Principal | null> {
   const header = req.headers.authorization;
   if (!header?.startsWith('Bearer ')) return null;
   try {
-    const token = jwt.verify(header.slice(7), getJwtSecret());
+    const token = jwt.verify(header.slice(7), getJwtSecret(), { algorithms: ['HS256'] });
     if (typeof token === 'string' || typeof token.userId !== 'string') return null;
     const user = await prisma.user.findUnique({
       where: { id: token.userId },
