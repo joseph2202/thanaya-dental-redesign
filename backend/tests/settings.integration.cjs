@@ -43,9 +43,21 @@ async function main(){
  assert.equal(await prisma.storeSettingsChange.count(),1);
  await eq('stale settings revision is rejected',url,'PUT',values,toks.owner,409);
  assert.equal(await prisma.storeSettingsChange.count(),1);
+ await eq('external image injection blocked for store banner',url,'PUT',
+   {...values,revision:1,bannerImage:'https://untrusted.example/banner.png'},toks.owner,400);
+ await eq('path traversal blocked for store banner',url,'PUT',
+   {...values,revision:1,bannerImage:'/uploads/../private.png'},toks.owner,400);
+ const newBanner='/uploads/'+randomUUID()+'.png';
+ await eq('same-origin UUID image accepted as store banner',url,'PUT',
+   {...values,revision:1,bannerImage:newBanner},toks.owner,200);
+ const currentBanner=await call(base,url+'/public');
+ assert.equal(currentBanner.body.bannerImage,newBanner);
+ await eq('legacy banner remains compatible during upload transition',url,'PUT',
+   {...values,revision:2,bannerImage:'http://localhost:'+p+'/uploads/1700000000000-1234.jpg'},toks.owner,200);
  const saved=await prisma.storeSettings.findUniqueOrThrow({where:{id:'main'}});
- assert.equal(saved.revision,1);
- console.log('PASS: setting changes audited; IQD products and orders not modified');
+ assert.equal(saved.revision,3);
+ assert.equal(await prisma.storeSettingsChange.count(),3);
+ console.log('PASS: safe new banner images, legacy compatibility and audited changes');
  console.log('ALL SETTINGS CHECKS PASSED. TEMP DB REMOVED.');
 }
 main().catch(e=>{console.error(e);process.exitCode=1}).finally(async()=>{if(server&&server.exitCode===null)server.kill('SIGTERM');if(prisma)await prisma.$disconnect();rmSync(temp,{recursive:true,force:true});});
