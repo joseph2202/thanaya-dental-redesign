@@ -129,6 +129,33 @@ async function main() {
       assert.equal(changed.status, 409);
     });
 
+    await check('disabled card payments cannot bypass COD via direct HTTP', async () => {
+      const item = await product('Card boundary item', 5, 15000);
+      const baseBody = { requestId: randomUUID(), customer,
+        items: [{ productId: item.id, quantity: 1 }] };
+      const attempts=[
+        {...baseBody,paymentMethod:'card'},
+        {...baseBody,paymentMethod:'bank_transfer'},
+        {...baseBody,paymentMethod:'cod',cvv:'123'},
+        {...baseBody,cardNumber:'4111111111111111'},
+        {...baseBody,isPaid:true},
+        {...baseBody,paymentToken:'fake_provider_token'}
+      ];
+      for (const body of attempts) {
+        const result=await request(base,'/api/orders','POST',body,aliceToken);
+        assert.ok([400,409].includes(result.status),JSON.stringify(result));
+      }
+      assert.equal(await prisma.order.count({
+        where:{items:{some:{productId:item.id}}}
+      }),0);
+      assert.equal((await prisma.product.findUniqueOrThrow({where:{id:item.id}})).stock,5);
+      const valid=await request(base,'/api/orders','POST',{
+        ...baseBody,paymentMethod:'cod'
+      },aliceToken);
+      assert.equal(valid.status,201,JSON.stringify(valid));
+      assert.equal(valid.body.paymentMethod,'cod');
+    });
+
     await check('server ignores forged totals, prices, and user IDs', async () => {
       const item = await product('Trusted price', 3, 19000);
       const forged = {
