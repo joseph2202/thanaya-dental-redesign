@@ -72,6 +72,9 @@ jobs:
         env:
           NODE_ENV: test
           JWT_SECRET: ci-placeholder-not-used-by-live-store
+      - name: Temporary audit lockfile repair rehearsal (backend)
+        run: npm audit fix --package-lock-only --ignore-scripts && git diff -- package-lock.json
+        working-directory: backend
       - name: Production-dependency vulnerability scan (backend)
         run: npm audit --omit=dev --audit-level=high
         working-directory: backend
@@ -89,6 +92,9 @@ jobs:
           JWT_SECRET: ci-placeholder-not-used-by-live-store
       - name: Install frontend dependencies
         run: npm ci
+        working-directory: frontend
+      - name: Temporary audit lockfile repair rehearsal (frontend)
+        run: npm audit fix --package-lock-only --ignore-scripts && git diff -- package-lock.json
         working-directory: frontend
       - name: Production-dependency vulnerability scan (frontend)
         run: npm audit --omit=dev --audit-level=high
