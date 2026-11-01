@@ -2,7 +2,7 @@
 const assert = require('node:assert/strict');
 const { randomUUID } = require('node:crypto');
 const { spawn, spawnSync } = require('node:child_process');
-const { mkdtempSync, rmSync } = require('node:fs');
+const { mkdtempSync, rmSync, readdirSync, readFileSync } = require('node:fs');
 const path = require('node:path');
 const os = require('node:os');
 const net = require('node:net');
@@ -11,7 +11,8 @@ const cwd = path.resolve(__dirname, '..');
 const scratch = mkdtempSync(path.join(os.tmpdir(), 'thanaya-auth-'));
 const url = 'file:' + path.join(scratch, 'isolated.db');
 const secret = randomUUID() + randomUUID();
-const env = { ...process.env, DATABASE_URL: url, JWT_SECRET: secret, NODE_ENV: 'test' };
+const uploadDir = path.join(scratch, 'isolated-uploads');
+const env = { ...process.env, DATABASE_URL: url, JWT_SECRET: secret, NODE_ENV: 'test', THANAYA_UPLOAD_DIR: uploadDir };
 let server, prisma;
 
 async function openPort() {
@@ -144,6 +145,44 @@ async function main() {
   const legacy = await expected('legacy owner with short existing password can still sign in',
     '/api/auth/login', 'POST', { email: 'Legacy.Owner@Test.invalid', password: 'legacy6' }, 200);
   assert.equal(legacy.body.user.role, 'owner');
+
+  // All test uploads go under scratch, never a real backend/uploads directory.
+  const postImage = async (token, bytes, mime) => {
+    const data = new FormData();
+    data.append('image', new Blob([bytes], { type: mime }), 'image.png');
+    const result = await fetch(base + '/api/upload', {
+      method: 'POST',
+      headers: token ? { Authorization: 'Bearer ' + token } : {},
+      body: data,
+      signal: AbortSignal.timeout(12000),
+    });
+    return { status: result.status, body: await result.json(), headers: result.headers };
+  };
+  const tinyPng = Buffer.from(
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO//lz8AAAAASUVORK5CYII=',
+    'base64'
+  );
+  assert.equal((await postImage(null, tinyPng, 'image/png')).status, 401,
+    'unauthenticated uploads must be blocked');
+  assert.equal((await postImage(login.body.token, tinyPng, 'image/png')).status, 403,
+    'regular customers must not upload catalog images');
+
+  const spoofedImage = await postImage(legacy.body.token, Buffer.from('not a real png'), 'image/png');
+  assert.equal(spoofedImage.status, 400, 'files spoofing an image MIME type must be rejected');
+  assert.equal(readdirSync(uploadDir).length, 0,
+    'rejected image must be deleted from isolated upload directory');
+
+  const validImage = await postImage(legacy.body.token, tinyPng, 'image/png');
+  assert.equal(validImage.status, 200, JSON.stringify(validImage.body));
+  assert.match(validImage.body.url, /^\/uploads\/[0-9a-f-]{36}\.png$/,
+    'image URL must be same-origin, opaque and independent from local server ports');
+  const imagePath = path.join(uploadDir, path.basename(validImage.body.url));
+  assert.deepEqual(readFileSync(imagePath), tinyPng, 'uploaded bytes match source image');
+  const publiclyServed = await fetch(base + validImage.body.url);
+  assert.equal(publiclyServed.status, 200);
+  assert.match(publiclyServed.headers.get('content-type') || '', /^image\/png/);
+  console.log('PASS: upload access control, signature validation and isolated same-origin image URL');
+
 
   for (let attempt = 1; attempt <= 10; attempt++) {
     const result = await request(base, '/api/auth/login', 'POST',
