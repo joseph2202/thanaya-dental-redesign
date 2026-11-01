@@ -107,3 +107,8 @@ jobs:
         working-directory: frontend
         env:
           NODE_ENV: test
+      - name: Full-stack session and CSRF smoke through Next.js API rewrite
+        run: node tests/fullstack-session-proxy.cjs
+        working-directory: frontend
+        env:
+          NODE_ENV: test
