@@ -19,22 +19,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let mounted = true;
-    const cached = getCurrentUser();
-    if (!cached || !localStorage.getItem('thanaya-token')) {
-      setUser(null); setIsLoading(false); return;
-    }
-    authAPI.me().then((current: User) => {
-      if (!mounted) return;
-      localStorage.setItem('thanaya-current-user', JSON.stringify(current));
-      setUser(current);
-    }).catch((error: unknown) => {
-      if (!mounted) return;
-      // Unavailable server should not erase the session; the API still enforces permissions.
-      // If rejected, clear only after an explicit authentication failure.
-      if (error instanceof Error && (error as Error & { status?: number }).status === 401) {
-        logoutUser(); setUser(null);
-      } else setUser(cached);
-    }).finally(() => { if (mounted) setIsLoading(false); });
+    const restoreSession = async () => {
+      try {
+        // Some browser privacy modes block storage access. That should take the
+        // visitor to /login, never freeze the admin page on "checking".
+        const cached = getCurrentUser();
+        const token = localStorage.getItem('thanaya-token');
+        if (!cached || !token) {
+          if (mounted) setUser(null);
+          return;
+        }
+
+        const controller = new AbortController();
+        const timeout = window.setTimeout(() => controller.abort(), 10000);
+        try {
+          const current: User = await authAPI.me(controller.signal);
+          if (!mounted) return;
+          localStorage.setItem('thanaya-current-user', JSON.stringify(current));
+          setUser(current);
+        } catch (error: unknown) {
+          if (!mounted) return;
+          // Only an explicit 401 clears credentials; offline and timeout keep
+          // the cached identity while every privileged API still checks JWT.
+          if (error instanceof Error && (error as Error & { status?: number }).status === 401) {
+            logoutUser();
+            setUser(null);
+          } else {
+            setUser(cached);
+          }
+        } finally {
+          window.clearTimeout(timeout);
+        }
+      } catch {
+        // Failure to read localStorage must not strand the screen indefinitely.
+        if (mounted) setUser(null);
+      } finally {
+        if (mounted) setIsLoading(false);
+      }
+    };
+    void restoreSession();
     return () => { mounted = false; };
   }, []);
 

@@ -39,7 +39,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     else if (user.role === 'sales' && !['/admin','/admin/orders','/notifications'].includes(pathname)) router.replace('/admin/orders');
   }, [user, isAdmin, isLoading, router, pathname]);
 
-  if (isLoading) return <div className="site-main grid place-items-center p-8 text-sm text-ink" role="status">جاري التحقق من صلاحيات الإدارة...</div>;
+  if (isLoading) return <div className="site-main flex flex-col items-center justify-center gap-3 p-8 text-center text-sm text-ink" role="status">
+    <p>جاري التحقق من صلاحيات الإدارة...</p>
+    <Link href="/login?redirect=/admin" className="font-bold text-brand underline underline-offset-4">
+      إذا بقيت هذه الرسالة، اضغط هنا لتسجيل الدخول
+    </Link>
+  </div>;
   if (!user || !isAdmin) return null;
   const current = visibleItems.find(n => n.href === pathname);
 

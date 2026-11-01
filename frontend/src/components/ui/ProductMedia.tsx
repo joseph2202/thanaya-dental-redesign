@@ -8,7 +8,7 @@ export default function ProductMedia({ image, icon, name, size = 58, className =
       {image ? (
         // Image URLs are supplied by the existing product API and may point to the local upload server.
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={image} alt={name} loading="lazy" />
+        <img src={image.replace(/https?:\/\/(?:localhost|127\.0\.0\.1):4000\/uploads\//gi, '/uploads/')} alt={name} loading="lazy" />
       ) : (
         <ProductIcon name={icon || 'Package'} size={size} className="opacity-80" />
       )}
