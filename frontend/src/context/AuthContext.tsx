@@ -39,13 +39,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUser(current);
         } catch (error: unknown) {
           if (!mounted) return;
-          // Only an explicit 401 clears credentials; offline and timeout keep
-          // the cached identity while every privileged API still checks JWT.
+          // Never trust a cached role when the server cannot verify this session.
+          // Keep credentials on transient errors so a page reload can retry,
+          // but fail closed in the interface until verification succeeds.
           if (error instanceof Error && (error as Error & { status?: number }).status === 401) {
             logoutUser();
             setUser(null);
           } else {
-            setUser(cached);
+            setUser(null);
           }
         } finally {
           window.clearTimeout(timeout);
