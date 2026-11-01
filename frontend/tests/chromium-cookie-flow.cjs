@@ -89,7 +89,7 @@ async function chromiumCookieFlow(base) {
       throw Error('Browser timeout waiting for ' + what + ': ' +
         (await evalJS('location.href').catch(() => '?')) + ' / ' +
         (await evalJS('document.body?.innerText.slice(0,400)').catch(() => '?')) +
-        ' / form:' + JSON.stringify(await evalJS("({valid:document.querySelector('form')?.checkValidity(),lengths:[...document.querySelectorAll('form input')].map(el=>el.value.length),error:document.querySelector('.bg-red-50')?.textContent || null,network:window.__thanayaAuthProbe || null})").catch(() => ({}))));
+        ' / form:' + JSON.stringify(await evalJS("({valid:document.querySelector('form')?.checkValidity(),lengths:[...document.querySelectorAll('form input')].map(el=>el.value.length),error:document.querySelector('.bg-red-50')?.textContent || null,network:window.__thanayaAuthProbe || null,buttonDisabled:document.querySelector('form button[type=submit]')?.disabled})").catch(() => ({}))));
     };
 
     // Test-only instrumentation: record whether the React form sent a request
@@ -118,7 +118,13 @@ async function chromiumCookieFlow(base) {
     await fill('form input[type=password]', password, 1);
     const readiness = await evalJS("(() => ({valid:document.querySelector('form').checkValidity(),fields:[...document.querySelectorAll('form input')].map(x=>({type:x.type,filled:x.value.length>0,valid:x.validity.valid}))}))()");
     assert.ok(readiness.valid, 'registration form invalid: ' + JSON.stringify(readiness));
-    await evalJS("document.querySelector('form button[type=submit]').click()");
+    const coordinates = await evalJS("(() => { const button=document.querySelector('form button[type=submit]'); const form=document.querySelector('form'); window.__thanayaAuthProbe.clicked=0;window.__thanayaAuthProbe.submitted=0; button.addEventListener('click',()=>window.__thanayaAuthProbe.clicked++); form.addEventListener('submit',()=>window.__thanayaAuthProbe.submitted++,true); button.scrollIntoView({block:'center'}); const r=button.getBoundingClientRect(); return {x:r.left+r.width/2,y:r.top+r.height/2,disabled:button.disabled}; })()");
+    assert.equal(coordinates.disabled, false, 'submit button is disabled before attempting signup');
+    // A real CDP mouse event is trusted by Chromium and exercises normal form
+    // activation. Programmatic DOM .click() was not producing a submit.
+    await send('Input.dispatchMouseEvent', { type:'mouseMoved', x:coordinates.x, y:coordinates.y }, sid);
+    await send('Input.dispatchMouseEvent', { type:'mousePressed', x:coordinates.x, y:coordinates.y, button:'left',clickCount:1 }, sid);
+    await send('Input.dispatchMouseEvent', { type:'mouseReleased', x:coordinates.x, y:coordinates.y, button:'left',clickCount:1 }, sid);
     await checkEventually("location.pathname === '/account' && document.body.innerText.includes('أهلاً')",
       'new customer account', 25000);
     const cookies = await evalJS("({ csrf:document.cookie.includes('thanaya_csrf='), session:document.cookie.includes('thanaya_session='), token:localStorage.getItem('thanaya-token') })");
