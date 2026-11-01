@@ -14,6 +14,7 @@ import notificationsRoutes from './routes/notifications';
 import reportsRoutes from './routes/reports';
 import financeRoutes from './routes/finance';
 import procurementRoutes from './routes/procurement';
+import receivingRoutes from './routes/receiving';
 import exportsRoutes from './routes/exports';
 import addressesRoutes from './routes/addresses';
 
@@ -53,7 +54,7 @@ app.use(express.json());
 // Public product/catalog endpoints remain unaffected.
 const privateApiPrefixes=[
   '/api/auth','/api/orders','/api/addresses','/api/finance',
-  '/api/users','/api/procurement','/api/notifications','/api/exports'
+  '/api/users','/api/procurement','/api/receiving','/api/notifications','/api/exports'
 ];
 app.use((req, res, next) => {
   if(privateApiPrefixes.some(prefix=>req.path===prefix||req.path.startsWith(prefix+'/'))){
@@ -162,6 +163,7 @@ app.use('/api/notifications', notificationsRoutes);
 app.use('/api/reports', reportsRoutes);
 app.use('/api/finance', financeRoutes);
 app.use('/api/procurement', procurementRoutes);
+app.use('/api/receiving', receivingRoutes);
 app.use('/api/exports', exportsRoutes);
 
 app.get('/api/health', (req, res) => {
