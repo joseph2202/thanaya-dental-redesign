@@ -181,12 +181,12 @@ app.get('/api/health', (req, res) => {
 // unexpected errors forwarded by Express 5 asynchronous route handlers.
 // Details remain in local backend logs, never in the browser response.
 app.use('/api', (_req, res) => {
-  res.status(404).json({ error: 'مسار API غير موجود. تحقق من نسخة الباكند.' });
+  res.status(404).json({ error: 'الخدمة المطلوبة غير موجودة.' });
 });
 app.use(((error: unknown, req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error('Unexpected API error', req.method, req.path, error);
   if (res.headersSent) return;
-  res.status(500).json({ error: 'تعذّر تنفيذ الطلب في خادم ثنايا. راجع سجل الباكند.' });
+  res.status(500).json({ error: 'تعذّر تنفيذ الطلب حالياً. يرجى المحاولة لاحقاً.' });
 }) as express.ErrorRequestHandler);
 
 app.listen(PORT, () => {
