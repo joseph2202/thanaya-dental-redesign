@@ -152,6 +152,80 @@ async function main() {
     '/api/auth/login', 'POST', { email: 'Legacy.Owner@Test.invalid', password: 'legacy6' }, 200);
   assert.equal(legacy.body.user.role, 'owner');
 
+  // Staged cookie transport: test without modifying existing Bearer sessions.
+  const origin = 'http://localhost:3000';
+  const modeHeaders = { 'X-Thanaya-Auth-Mode': 'cookie', 'Content-Type': 'application/json' };
+  const passwordLogin = { email: 'Legacy.Owner@Test.invalid', password: 'legacy6' };
+  const sessionLogin = async (requestOrigin) => fetch(base + '/api/auth/login', {
+    method: 'POST',
+    headers: { ...modeHeaders, ...(requestOrigin ? { Origin: requestOrigin } : {}) },
+    body: JSON.stringify(passwordLogin),
+    signal: AbortSignal.timeout(12000),
+  });
+  const noOrigin = await sessionLogin();
+  assert.equal(noOrigin.status, 403, 'cookie login without trusted Origin is rejected');
+  const foreignOrigin = await sessionLogin('https://attacker.invalid');
+  assert.equal(foreignOrigin.status, 403, 'cross-site cookie login is rejected');
+  const sessionResponse = await sessionLogin(origin);
+  assert.equal(sessionResponse.status, 200, 'first-party login can opt in to cookie session');
+  const sessionBody = await sessionResponse.json();
+  assert.equal(sessionBody.user.role, 'owner');
+  assert.equal('token' in sessionBody, false, 'cookie mode never exposes a Bearer token to JavaScript');
+  const cookieHeaders = sessionResponse.headers.getSetCookie();
+  assert.equal(cookieHeaders.length, 2, 'session and CSRF cookies must both be issued');
+  const sessionCookie = cookieHeaders.find(x => x.startsWith('thanaya_session='));
+  const csrfCookie = cookieHeaders.find(x => x.startsWith('thanaya_csrf='));
+  assert.ok(sessionCookie && csrfCookie);
+  assert.match(sessionCookie, /HttpOnly/i, 'session token cannot be read by JavaScript');
+  assert.match(sessionCookie, /SameSite=Lax/i);
+  assert.match(sessionCookie, /Path=\//i);
+  assert.doesNotMatch(csrfCookie, /HttpOnly/i, 'frontend needs to read CSRF token only');
+  const cookieHeader = [sessionCookie, csrfCookie].map(x => x.split(';')[0]).join('; ');
+  const csrf = csrfCookie.split(';')[0].split('=').slice(1).join('=');
+  const cookieRequest = async (route, method = 'GET', payload, headers = {}) => {
+    const r = await fetch(base + route, {
+      method,
+      headers: {
+        Cookie: cookieHeader,
+        ...(payload !== undefined ? { 'Content-Type': 'application/json' } : {}),
+        ...headers,
+      },
+      body: payload !== undefined ? JSON.stringify(payload) : undefined,
+      signal: AbortSignal.timeout(12000),
+    });
+    return { status: r.status, body: r.status === 204 ? null : await r.json(), headers: r.headers };
+  };
+  const cookieMe = await cookieRequest('/api/auth/me');
+  assert.equal(cookieMe.status, 200, 'protected read works via HttpOnly session');
+  assert.equal(cookieMe.body.role, 'owner');
+  const ownAddresses = await cookieRequest('/api/addresses');
+  assert.equal(ownAddresses.status, 200, 'address read works through cookie session');
+  const newAddress = { label: 'تجربة', name: 'مستلم محلي', phone: '07812345678', city: 'البصرة', address: 'عنوان اختبار خاص في البصرة' };
+  const withoutCsrf = await cookieRequest('/api/addresses', 'POST', newAddress, { Origin: origin });
+  assert.equal(withoutCsrf.status, 403, 'cookie writes require CSRF token');
+  const foreignCsrf = await cookieRequest('/api/addresses', 'POST', newAddress,
+    { Origin: 'https://attacker.invalid', 'X-Thanaya-CSRF': csrf });
+  assert.equal(foreignCsrf.status, 403, 'correct CSRF token is insufficient from foreign Origin');
+  const forgedCsrf = await cookieRequest('/api/addresses', 'POST', newAddress,
+    { Origin: origin, 'X-Thanaya-CSRF': 'forged-token' });
+  assert.equal(forgedCsrf.status, 403, 'forged CSRF token must fail');
+  const validCookieWrite = await cookieRequest('/api/addresses', 'POST', newAddress,
+    { Origin: origin, 'X-Thanaya-CSRF': csrf });
+  assert.equal(validCookieWrite.status, 201, 'valid CSRF proof permits normal write');
+  const explicitInvalidBearer = await cookieRequest('/api/auth/me', 'GET', undefined,
+    { Authorization: 'Bearer invalid-token' });
+  assert.equal(explicitInvalidBearer.status, 401, 'explicit invalid bearer cannot fall back to cookies');
+  const logoutWithoutCsrf = await cookieRequest('/api/auth/logout', 'POST', undefined, { Origin: origin });
+  assert.equal(logoutWithoutCsrf.status, 403, 'logout also needs CSRF protection');
+  const logoutWithCsrf = await cookieRequest('/api/auth/logout', 'POST', undefined,
+    { Origin: origin, 'X-Thanaya-CSRF': csrf });
+  assert.equal(logoutWithCsrf.status, 204);
+  const cleared = logoutWithCsrf.headers.getSetCookie();
+  assert.equal(cleared.length, 2);
+  assert.ok(cleared.every(x => /Expires=Thu, 01 Jan 1970|Max-Age=0/i.test(x)),
+    'logout must clear both cookies');
+  console.log('PASS: opt-in cookies, cross-site login guard, cookie authorization, CSRF and logout');
+
   // All test uploads go under scratch, never a real backend/uploads directory.
   const postImage = async (token, bytes, mime) => {
     const data = new FormData();
