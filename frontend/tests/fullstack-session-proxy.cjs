@@ -176,7 +176,7 @@ async function main() {
 
   // Exercise an actual headless Chrome tab with React forms and real cookies.
   // Reuses the disposable SQLite database and isolated Next/API servers above.
-  await require('./chromium-cookie-flow.cjs').chromiumCookieFlow(base);
+  await require('./playwright-browser-session.cjs').playwrightBrowserSession(base);
 }
 
 main().catch(error => { console.error(error, logs); process.exitCode = 1; })
