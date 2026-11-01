@@ -21,6 +21,7 @@ import addressesRoutes from './routes/addresses';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+import { randomUUID } from 'node:crypto';
 import { getJwtSecret } from './config/auth';
 import { requireAdmin, requireInventory } from './middleware/requireAdmin';
 
@@ -44,6 +45,8 @@ app.use((_req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('X-Permitted-Cross-Domain-Policies', 'none');
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
   next();
 });
 app.use(cors({ origin: (origin, callback) => callback(null, !origin || allowedOrigins.has(origin)) }));
@@ -53,7 +56,8 @@ app.use(express.json());
 // Public product/catalog endpoints remain unaffected.
 const privateApiPrefixes=[
   '/api/auth','/api/orders','/api/addresses','/api/finance',
-  '/api/users','/api/procurement','/api/notifications','/api/exports'
+  '/api/users','/api/procurement','/api/notifications','/api/exports',
+  '/api/upload','/api/reports','/api/products/manage'
 ];
 app.use((req, res, next) => {
   if(privateApiPrefixes.some(prefix=>req.path===prefix||req.path.startsWith(prefix+'/'))){
@@ -82,8 +86,8 @@ const storage = multer.diskStorage({
     cb(null, uploadDir);
   },
   filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, uniqueSuffix + imageTypes[file.mimetype]);
+    // Never derive public filenames from user input or predictable timestamps.
+    cb(null, randomUUID() + imageTypes[file.mimetype]);
   }
 });
 
@@ -143,7 +147,8 @@ app.post('/api/upload', requireAdmin, uploadImage, (req, res) => {
     return res.status(400).json({ error: 'محتوى الملف ليس صورة مدعومة' });
   }
   // إرجاع رابط الصورة ليحفظه الفرونت إند في قاعدة البيانات
-  const imageUrl = `http://localhost:${PORT}/uploads/${req.file.filename}`;
+  // Use the existing same-origin Next.js rewrite, including private HTTPS previews.
+  const imageUrl = `/uploads/${req.file.filename}`;
   res.json({ url: imageUrl });
 });
 // ==========================================
