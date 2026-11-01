@@ -88,7 +88,8 @@ async function chromiumCookieFlow(base) {
       }
       throw Error('Browser timeout waiting for ' + what + ': ' +
         (await evalJS('location.href').catch(() => '?')) + ' / ' +
-        (await evalJS('document.body?.innerText.slice(0,400)').catch(() => '?')));
+        (await evalJS('document.body?.innerText.slice(0,400)').catch(() => '?')) +
+        ' / form:' + JSON.stringify(await evalJS("({valid:document.querySelector('form')?.checkValidity(),lengths:[...document.querySelectorAll('form input')].map(el=>el.value.length),error:document.querySelector('[role=alert]')?.textContent || null})").catch(() => ({}))));
     };
 
     await checkEventually("document.querySelector('form input[type=email]') !== null", 'register form');
