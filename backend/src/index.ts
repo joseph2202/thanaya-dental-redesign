@@ -70,7 +70,11 @@ app.use((req, res, next) => {
 // ==========================================
 // إعدادات رفع الصور (Multer)
 // ==========================================
-const uploadDir = path.join(__dirname, '../uploads');
+// Tests can explicitly isolate uploaded files in a disposable directory.
+// Never point test uploads at the real Mac store's backend/uploads directory.
+const uploadDir = process.env.THANAYA_UPLOAD_DIR
+  ? path.resolve(process.env.THANAYA_UPLOAD_DIR)
+  : path.join(__dirname, '../uploads');
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
@@ -132,7 +136,7 @@ function hasImageSignature(filePath: string, type: string): boolean {
 // Uploaded media uses unique, never-overwritten filenames (timestamp + random suffix).
 // Let repeat visitors reuse thumbnails/product photos instead of downloading them
 // from the Mac again through a temporary tunnel on every page navigation.
-app.use('/uploads', express.static(path.join(__dirname, '../uploads'), {
+app.use('/uploads', express.static(uploadDir, {
   maxAge: '7d',
   immutable: true,
 }));
