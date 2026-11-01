@@ -184,14 +184,14 @@ router.get('/:id', async (req, res) => {
   try {
     const principal = await principalFromRequest(req);
     if (!principal) return res.status(401).json({ error: 'يجب تسجيل الدخول' });
-    const order = await prisma.order.findUnique({
-      where: { id: String(req.params.id) },
+    // Customers must not learn whether another customer's order ID exists.
+    // Scope the database query itself; privileged staff retain their operational access.
+    const canViewAll = ['owner', 'admin', 'sales'].includes(principal.role);
+    const order = await prisma.order.findFirst({
+      where: { id: String(req.params.id), ...(canViewAll ? {} : { userId: principal.id }) },
       include: { items: { include: { product: { select: { id: true, name: true, image: true } },returnLines:{select:{quantity:true}} } } }
     });
     if (!order) return res.status(404).json({ error: 'الطلب غير موجود' });
-    if (order.userId !== principal.id && !['owner','admin','sales'].includes(principal.role)) {
-      return res.status(403).json({ error: 'لا يمكنك عرض هذا الطلب' });
-    }
     res.json(order);
   } catch (error) { reportError(res, error, 'get order'); }
 });
