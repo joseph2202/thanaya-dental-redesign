@@ -14,6 +14,18 @@
 
 المستخدم نجح بتشغيل المتجر محلياً بعد `git stash push -u -m "backup-before-thanaya-update"` والانتقال إلى `feature/product-completion-security-payment-preview`. **لا تطبق stash pop عشوائياً**؛ تحتوي stash تعديلات `backend/package-lock.json` وسكربتات محلية. قاعدة `backend/prisma/dev.db` و`backend/.env` والصور محلية وغير موجودة في GitHub.
 
+## تقدم موثّق — PR #45 (Draft)
+
+- PR: https://github.com/joseph2202/thanaya-dental-redesign/pull/45، مبني على PR #44، ولم يُدمج إلى main.
+- ✅ حفظ شرطي لسر JWT في production: 32 بايت على الأقل، مع بقاء بيئة Mac المحلية الحالية كما هي.
+- ✅ `jwt.verify` على /api/auth/me وصلاحيات الموظفين يقبل HS256 فقط، مع اختبارات HS384 مرفوضة.
+- ✅ رفع الصور: `randomUUID` للأسماء، إرجاع مسار /uploads/ نسبي صالح خلف HTTPS، و`THANAYA_UPLOAD_DIR` لعزل اختبارات الصور في مجلد مؤقت.
+- ✅ اختبار رفع الصور: منع غير المخول والزبون، رفض صورة MIME مزيفة، التحقق من رابط وملف PNG داخل scratch فقط.
+- ✅ رؤوس أمان إضافية و`no-store` لبعض مسارات API الخاصة.
+- ✅ الواجهة لا تعيد عرض دور الموظف من localStorage إذا فشل تحقق الجلسة؛ رسائل أخطاء API للمشتري أصبحت غير تقنية.
+- ⏳ GitHub CI للـPR: **تحقق من آخر Run ونتيجته قبل اعتبارها ناجحة**، ولا تعمم أي نجاح سابق على هذا الفرع.
+- هذه الخطوات لا تحل بعد مخاطر localStorage/XSS بالكامل، ولا تشكّل Pentest.
+
 ## سياسة العمل الأمني
 
 1. تعديل أصغر وحدة ممكنة، مع اختبارات إضافية على قواعد SQLite مؤقتة فقط، وفحص GitHub Actions.
