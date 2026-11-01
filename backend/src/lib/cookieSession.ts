@@ -51,6 +51,14 @@ export function clearCookieSession(res: Response): void {
   res.clearCookie(key.csrf, { ...attributes, httpOnly: false });
 }
 
+export function cookieAllowedOrigins(): Set<string> {
+  return new Set([
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+    ...(process.env.CORS_ALLOWED_ORIGINS || '').split(',').map(value => value.trim()).filter(Boolean),
+  ]);
+}
+
 export function wantsCookieSession(req: Request): boolean {
   return req.get('X-Thanaya-Auth-Mode') === 'cookie';
 }
