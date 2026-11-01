@@ -23,6 +23,7 @@ import path from 'path';
 import fs from 'fs';
 import { randomUUID } from 'node:crypto';
 import { getJwtSecret } from './config/auth';
+import { cookieSessionBridge } from './lib/cookieSession';
 import { requireAdmin, requireInventory } from './middleware/requireAdmin';
 
 dotenv.config();
@@ -51,6 +52,9 @@ app.use((_req, res, next) => {
 });
 app.use(cors({ origin: (origin, callback) => callback(null, !origin || allowedOrigins.has(origin)) }));
 app.use(express.json());
+// Cookie transport is opt-in. Existing Bearer sessions keep working during migration.
+// CSRF checks happen before any authenticated mutation reaches the API routes.
+app.use(cookieSessionBridge(allowedOrigins));
 
 // Sensitive customer and staff data must not enter shared/browser HTTP caches.
 // Public product/catalog endpoints remain unaffected.
