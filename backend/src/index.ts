@@ -23,6 +23,7 @@ import path from 'path';
 import fs from 'fs';
 import { randomUUID } from 'node:crypto';
 import { getJwtSecret } from './config/auth';
+import { cookieSessionBridge, cookieAllowedOrigins } from './lib/cookieSession';
 import { requireAdmin, requireInventory } from './middleware/requireAdmin';
 
 dotenv.config();
@@ -35,11 +36,7 @@ const PORT = process.env.PORT || 4000;
 // All current frontend API calls are same-origin via Next.js rewrites.
 // Never expose a wildcard CORS policy when the preview URL is public.
 // Additional trusted cross-origin clients can be explicitly configured.
-const allowedOrigins = new Set([
-  'http://localhost:3000',
-  'http://127.0.0.1:3000',
-  ...(process.env.CORS_ALLOWED_ORIGINS || '').split(',').map(v => v.trim()).filter(Boolean),
-]);
+const allowedOrigins = cookieAllowedOrigins();
 app.disable('x-powered-by');
 app.use((_req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
@@ -51,6 +48,9 @@ app.use((_req, res, next) => {
 });
 app.use(cors({ origin: (origin, callback) => callback(null, !origin || allowedOrigins.has(origin)) }));
 app.use(express.json());
+// Cookie transport is opt-in. Existing Bearer sessions keep working during migration.
+// CSRF checks happen before any authenticated mutation reaches the API routes.
+app.use(cookieSessionBridge(allowedOrigins));
 
 // Sensitive customer and staff data must not enter shared/browser HTTP caches.
 // Public product/catalog endpoints remain unaffected.
