@@ -1,12 +1,12 @@
 "use client";
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { User, getCurrentUser, logoutUser } from '@/lib/auth';
+import { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
+import { User, clearLegacyAuthStorage, logoutUser } from '@/lib/auth';
 import { authAPI } from '@/lib/api';
 
 type AuthContextType = {
   user: User | null;
-  logout: () => void;
-  refreshUser: () => void;
+  logout: () => Promise<void>;
+  refreshUser: (confirmedUser: User) => void;
   isAdmin: boolean;
   isLoading: boolean;
 };
@@ -16,59 +16,48 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const sessionVersion = useRef(0);
 
   useEffect(() => {
     let mounted = true;
-    const restoreSession = async () => {
-      try {
-        // Some browser privacy modes block storage access. That should take the
-        // visitor to /login, never freeze the admin page on "checking".
-        const cached = getCurrentUser();
-        const token = localStorage.getItem('thanaya-token');
-        if (!cached || !token) {
-          if (mounted) setUser(null);
-          return;
-        }
-
-        const controller = new AbortController();
-        const timeout = window.setTimeout(() => controller.abort(), 10000);
-        try {
-          const current: User = await authAPI.me(controller.signal);
-          if (!mounted) return;
-          localStorage.setItem('thanaya-current-user', JSON.stringify(current));
-          setUser(current);
-        } catch (error: unknown) {
-          if (!mounted) return;
-          // Never trust a cached role when the server cannot verify this session.
-          // Keep credentials on transient errors so a page reload can retry,
-          // but fail closed in the interface until verification succeeds.
-          if (error instanceof Error && (error as Error & { status?: number }).status === 401) {
-            logoutUser();
-            setUser(null);
-          } else {
-            setUser(null);
-          }
-        } finally {
-          window.clearTimeout(timeout);
-        }
-      } catch {
-        // Failure to read localStorage must not strand the screen indefinitely.
-        if (mounted) setUser(null);
-      } finally {
-        if (mounted) setIsLoading(false);
-      }
+    const version = sessionVersion.current;
+    // Remove obsolete JavaScript-readable bearer credentials from upgrades.
+    // Authentication is always re-verified against the server cookie.
+    clearLegacyAuthStorage();
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 10000);
+    void authAPI.me(controller.signal).then((current: User) => {
+      if (mounted && version === sessionVersion.current) setUser(current);
+    }).catch(() => {
+      if (mounted && version === sessionVersion.current) setUser(null);
+    }).finally(() => {
+      window.clearTimeout(timeout);
+      if (mounted) setIsLoading(false);
+    });
+    return () => {
+      mounted = false;
+      controller.abort();
+      window.clearTimeout(timeout);
     };
-    void restoreSession();
-    return () => { mounted = false; };
   }, []);
 
-  const logout = () => {
-    logoutUser();
-    setUser(null);
+  const refreshUser = (confirmedUser: User) => {
+    // The user response comes directly from successful backend login/register.
+    // Do not trust unverified localStorage roles.
+    sessionVersion.current += 1;
+    setUser(confirmedUser);
+    setIsLoading(false);
   };
 
-  const refreshUser = () => {
-    setUser(getCurrentUser());
+  const logout = async () => {
+    try {
+      await logoutUser();
+      sessionVersion.current += 1;
+      setUser(null);
+    } catch {
+      // The HttpOnly cookie may still be valid: never display a false success.
+      window.alert('تعذّر تسجيل الخروج بسبب الاتصال. تحقق من الإنترنت وحاول مرة ثانية.');
+    }
   };
 
   const isAdmin = ['owner', 'admin', 'inventory', 'sales'].includes(user?.role || '');
