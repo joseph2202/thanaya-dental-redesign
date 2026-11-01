@@ -203,6 +203,18 @@ router.post('/', async (req, res) => {
   try {
     const principal = await principalFromRequest(req);
     if (!principal) return res.status(401).json({ error: 'سجل الدخول حتى تؤكد طلبك' });
+    // This shop has NO active online card processor. Never let a browser claim
+    // card payment or submit sensitive card fields as part of a COD order.
+    const input=req.body;
+    if (!input || typeof input !== 'object' || Array.isArray(input))
+      throw new OrderError(400,'بيانات الشراء غير صالحة');
+    if (input.paymentMethod !== undefined && input.paymentMethod !== 'cod')
+      throw new OrderError(409,'الدفع الإلكتروني غير مفعّل. اختر الدفع عند الاستلام فقط.');
+    const forbidden=['cardNumber','card_number','pan','cvv','cvc','securityCode',
+      'expiry','expiration','expiryDate','cardholderName','paymentToken',
+      'paymentIntentId','cardDetails','card','paymentStatus','paid','isPaid'];
+    if (forbidden.some(key=>Object.prototype.hasOwnProperty.call(input,key)))
+      throw new OrderError(400,'لا ترسل بيانات البطاقة أو حالة الدفع إلى ثنايا؛ الدفع بالبطاقة غير مفعّل');
     const lines = parseLines(req.body?.items);
     const customer = parseCustomer(req.body?.customer);
     const requestId = req.body?.requestId;
