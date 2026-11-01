@@ -96,20 +96,20 @@ async function chromiumCookieFlow(base) {
     const email = 'chrome.' + randomUUID() + '@test.invalid';
     const password = 'SafePassword#2026';
     const fill = async (selector, value, position = 0) => {
-      const code = "(() => { const inputs = document.querySelectorAll(" +
-        JSON.stringify(selector) + "); const el = inputs[" + position + "]; " +
-        "if (!el) throw Error('Missing input'); " +
-        "const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set; " +
-        "setter.call(el," + JSON.stringify(value) + "); " +
-        "el.dispatchEvent(new Event('input',{bubbles:true})); " +
-        "el.dispatchEvent(new Event('change',{bubbles:true})); return true; })()";
-      await evalJS(code);
+      // CDP's Input.insertText generates genuine browser input events,
+      // unlike directly setting DOM values with synthetic events.
+      await evalJS("(() => { const el = document.querySelectorAll(" +
+        JSON.stringify(selector) + ")[" + position + "]; if(!el)throw Error('Missing input'); el.focus(); return true; })()");
+      await send('Input.insertText', { text: value }, sid);
+      await pause(90);
     };
     await fill('form input[type=text]', 'Browser QA Customer');
     await fill('form input[type=email]', email);
     await fill('form input[type=tel]', '07812345678');
     await fill('form input[type=password]', password, 0);
     await fill('form input[type=password]', password, 1);
+    const readiness = await evalJS("(() => ({valid:document.querySelector('form').checkValidity(),fields:[...document.querySelectorAll('form input')].map(x=>({type:x.type,filled:x.value.length>0,valid:x.validity.valid}))}))()");
+    assert.ok(readiness.valid, 'registration form invalid: ' + JSON.stringify(readiness));
     await evalJS("document.querySelector('form button[type=submit]').click()");
     await checkEventually("location.pathname === '/account' && document.body.innerText.includes('أهلاً')",
       'new customer account', 25000);
