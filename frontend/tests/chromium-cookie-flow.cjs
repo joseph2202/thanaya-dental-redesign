@@ -96,7 +96,11 @@ async function chromiumCookieFlow(base) {
     // and whether the server rejected it, without recording submitted credentials.
     await evalJS("(() => { const original = window.fetch.bind(window); window.__thanayaAuthProbe = { calls: 0, status: null, error: null }; window.fetch = async (...args) => { const destination = String(args[0] instanceof Request ? args[0].url : args[0]); const isSignup = destination.includes('/api/auth/register'); if (isSignup) window.__thanayaAuthProbe.calls++; try { const response = await original(...args); if (isSignup) { window.__thanayaAuthProbe.status = response.status; if (!response.ok) { const body = await response.clone().json().catch(() => ({})); window.__thanayaAuthProbe.error = typeof body.error === 'string' ? body.error.slice(0,150) : null; } } return response; } catch (err) { if (isSignup) window.__thanayaAuthProbe.error = err instanceof Error ? err.message.slice(0,150) : 'network error'; throw err; } }; return true; })()");
     await checkEventually("document.querySelector('form input[type=email]') !== null", 'register form');
-    await pause(900);
+    // The server-rendered Next page displays before its React event handlers
+    // hydrate. Clicking too early submits the native HTML form (no API call).
+    // Wait for React's actual onSubmit listener rather than a guessed delay.
+    await checkEventually("(() => { const form=document.querySelector('form'); return !!form && Object.keys(form).some(k => k.startsWith('__reactProps') && typeof form[k]?.onSubmit === 'function'); })()", 'React registration form hydration', 24000);
+    console.log('PASS Chrome: React registration form hydrated before interaction');
     const email = 'chrome.' + randomUUID() + '@test.invalid';
     const password = 'SafePassword#2026';
     const fill = async (selector, value, position = 0) => {
