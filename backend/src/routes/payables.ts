@@ -69,7 +69,7 @@ function fail(res:import('express').Response,error:unknown,place:string){
 const selectInvoice={
  supplier:{select:{id:true,name:true,code:true}},
  payments:{orderBy:[{createdAt:'asc' as const},{id:'asc' as const}]}
-} as const;
+};
 
 router.use(requireAdmin);
 
