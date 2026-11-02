@@ -15,6 +15,7 @@ export default function SupplierPayablesPage(){
  const [invoices,setInvoices]=useState<SupplierInvoiceRecord[]>([]);
  const [selectedPurchase,setSelectedPurchase]=useState("");
  const [selectedInvoice,setSelectedInvoice]=useState("");
+ const [invoiceSearch,setInvoiceSearch]=useState("");
  const [receipt,setReceipt]=useState<ReceivingSnapshot|null>(null);
  const [loading,setLoading]=useState(true);
  const [busy,setBusy]=useState(false);
@@ -90,6 +91,20 @@ export default function SupplierPayablesPage(){
  const changedPayment=()=>{
   setConfirmPayment(false);paymentRequestId.current=null;setNotice("");
  };
+ async function lookupInvoices(e:FormEvent){
+  e.preventDefault();
+  setLoading(true);setError("");
+  try{
+   const data=await payablesAPI.list(undefined,invoiceSearch.trim());
+   setInvoices(data.invoices);
+   setSelectedInvoice(data.invoices[0]?.id||"");
+   setConfirmPayment(false);
+   paymentRequestId.current=null;
+   if(!data.invoices.length)setNotice("ما لگينا فاتورة مطابقة للبحث.");
+   else setNotice(data.matchedInvoices+" فاتورة مطابقة للبحث.");
+  }catch(err){setError(err instanceof Error?err.message:"تعذر البحث عن فاتورة");}
+  finally{setLoading(false);}
+ }
  async function addInvoice(e:FormEvent){
   e.preventDefault();setError("");setNotice("");
   const amount=Number(invoiceAmount);
@@ -228,6 +243,14 @@ export default function SupplierPayablesPage(){
     <section className="site-surface min-w-0 rounded-2xl p-4 sm:p-5">
      <h2 className="text-lg font-black">دفعات الموردين الموثّقة</h2>
      <p className="site-muted mt-1 text-sm">وثّق فقط دفعة تمت خارج الموقع فعلياً، ويُفضّل رقم الوصل أو التحويل.</p>
+     <form onSubmit={lookupInvoices} className="mt-4 flex flex-wrap items-end gap-2">
+      <label className="min-w-0 flex-1 text-sm font-bold">ابحث برقم الفاتورة أو اسم المورد
+       <input className={inputClass} maxLength={100} value={invoiceSearch}
+        placeholder="رقم الفاتورة أو المورد" disabled={busy||loading}
+        onChange={e=>setInvoiceSearch(e.target.value)}/>
+      </label>
+      <button className="site-btn site-btn-outline" type="submit" disabled={busy||loading}>بحث</button>
+     </form>
      <label className="mt-4 block text-sm font-bold">فاتورة المورد
       <select className={inputClass} value={selectedInvoice} disabled={loading||busy}
        onChange={e=>{setSelectedInvoice(e.target.value);changedPayment();}}>
