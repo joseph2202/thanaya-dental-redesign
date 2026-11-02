@@ -26,6 +26,8 @@ model User {
   receivedPurchases PurchaseReceipt[] @relation("PurchaseReceiptActor")
   createdSupplierInvoices SupplierInvoice[] @relation("SupplierInvoiceCreator")
   recordedSupplierPayments SupplierPayment[] @relation("SupplierPaymentActor")
+  recordedExpenses StoreExpense[] @relation("ExpenseActor")
+  cashAdjustments CashAdjustment[] @relation("CashAdjustmentActor")
 }
 
 // Address book is private to one user. Order address fields are immutable snapshots.
@@ -516,4 +518,37 @@ model OrderItemCostSnapshot {
 
   @@index([orderItemId])
   @@index([createdAt])
+}
+
+
+// ERP06: out-of-band expenses recorded as paid, not bank initiated.
+// Supplier merchandise invoices/payments remain in ERP04 to avoid double counting.
+model StoreExpense {
+ id        String @id @default(cuid())
+ requestId String @unique
+ actorId   String
+ category  String // rent | utilities | salaries | delivery | maintenance | marketing | other
+ method    String // cash | bank_transfer | other
+ amountIqd Int
+ reference String
+ note      String
+ createdAt DateTime @default(now())
+ actor     User @relation("ExpenseActor",fields:[actorId],references:[id],onDelete:Restrict)
+ @@index([createdAt])
+ @@index([category,createdAt])
+}
+
+// Owner-only append-only physical cash contributions or withdrawals.
+// Not a physical till count and not an automatically reconciled bank feed.
+model CashAdjustment {
+ id        String @id @default(cuid())
+ requestId String @unique
+ actorId   String
+ direction String // contribution | withdrawal
+ amountIqd Int
+ reference String
+ note      String
+ createdAt DateTime @default(now())
+ actor     User @relation("CashAdjustmentActor",fields:[actorId],references:[id],onDelete:Restrict)
+ @@index([createdAt])
 }
