@@ -46,6 +46,8 @@ jobs:
         run: python3 -m unittest discover -s backend/tests -p 'test_rehearse_erp_payables.py' -v
       - name: Guarded ERP04 activation checks on private backups
         run: python3 -m unittest discover -s backend/tests -p 'test_apply_erp_payables.py' -v
+      - name: Rehearse ERP05/06 costing and expense schema on SQLite copy
+        run: python3 -m unittest discover -s backend/tests -p 'test_rehearse_erp_cost_cash.py' -v
       - name: Install backend dependencies
         run: npm ci
         working-directory: backend
@@ -115,6 +117,12 @@ jobs:
           JWT_SECRET: ci-placeholder-not-used-by-live-store
       - name: Verify isolated Mac preview seed and never overwrite real database
         run: node tests/preview.integration.cjs
+        working-directory: backend
+        env:
+          NODE_ENV: test
+          JWT_SECRET: ci-placeholder-not-used-by-live-store
+      - name: ERP06 expense and private cash movement invariants
+        run: node tests/cash.integration.cjs
         working-directory: backend
         env:
           NODE_ENV: test

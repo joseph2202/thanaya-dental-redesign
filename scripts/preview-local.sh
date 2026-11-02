@@ -26,7 +26,9 @@ cleanup() {
   echo ""
   echo "Preview stopped; its disposable SQLite and uploads were deleted."
 }
-trap cleanup EXIT INT TERM
+trap cleanup EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
 
 export THANAYA_PREVIEW_ROOT="$PREVIEW_ROOT"
 export THANAYA_PREVIEW_ONLY=1
@@ -35,6 +37,9 @@ export DATABASE_URL="file:$PREVIEW_ROOT/preview.sqlite"
 export JWT_SECRET="$(node -e 'process.stdout.write(require("node:crypto").randomBytes(32).toString("hex"))')"
 export PORT=4108
 export NODE_ENV=development
+# Explicitly trust the *actual* preview frontend origins for cookie login + CSRF.
+# No wildcard, public host or cross-origin credentials. Real store config is untouched.
+export CORS_ALLOWED_ORIGINS=http://127.0.0.1:3108,http://localhost:3108
 export THANAYA_INTERNAL_API_ORIGIN=http://127.0.0.1:4108
 mkdir -p "$THANAYA_UPLOAD_DIR"
 
