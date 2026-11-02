@@ -213,6 +213,30 @@ async function main(){
    assert.equal(ledger.data.paidIqd,70000);
    assert.equal(ledger.data.remainingIqd,30000);
   });
+  await check('payable totals include older invoices beyond visible 200 entries',async()=>{
+   const extraOrder=await prisma.purchaseOrder.create({data:{
+    requestId:randomUUID(),supplierId:supplier.id,createdById:owner.id,status:'ordered',
+    lines:{create:[{productId:product.id,productName:product.name,quantity:201,unitCostIqd:1}]}
+   },include:{lines:true}});
+   await prisma.purchaseReceipt.create({data:{
+    purchaseOrderId:extraOrder.id,requestId:randomUUID(),actorId:owner.id,note:'Small invoices synthetic CI fixture',
+    lines:{create:[{purchaseOrderLineId:extraOrder.lines[0].id,quantity:201,unitCostIqd:1}]}
+   }});
+   await prisma.supplierInvoice.createMany({data:Array.from({length:201},(_,i)=>({
+    requestId:randomUUID(),supplierId:supplier.id,purchaseOrderId:extraOrder.id,
+    invoiceNumber:'HIST-'+String(i).padStart(4,'0'),amountIqd:1,
+    invoiceDate:'2026-11-02',dueDate:'2026-12-02',
+    note:'Synthetic historical invoice record',createdById:owner.id
+   }))});
+   const answer=await request(base,invoices,'GET',undefined,ownerToken);
+   assert.equal(answer.status,200,JSON.stringify(answer));
+   assert.equal(answer.data.invoices.length,200,'list shows only 200 newest entries');
+   assert.equal(answer.data.hasMore,true);
+   assert.equal(answer.data.totalInvoices,203);
+   assert.equal(answer.data.totals.invoicedIqd,300201);
+   assert.equal(answer.data.totals.paidIqd,270000);
+   assert.equal(answer.data.totals.remainingIqd,30201);
+  });
   console.log('THANAYA ERP04 supplier payables: '+passed+' isolated checks PASS');
  }finally{
   if(server&&server.exitCode===null)server.kill('SIGTERM');
