@@ -406,3 +406,27 @@ export const payablesAPI={
    method:'POST',body:JSON.stringify(input)
   })
 };
+
+export type CashSummary={
+ range:string;generatedAt:string;expenseCount:number;recordedExpenseIqd:number;
+ cashInIqd:number;cashOutIqd:number;netRecordedCashMovementIqd:number;
+ components:{customerCashCollectedIqd:number;customerCashRefundedIqd:number;
+  supplierCashPaidIqd:number;cashOperatingExpensesIqd:number;
+  ownerCashContributionsIqd:number;ownerCashWithdrawalsIqd:number};
+ warning:string
+};
+export type StoreExpenseRecord={
+ id:string;actorId:string;category:string;method:string;amountIqd:number;
+ reference:string;note:string;createdAt:string
+};
+export const cashAPI={
+ summary:(range:'7'|'30'|'90'|'all'):Promise<CashSummary> =>
+  apiRequest('/cash/summary?range='+range),
+ expenses:():Promise<StoreExpenseRecord[]>=>apiRequest('/cash/expenses'),
+ recordExpense:(input:{requestId:string;category:string;method:'cash'|'bank_transfer'|'other';
+  amountIqd:number;reference:string;note:string}):Promise<{id:string;alreadyRecorded:boolean}> =>
+  apiRequest('/cash/expenses',{method:'POST',body:JSON.stringify(input)}),
+ ownerMovement:(input:{requestId:string;direction:'contribution'|'withdrawal';
+  amountIqd:number;reference:string;note:string}):Promise<{id:string;alreadyRecorded:boolean}> =>
+  apiRequest('/cash/owner-movements',{method:'POST',body:JSON.stringify(input)})
+};
