@@ -42,6 +42,8 @@ jobs:
         run: python3 -m unittest discover -s backend/tests -p 'test_rehearse_erp_receiving.py' -v
       - name: Test guarded ERP03 activation on disposable verified backups
         run: python3 -m unittest discover -s backend/tests -p 'test_apply_erp_receiving.py' -v
+      - name: Rehearse ERP04 supplier payable schema on private SQLite
+        run: python3 -m unittest discover -s backend/tests -p 'test_rehearse_erp_payables.py' -v
       - name: Install backend dependencies
         run: npm ci
         working-directory: backend
