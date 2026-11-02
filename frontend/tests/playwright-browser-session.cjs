@@ -209,6 +209,42 @@ async function playwrightBrowserSession(base, { ownerEmail, ownerPassword, recei
     assert.equal(afterPayment.body.status,'partial');
     console.log('PASS Playwright: owner supplier invoice and partial payable from real admin forms');
 
+    // ERP05 and ERP06: real admin browser pages, not just back-end JSON.
+    await owner.goto(base + '/admin/reports');
+    await owner.getByRole('heading', {
+      name:'تكلفة البضاعة وهامش المبيعات الموثّق'
+    }).waitFor({ timeout: 18000 });
+    console.log('PASS Playwright: private merchandise COGS coverage is visible on reports screen');
+
+    await owner.goto(base + '/admin/cash');
+    await owner.getByRole('heading', { name:'المصاريف وحركة الصندوق' }).waitFor({ timeout: 18000 });
+    const expenseForm=owner.locator('form').first();
+    await expenseForm.getByRole('spinbutton', { name:'المبلغ بالدينار العراقي' }).fill('25000');
+    await expenseForm.getByRole('textbox', { name:'مرجع الوصل أو المصروف' })
+      .fill('CI-CASH-EXPENSE-001');
+    await expenseForm.getByRole('textbox', { name:'وصف المصروف' })
+      .fill('Browser test paid operating expense');
+    await expenseForm.getByRole('button', { name:'مراجعة المصروف' }).click();
+    await expenseForm.getByRole('button', { name:'تأكيد حفظ المصروف' }).click();
+    await owner.getByText('تم حفظ المصروف المدفوع فعلياً.').waitFor({ timeout: 16000 });
+    const drawerForm=owner.locator('form').nth(1);
+    await drawerForm.getByRole('spinbutton', { name:'المبلغ بالدينار العراقي' }).fill('50000');
+    await drawerForm.getByRole('textbox', { name:'مرجع الحركة' }).fill('CI-OWNER-CASH-001');
+    await drawerForm.getByRole('textbox', { name:'سبب الحركة' })
+      .fill('Browser test owner cash contribution');
+    await drawerForm.getByRole('button', { name:'مراجعة حركة النقد' }).click();
+    await drawerForm.getByRole('button', { name:'تأكيد حركة النقد' }).click();
+    await owner.getByText('تم توثيق حركة النقد الخاصة بالمالك.').waitFor({ timeout: 16000 });
+    const cashReport=await owner.evaluate(async()=>{
+      const response=await fetch('/api/cash/summary?range=all');
+      return {status:response.status,data:await response.json()};
+    });
+    assert.equal(cashReport.status,200);
+    assert.equal(cashReport.data.recordedExpenseIqd,25000);
+    assert.equal(cashReport.data.cashInIqd,50000);
+    assert.equal(cashReport.data.cashOutIqd,25000);
+    assert.equal(cashReport.data.netRecordedCashMovementIqd,25000);
+    console.log('PASS Playwright: owner expense and cash-adjustment forms update real summary');
     await owner.goto(base + '/admin');
     await owner.getByRole('button', { name: 'خروج', exact: true }).first().click();
     await owner.waitForURL(/\/login(?:\?|$)/, { timeout: 15000 });
