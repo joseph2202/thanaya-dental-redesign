@@ -6,7 +6,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import {
   LayoutDashboard,Package,ShoppingBag,Users,Shapes,TicketPercent,Settings,Truck,
-  ArrowRight,LogOut,Bell,ChartNoAxesCombined,HandCoins,CreditCard,Warehouse,PackageCheck,ReceiptText,Menu,X,ExternalLink
+  ArrowRight,LogOut,Bell,ChartNoAxesCombined,HandCoins,CreditCard,Warehouse,PackageCheck,ReceiptText,Wallet,Menu,X,ExternalLink
 } from 'lucide-react';
 import {useAuth} from '@/context/AuthContext';
 import ThemeToggle from '@/components/theme/ThemeToggle';
@@ -21,6 +21,7 @@ const navItems = [
   {href:'/admin/procurement',label:'الموردون والمشتريات',icon:Warehouse},
   {href:'/admin/receiving',label:'استلام البضاعة',icon:PackageCheck},
   {href:'/admin/payables',label:'فواتير الموردين والذمم',icon:ReceiptText},
+  {href:'/admin/cash',label:'المصاريف وحركة الصندوق',icon:Wallet},
   {href:'/notifications',label:'الإشعارات',icon:Bell},
   {href:'/admin/users',label:'المستخدمون',icon:Users},
   {href:'/admin/categories',label:'التصنيفات',icon:Shapes},
