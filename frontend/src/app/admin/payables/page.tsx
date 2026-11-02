@@ -35,10 +35,10 @@ export default function SupplierPayablesPage(){
  const invoiceRequestId=useRef<string|null>(null);
  const paymentRequestId=useRef<string|null>(null);
 
- const refresh=useCallback(async()=>{
+ const refresh=useCallback(async(search="")=>{
   setLoading(true);setError("");
   try{
-   const [data,orders]=await Promise.all([payablesAPI.list(),procurementAPI.drafts()]);
+   const [data,orders]=await Promise.all([payablesAPI.list(undefined,search),procurementAPI.drafts()]);
    setInvoices(data.invoices);
    const eligible=orders.filter(order=>order.status==="ordered");
    setPurchases(eligible);
@@ -123,6 +123,7 @@ export default function SupplierPayablesPage(){
     invoiceNumber:invoiceNumber.trim(),invoiceDate,dueDate,
     amountIqd:amount,note:invoiceNote.trim()
    });
+   setInvoiceSearch("");
    await refresh();
    setSelectedInvoice(result.id);
    setInvoiceNumber("");setInvoiceAmount("");setInvoiceNote("");
@@ -149,7 +150,7 @@ export default function SupplierPayablesPage(){
     requestId:paymentRequestId.current,amountIqd:amount,
     method:paymentMethod,reference:paymentReference.trim()
    });
-   await refresh();
+   await refresh(invoiceSearch.trim());
    setPaymentAmount("");setPaymentReference("");setConfirmPayment(false);
    paymentRequestId.current=null;
    setNotice(result.alreadyProcessed?"الدفعة كانت مسجلة مسبقاً.":"تم توثيق الدفعة التي سُددت خارج الموقع.");
@@ -170,7 +171,7 @@ export default function SupplierPayablesPage(){
     </div>
     <div className="flex flex-wrap gap-2">
      <Link href="/admin/receiving" className="site-btn site-btn-outline site-btn-sm">استلام البضاعة</Link>
-     <button type="button" onClick={()=>void refresh()} disabled={busy||loading} className="site-btn site-btn-outline site-btn-sm"><RefreshCw size={16}/> تحديث</button>
+     <button type="button" onClick={()=>void refresh(invoiceSearch.trim())} disabled={busy||loading} className="site-btn site-btn-outline site-btn-sm"><RefreshCw size={16}/> تحديث</button>
     </div>
    </header>
    {error&&<p role="alert" className="rounded-xl border border-red-300 bg-red-50 p-4 text-sm font-bold text-red-900">{error}</p>}
