@@ -15,6 +15,7 @@
     "test:procurement": "prisma generate && npm run build && node tests/procurement.integration.cjs",
     "test:receiving": "prisma generate && npm run build && node tests/receiving.integration.cjs",
     "test:payables": "prisma generate && npm run build && node tests/payables.integration.cjs",
+    "test:cogs": "prisma generate && npm run build && node tests/cogs.integration.cjs",
     "test:roles": "prisma generate && npm run build && node tests/roles.integration.cjs",
     "test:auth": "prisma generate && npm run build && node tests/auth.integration.cjs",
     "test:settings": "prisma generate && npm run build && node tests/settings.integration.cjs",

@@ -256,8 +256,16 @@ export type SalesReport={
  lowStock:{id:string;name:string;stock:number}[];
  trendDays:number;trend:{date:string;orders:number;value:number}[];
 };
+export type CostCoverageReport={
+ range:string;generatedAt:string;eligibleDelivered:number;
+ completeCostOrders:number;missingCostOrders:number;returnedDeliveredOrders:number;
+ unreturnedDeliveredOrders:number;coveragePercent:number;
+ knownCostIqd:number;coveredSalesIqd:number;knownMerchandiseMarginIqd:number;
+ complete:boolean;warning:string
+};
 export const reportsAPI={
- overview:(range:'7'|'30'|'90'|'all'):Promise<SalesReport>=>apiRequest('/reports/overview?range='+range)
+ overview:(range:'7'|'30'|'90'|'all'):Promise<SalesReport>=>apiRequest('/reports/overview?range='+range),
+ costs:(range:'7'|'30'|'90'|'all'):Promise<CostCoverageReport>=>apiRequest('/reports/costs?range='+range)
 };
 
 export type CartQuote={items:{productId:string;quantity:number;product:{id:string;name:string;price:number;stock:number;availableStock:number;saleUnit:string|null}|null;available:boolean}[];subtotal:number;canCheckout:boolean};

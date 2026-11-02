@@ -2,7 +2,7 @@
 import {useCallback,useEffect,useState} from 'react';
 import Link from 'next/link';
 import AdminLayout from '@/components/admin/AdminLayout';
-import {reportsAPI,exportsAPI,SalesReport} from '@/lib/api';
+import {reportsAPI,exportsAPI,SalesReport,CostCoverageReport} from '@/lib/api';
 import {ArrowUpRight,Package,ShoppingCart,TrendingUp,AlertTriangle,FileSpreadsheet} from 'lucide-react';
 
 const money=(v:number)=>v.toLocaleString('en-US')+' د.ع';
@@ -18,7 +18,8 @@ function Metric({label,value,note}:{label:string;value:string;note?:string}){
 export default function Reports(){
  const [range,setRange]=useState<'7'|'30'|'90'|'all'>('30'),[report,setReport]=useState<SalesReport|null>(null),[busy,setBusy]=useState(true),[error,setError]=useState('');
  const [exportBusy,setExportBusy]=useState(false);
- const load=useCallback(async()=>{setBusy(true);setError('');try{setReport(await reportsAPI.overview(range))}catch(e){setError(e instanceof Error?e.message:'تعذر تحميل التقرير')}finally{setBusy(false)}},[range]);
+ const [costs,setCosts]=useState<CostCoverageReport|null>(null);
+ const load=useCallback(async()=>{setBusy(true);setError('');try{const [sales,cost]=await Promise.all([reportsAPI.overview(range),reportsAPI.costs(range)]);setReport(sales);setCosts(cost)}catch(e){setError(e instanceof Error?e.message:'تعذر تحميل التقرير')}finally{setBusy(false)}},[range]);
  useEffect(()=>{load()},[load]);
  const stats=report?.stats;
  const maxValue=Math.max(1,...(report?.trend.map(x=>x.value)??[0]));
@@ -48,6 +49,21 @@ export default function Reports(){
     <Metric label="منتجات مخزونها 5 أو أقل" value={stats.lowStockProducts.toLocaleString()}/>
     <Metric label="منتجات نفد مخزونها" value={stats.outOfStockProducts.toLocaleString()}/>
    </div>
+   {costs&&<section className="mb-6 rounded-2xl border border-brand/25 bg-paper2/30 p-5">
+    <div className="flex flex-wrap items-center justify-between gap-2">
+     <h2 className="text-lg font-black">تكلفة البضاعة وهامش المبيعات الموثّق</h2>
+     <span className="rounded-full border border-brand/30 px-3 py-1 text-xs font-bold text-brand">
+      تغطية تكلفة {costs.coveragePercent}%
+     </span>
+    </div>
+    <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+     <Metric label="مبيعات البضاعة المغطاة بتكلفة" value={money(costs.coveredSalesIqd)} note="لا تشمل أجور التوصيل"/>
+     <Metric label="تكلفة البضاعة الموثّقة" value={money(costs.knownCostIqd)} note="مسجلة لحظة إنشاء الطلب"/>
+     <Metric label="هامش البضاعة للطلبات المغطاة" value={money(costs.knownMerchandiseMarginIqd)} note="ليس صافي ربح المتجر"/>
+    </div>
+    <p className="site-muted mt-4 text-sm leading-7">تم احتساب {costs.completeCostOrders} طلبات مسلّمة كاملة التكلفة من أصل {costs.unreturnedDeliveredOrders} بدون مرتجعات. توجد {costs.missingCostOrders} طلبات مجهولة التكلفة و{costs.returnedDeliveredOrders} مستبعدة بسبب مرتجعات.</p>
+    <p className="mt-2 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-xs leading-6 text-amber-950">{costs.warning}</p>
+   </section>}
    <div className="grid gap-5 lg:grid-cols-2">
     <section className="rounded-2xl border border-brand/20 bg-white p-5">
      <div className="mb-4 flex items-center gap-2"><TrendingUp size={20} className="text-brand"/><h2 className="text-lg font-black">قيمة الطلبات المُسلّمة يومياً</h2></div>
@@ -76,7 +92,7 @@ export default function Reports(){
      <Link className="mt-4 inline-flex items-center gap-1 text-sm font-bold text-brand underline" href="/admin/products">إدارة المخزون <ArrowUpRight size={16}/></Link>
     </section>
    </div>
-   <p className="mt-6 text-xs text-neutral-500">آخر تحديث: {new Date(report.generatedAt).toLocaleString('ar-IQ')}. لا يمكن احتساب الأرباح الفعلية قبل تسجيل تكلفة شراء المنتجات، ولا تأكيد الإيرادات النقدية قبل إضافة متابعة التحصيل.</p>
+   <p className="mt-6 text-xs text-neutral-500">آخر تحديث: {new Date(report.generatedAt).toLocaleString('ar-IQ')}. هامش البضاعة يظهر فقط للطلبات ذات تكلفة موثقة، ولا يعادل صافي الربح أو التحصيل النقدي.</p>
   </div>}
  </AdminLayout>;
 }

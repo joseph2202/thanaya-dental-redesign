@@ -115,4 +115,81 @@ router.get('/overview', requireAdmin, async (req, res) => {
   }
 });
 
+
+// ERP05 private cost coverage for completed, unreturned delivered orders.
+// Never backfill legacy COGS using current Product.purchaseCostIqd.
+// Excluding any order with merchandise returns is conservative: its net
+// revenue and matching COGS need a dedicated refund/return reconciliation.
+router.get('/costs',requireAdmin,async(req,res)=>{
+ const range=req.query.range===undefined?'30':req.query.range;
+ if(typeof range!=='string'||!['7','30','90','all'].includes(range)||
+    Object.keys(req.query).some(key=>key!=='range'))
+  return res.status(400).json({error:'فترة تقرير التكلفة غير صالحة'});
+ try{
+  const since=range==='all'?undefined:new Date(Date.now()-Number(range)*DAY_MS);
+  const where:Prisma.OrderWhereInput={
+   status:'delivered',...(since?{createdAt:{gte:since}}:{})
+  };
+  let eligibleDelivered=0,completeCostOrders=0,missingCostOrders=0,
+      returnedDeliveredOrders=0,knownCostIqd=0,coveredSalesIqd=0;
+  // Paged rather than a silently truncated "all time" estimate.
+  let cursor:string|undefined;
+  while(true){
+   const batch=await prisma.order.findMany({
+    where,orderBy:{id:'asc'},take:150,
+    ...(cursor?{skip:1,cursor:{id:cursor}}:{}),
+    select:{
+     id:true,total:true,shippingFee:true,
+     items:{select:{
+      id:true,quantity:true,
+      costSnapshots:{select:{quantity:true,unitCostIqd:true}},
+      returnLines:{select:{id:true}}
+     }}
+    }
+   });
+   if(!batch.length)break;
+   for(const order of batch){
+    eligibleDelivered++;
+    // If any merchandise return happened, omit the entire order from
+    // comparable margin until refund / return revenue recognition exists.
+    if(order.items.some(item=>item.returnLines.length>0)){
+     returnedDeliveredOrders++;continue;
+    }
+    let cost=0,complete=true;
+    for(const item of order.items){
+     const captured=item.costSnapshots.reduce((n,x)=>n+x.quantity,0);
+     if(!item.costSnapshots.length||captured!==item.quantity||
+        item.costSnapshots.some(x=>x.unitCostIqd===null||x.unitCostIqd<0)){
+      complete=false;break;
+     }
+     for(const row of item.costSnapshots)cost+=row.quantity*row.unitCostIqd!;
+    }
+    const merchandiseRevenue=order.total-(order.shippingFee||0);
+    if(!complete||!Number.isSafeInteger(cost)||!Number.isSafeInteger(merchandiseRevenue)||
+       merchandiseRevenue<0){missingCostOrders++;continue;}
+    completeCostOrders++;knownCostIqd+=cost;coveredSalesIqd+=merchandiseRevenue;
+   }
+   cursor=batch[batch.length-1].id;
+   if(batch.length<150)break;
+  }
+  const safe=[eligibleDelivered,completeCostOrders,knownCostIqd,coveredSalesIqd].every(Number.isSafeInteger);
+  if(!safe)throw new Error('COGS totals exceed safe integer limits');
+  const unreturned=eligibleDelivered-returnedDeliveredOrders;
+  res.setHeader('Cache-Control','no-store');
+  return res.json({
+   range,generatedAt:new Date().toISOString(),
+   eligibleDelivered,completeCostOrders,missingCostOrders,returnedDeliveredOrders,
+   unreturnedDeliveredOrders:unreturned,
+   coveragePercent:unreturned?Math.round(completeCostOrders/unreturned*100):0,
+   knownCostIqd,coveredSalesIqd,
+   knownMerchandiseMarginIqd:coveredSalesIqd-knownCostIqd,
+   complete:missingCostOrders===0&&returnedDeliveredOrders===0,
+   warning:'هامش البضاعة للطلبات المسلّمة ذات تكلفة موثقة فقط. لا يشمل مصاريف التشغيل والتوصيل وعمولات التحصيل، ولا المرتجعات أو الطلبات القديمة مجهولة التكلفة. ليس صافي الربح.'
+  });
+ }catch(error){
+  console.error('private cost coverage report',error);
+  res.status(500).json({error:'تعذر استخراج ملخص تكلفة البضاعة'});
+ }
+});
+
 export default router;

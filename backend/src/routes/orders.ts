@@ -247,11 +247,11 @@ router.post('/', async (req, res) => {
       }
       const products = await tx.product.findMany({
         where: { id: { in: lines.map(item => item.productId) }, published: true },
-        select: { id: true, name: true, price: true, lotTracking:true }
+        select: { id: true, name: true, price: true, lotTracking:true, purchaseCostIqd:true }
       });
       const byId = new Map(products.map(product => [product.id, product]));
       let total = 0;
-      const allocations:{productId:string;lotId:string;quantity:number}[]=[];
+      const allocations:{productId:string;lotId:string;quantity:number;unitCostIqd:number|null}[]=[];
       const iraqDate=()=>{
         const parts=new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Baghdad',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());
         const at=(key:string)=>parts.find(p=>p.type===key)?.value||'';
@@ -285,7 +285,7 @@ router.post('/', async (req, res) => {
               where:{id:lot.id,stock:{gte:taken}},data:{stock:{decrement:taken}}
             });
             if(changed.count!==1)throw new OrderError(409,'مخزون التشغيلة تغير؛ حدّث السلة');
-            allocations.push({productId:item.productId,lotId:lot.id,quantity:taken});
+            allocations.push({productId:item.productId,lotId:lot.id,quantity:taken,unitCostIqd:lot.purchaseCostIqd});
             remaining-=taken;
           }
           if(remaining>0)throw new OrderError(409,`مخزون "${product.name}" الصالح للبيع غير كافٍ؛ توجد تشغيلات منتهية أو غير كافية`);
@@ -341,13 +341,30 @@ router.post('/', async (req, res) => {
         },
         include: { items: true }
       });
+      // Freeze cost evidence atomically with stock reservation. It stays in a
+      // PRIVATE relation, never serialized in the customer-facing order JSON.
+      const itemMap=new Map(created.items.map(i=>[i.productId,i.id]));
+      const costEvidence:{orderItemId:string;lotId?:string;quantity:number;
+        unitCostIqd:number|null;source:string}[]=[];
+      for(const line of lines){
+        const product=byId.get(line.productId)!;
+        const orderItemId=itemMap.get(line.productId)!;
+        if(!product.lotTracking){
+          costEvidence.push({orderItemId,quantity:line.quantity,
+            unitCostIqd:product.purchaseCostIqd,source:'product_reference'});
+        }
+      }
       // Save exact lots per order line, so cancellations/returns restore the right batch.
       if(allocations.length){
-        const itemMap=new Map(created.items.map(i=>[i.productId,i.id]));
         await tx.orderItemLot.createMany({data:allocations.map(a=>({
           orderItemId:itemMap.get(a.productId)!,lotId:a.lotId,quantity:a.quantity
         }))});
+        costEvidence.push(...allocations.map(a=>({
+          orderItemId:itemMap.get(a.productId)!,lotId:a.lotId,quantity:a.quantity,
+          unitCostIqd:a.unitCostIqd,source:'tracked_lot'
+        })));
       }
+      if(costEvidence.length)await tx.orderItemCostSnapshot.createMany({data:costEvidence});
       const staff=await tx.user.findMany({where:{role:{in:['owner','admin','sales']}},select:{id:true}});
       if(staff.length)await tx.notification.createMany({data:staff.map(u=>({
         recipientId:u.id,kind:'new_order',title:'طلب جديد',message:'وصل طلب من '+customer.name+' بقيمة '+total.toLocaleString('en-US')+' د.ع',orderId:created.id
