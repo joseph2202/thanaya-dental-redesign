@@ -135,12 +135,12 @@ model OrderItem {
   productId String
   quantity  Int
   price     Int
-  unitCostIqd Int? // Immutable cost at checkout; null if legacy/unknown or lot-tracked item
   productName String? // immutable product-name snapshot at checkout; null for legacy orders
   order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
   product   Product @relation(fields: [productId], references: [id])
   lotAllocations OrderItemLot[]
   returnLines OrderReturnLine[]
+  costSnapshots OrderItemCostSnapshot[]
 }
 
 // Each physical batch belongs to one product. Expiry is a date-only YYYY-MM-DD
@@ -168,7 +168,6 @@ model OrderItemLot {
   orderItemId String
   lotId       String
   quantity    Int
-  unitCostIqd Int? // Exact lot cost at allocation, never use mutable ProductLot later
   orderItem   OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Restrict)
   lot         ProductLot @relation(fields: [lotId], references: [id], onDelete: Restrict)
 
@@ -498,4 +497,23 @@ model SupplierPayment {
   @@unique([invoiceId,requestId])
   @@index([invoiceId,createdAt])
   @@index([actorId,createdAt])
+}
+
+
+// ERP05: private, immutable inventory cost evidence captured atomically at
+// checkout. A separate relation prevents cost amounts leaking to customer
+// order responses that include OrderItem. Never derive old costs from today's
+// mutable product prices. A null unitCostIqd means genuinely unknown cost.
+model OrderItemCostSnapshot {
+  id          String   @id @default(cuid())
+  orderItemId String
+  lotId       String?  // The exact checkout allocation; null for non-lot product
+  quantity    Int
+  unitCostIqd Int?
+  source      String   // product_reference | tracked_lot
+  createdAt   DateTime @default(now())
+  orderItem   OrderItem @relation(fields:[orderItemId],references:[id],onDelete:Restrict)
+
+  @@index([orderItemId])
+  @@index([createdAt])
 }
