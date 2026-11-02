@@ -121,6 +121,10 @@ async function main(){
   await check('read-only receipt details show exact remainder and no forged payment',async()=>{
    const response=await req(base,route,'GET',undefined,own);
    assert.equal(response.status,200,JSON.stringify(response));
+   assert.equal(response.data.lines.find(x=>x.id===plainLine.id).lotTracking,false,
+    'plain inventory does not require batch fields in admin receiving UI');
+   assert.equal(response.data.lines.find(x=>x.id===batchLine.id).lotTracking,true,
+    'batch tracked inventory must show batch code and expiry inputs');
    assert.equal(response.data.receiptRevision,1);
    assert.equal(response.data.complete,false);
    assert.equal(response.data.lines.find(x=>x.id===plainLine.id).remainingQuantity,3);
