@@ -374,13 +374,17 @@ export type SupplierInvoiceRecord={
  payments:SupplierPaymentEvent[]
 };
 export type SupplierPayablesList={
- invoices:SupplierInvoiceRecord[];limit:number;totalInvoices:number;hasMore:boolean;
+ invoices:SupplierInvoiceRecord[];limit:number;totalInvoices:number;matchedInvoices:number;hasMore:boolean;
  totals:{invoicedIqd:number;paidIqd:number;remainingIqd:number};
  explanation:string
 };
 export const payablesAPI={
- list:(supplierId?:string):Promise<SupplierPayablesList>=>apiRequest('/payables/invoices'+
-  (supplierId?'?'+new URLSearchParams({supplierId}).toString():'')),
+ list:(supplierId?:string,search?:string):Promise<SupplierPayablesList>=>{
+  const query=new URLSearchParams();
+  if(supplierId)query.set('supplierId',supplierId);
+  if(search)query.set('search',search);
+  return apiRequest('/payables/invoices'+(query.size?'?'+query.toString():''));
+ },
  get:(id:string):Promise<SupplierInvoiceRecord> =>
   apiRequest('/payables/invoices/'+encodeURIComponent(id)),
  create:(input:{requestId:string;purchaseOrderId:string;invoiceNumber:string;
