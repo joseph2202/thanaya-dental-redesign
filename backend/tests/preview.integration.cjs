@@ -31,6 +31,9 @@ async function main(){
   assert.equal(await db.supplierInvoice.count(),1);
   assert.equal(await db.supplierPayment.count(),1);
   assert.equal(await db.orderItemCostSnapshot.count(),2);
+  assert.equal(await db.storeExpense.count(),1);
+  assert.equal(await db.cashAdjustment.count(),1);
+  assert.equal(await db.orderPaymentEvent.count(),1);
   const bad=spawnSync(process.execPath,['scripts/seed_isolated_preview.cjs'],
     {cwd,env:{...env,THANAYA_PREVIEW_ONLY:'0'},encoding:'utf8',timeout:15000});
   assert.notEqual(bad.status,0,'must reject non-preview execution');
