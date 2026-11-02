@@ -217,9 +217,9 @@ export default function ProcurementPage(){
 
   <header className="mb-6 flex flex-wrap items-end justify-between gap-4">
    <div>
-    <span className="site-eyebrow">THANAYA / BUSINESS OPERATIONS / 01</span>
+    <span className="site-eyebrow">إدارة الموردين والمخزون</span>
     <h1 className="mt-2 text-3xl font-black sm:text-4xl">الموردون والمشتريات</h1>
-    <p className="site-muted mt-2 text-sm leading-7">نظام ثنايا للموردين ومسودات الشراء والاعتماد وتوثيق الإرسال اليدوي، بدون تغيير المخزون أو الحسابات.</p>
+    <p className="site-muted mt-2 text-sm leading-7">أنشئ أوامر الشراء، اعتمدها وتابع إرسالها، ثم سجّل البضاعة الواصلة من صفحة الاستلام.</p>
    </div>
    <div className="flex flex-wrap gap-2">
     <Link className="site-btn site-btn-primary" href="/admin/receiving">استلام البضاعة</Link>
@@ -230,8 +230,8 @@ export default function ProcurementPage(){
   </header>
   <div className="mb-5 flex items-start gap-3 rounded-2xl border border-brand/35 bg-paper2/40 p-4 text-sm">
    <ShieldCheck size={21} className="mt-1 shrink-0 text-brand"/>
-   <div><strong>نظام مشتريات آمن — المرحلة الأولى</strong>
-    <p className="site-muted mt-1 leading-7">مسودات الشراء تُراجع ويعتمدها صاحب ثنايا؛ توثيق إرسال الطلب لا يرسل رسالة تلقائياً ولا يضيف بضاعة أو التزامات مالية.</p></div>
+   <div><strong>قبل تسجيل الاستلام</strong>
+    <p className="site-muted mt-1 leading-7">اعتماد أمر الشراء وتوثيق إرساله لا يغيّر المخزون. الكميات تتحدث فقط بعد تسجيل سند الاستلام الفعلي. فواتير الموردين والمدفوعات تُسجّل بصورة مستقلة لاحقاً.</p></div>
   </div>
   <div className="grid gap-3 sm:grid-cols-3">
    {[
