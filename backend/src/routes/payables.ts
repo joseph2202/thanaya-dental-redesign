@@ -80,18 +80,28 @@ router.get('/invoices',async(req,res)=>{
   if(Object.keys(req.query).some(k=>k!=='supplierId')||
    (req.query.supplierId!==undefined&&!validId(req.query.supplierId)))
    throw new PayableError(400,'معرّف فلتر المورد غير صالح');
-  const invoices=await prisma.supplierInvoice.findMany({
-   where:req.query.supplierId?{supplierId:req.query.supplierId as string}:{},
-   include:selectInvoice,orderBy:[{createdAt:'desc'},{id:'desc'}],take:200
-  });
+  const supplierId=req.query.supplierId as string|undefined;
+  const where:Prisma.SupplierInvoiceWhereInput=supplierId?{supplierId}:{};
+  const [invoices,totalInvoices,invoiced,payments]=await Promise.all([
+   prisma.supplierInvoice.findMany({
+    where,include:selectInvoice,orderBy:[{createdAt:'desc'},{id:'desc'}],take:200
+   }),
+   prisma.supplierInvoice.count({where}),
+   prisma.supplierInvoice.aggregate({where,_sum:{amountIqd:true}}),
+   prisma.supplierPayment.aggregate({
+    where:supplierId?{invoice:{supplierId}}:{},_sum:{amountIqd:true}
+   })
+  ]);
   const rows=invoices.map(snapshot);
+  const invoicedIqd=invoiced._sum.amountIqd||0;
+  const paidIqd=payments._sum.amountIqd||0;
+  if(!Number.isSafeInteger(invoicedIqd)||!Number.isSafeInteger(paidIqd))
+   throw new PayableError(409,'مجموع الذمم يتجاوز نطاق الأرقام المدعوم');
   res.setHeader('Cache-Control','no-store');
   return res.json({
-   invoices:rows,limit:200,
-   totals:{invoicedIqd:rows.reduce((n,v)=>n+v.amountIqd,0),
-    paidIqd:rows.reduce((n,v)=>n+v.paidIqd,0),
-    remainingIqd:rows.reduce((n,v)=>n+v.remainingIqd,0)},
-   explanation:'هذه الذمم لفواتير الموردين المسجلة فقط، وليست تقديراً لكل البضاعة المستلمة'
+   invoices:rows,limit:200,totalInvoices,hasMore:totalInvoices>rows.length,
+   totals:{invoicedIqd,paidIqd,remainingIqd:invoicedIqd-paidIqd},
+   explanation:'المجاميع تشمل كل الفواتير المسجلة؛ القائمة تعرض أحدث 200 فاتورة فقط'
   });
  }catch(e){return fail(res,e,'list invoices');}
 });
