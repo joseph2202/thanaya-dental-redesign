@@ -63,7 +63,7 @@ async function main(){
   invoiceId:invoice.id,requestId:randomUUID(),actorId:owner.id,
   method:'bank_transfer',amountIqd:200000,reference:'DEMO-BANK-TRANSFER-001'
  }});
- await prisma.order.create({data:{
+ const deliveredOrder=await prisma.order.create({data:{
   userId:customer.id,customerName:customer.name,
   customerPhone:customer.phone,customerAddress:'عنوان تجريبي — البصرة',
   customerCity:'البصرة',status:'delivered',
@@ -80,6 +80,19 @@ async function main(){
   customerPhone:'07800000001',customerAddress:'البصرة',customerCity:'البصرة',
   status:'delivered',total:45000,subtotal:45000,
   items:{create:[{productId:products[1].id,productName:products[1].name,quantity:1,price:45000}]}
+ }});
+ await prisma.storeExpense.create({data:{
+  requestId:randomUUID(),actorId:owner.id,category:'utilities',method:'cash',
+  amountIqd:25000,reference:'DEMO-ELECTRICITY-2026',note:'مصروف كهرباء تجريبي'
+ }});
+ await prisma.cashAdjustment.create({data:{
+  requestId:randomUUID(),actorId:owner.id,direction:'contribution',
+  amountIqd:50000,reference:'DEMO-OWNER-OPENING-CASH',note:'نقد تجريبي أضافه المالك'
+ }});
+ await prisma.orderPaymentEvent.create({data:{
+  orderId:deliveredOrder.id,requestId:randomUUID(),actorId:owner.id,
+  kind:'collection',method:'cash',amountIqd:60000,
+  note:'تحصيل نقدي تجريبي — جزء من الطلب'
  }});
  console.log('');
  console.log('==========================================');
