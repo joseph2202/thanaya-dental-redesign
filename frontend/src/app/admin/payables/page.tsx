@@ -174,7 +174,7 @@ export default function SupplierPayablesPage(){
     })}
    </section>
    <p className="site-muted flex items-start gap-2 text-xs leading-6"><ShieldCheck size={16} className="mt-1 shrink-0"/>
-    الأرقام تخص الفواتير المُسجّلة هنا فقط (بحد عرض 200 فاتورة). لا يعني استلام بضاعة وحده وجود فاتورة أو دفعة، ولا يُحوّل النظام أموالاً بنفسه.
+    المجاميع تشمل جميع فواتير الموردين المسجلة؛ قائمة الاختيار تعرض أحدث 200 فقط. استلام البضاعة وحده لا ينشئ فاتورة ولا يثبت دفع مبلغ. ولا يُحوّل النظام أموالاً بنفسه.
    </p>
 
    <div className="grid gap-5 xl:grid-cols-2">
