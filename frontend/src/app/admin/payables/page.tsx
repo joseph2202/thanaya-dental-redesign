@@ -9,7 +9,6 @@ import {payablesAPI,procurementAPI,receivingAPI,
 
 const iqd=(value:number)=>value.toLocaleString("en-US")+" د.ع";
 const inputClass="site-input mt-1 w-full min-w-0 px-3 py-2";
-const day=()=>new Date().toISOString().slice(0,10);
 
 export default function SupplierPayablesPage(){
  const [purchases,setPurchases]=useState<PurchaseDraftRecord[]>([]);
@@ -26,8 +25,8 @@ export default function SupplierPayablesPage(){
  const [confirmPayment,setConfirmPayment]=useState(false);
  const [invoiceNumber,setInvoiceNumber]=useState("");
  const [invoiceAmount,setInvoiceAmount]=useState("");
- const [invoiceDate,setInvoiceDate]=useState(day);
- const [dueDate,setDueDate]=useState(day);
+ const [invoiceDate,setInvoiceDate]=useState("");
+ const [dueDate,setDueDate]=useState("");
  const [invoiceNote,setInvoiceNote]=useState("");
  const [paymentAmount,setPaymentAmount]=useState("");
  const [paymentMethod,setPaymentMethod]=useState<"cash"|"bank_transfer"|"other">("bank_transfer");
@@ -49,6 +48,18 @@ export default function SupplierPayablesPage(){
  },[]);
 
  useEffect(()=>{void refresh()},[refresh]);
+ useEffect(()=>{
+  // Determine today's date in the browser only. Next production prerender may
+  // not evaluate Date.now() during render or module initialization.
+  const today=new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Baghdad",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
+  // en-CA formatting varies across runtimes; use ISO pieces for a safe date.
+  const parts=new Intl.DateTimeFormat("en-GB",{timeZone:"Asia/Baghdad",year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(new Date());
+  const find=(key:string)=>parts.find(part=>part.type===key)?.value||"";
+  const local=find("year")+"-"+find("month")+"-"+find("day");
+  setInvoiceDate(local||today);
+  setDueDate(local||today);
+ },[]);
+
  useEffect(()=>{
   let active=true;
   setReceipt(null);
