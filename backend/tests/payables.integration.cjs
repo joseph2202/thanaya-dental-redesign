@@ -236,6 +236,16 @@ async function main(){
    assert.equal(answer.data.totals.invoicedIqd,300201);
    assert.equal(answer.data.totals.paidIqd,270000);
    assert.equal(answer.data.totals.remainingIqd,30201);
+   assert.equal(answer.data.matchedInvoices,203);
+   const older=await request(base,invoices+'?search=HIST-0000','GET',undefined,ownerToken);
+   assert.equal(older.status,200);
+   assert.equal(older.data.invoices.length,1,'older archived invoice found by external number');
+   assert.equal(older.data.invoices[0].invoiceNumber,'HIST-0000');
+   assert.equal(older.data.matchedInvoices,1);
+   assert.equal(older.data.totalInvoices,203);
+   assert.equal(older.data.totals.invoicedIqd,300201,'invoice search cannot distort lifetime ledger totals');
+   assert.equal((await request(base,invoices+'?search='+encodeURIComponent('x'.repeat(101)),
+    'GET',undefined,ownerToken)).status,400);
   });
   console.log('THANAYA ERP04 supplier payables: '+passed+' isolated checks PASS');
  }finally{
