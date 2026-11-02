@@ -38,6 +38,10 @@ jobs:
         run: python3 -m unittest discover -s backend/tests -p 'test_rehearse_erp_procurement.py' -v
       - name: Guarded ERP migration checks on temporary backups
         run: python3 -m unittest discover -s backend/tests -p 'test_apply_erp_procurement.py' -v
+      - name: Rehearse ERP03 receipts on disposable SQLite
+        run: python3 -m unittest discover -s backend/tests -p 'test_rehearse_erp_receiving.py' -v
+      - name: Test guarded ERP03 activation on disposable verified backups
+        run: python3 -m unittest discover -s backend/tests -p 'test_apply_erp_receiving.py' -v
       - name: Install backend dependencies
         run: npm ci
         working-directory: backend
@@ -83,6 +87,12 @@ jobs:
           JWT_SECRET: ci-placeholder-not-used-by-live-store
       - name: Isolated ERP supplier and purchasing checks
         run: node tests/procurement.integration.cjs
+        working-directory: backend
+        env:
+          NODE_ENV: test
+          JWT_SECRET: ci-placeholder-not-used-by-live-store
+      - name: Isolated ERP physical receiving and stock invariants
+        run: node tests/receiving.integration.cjs
         working-directory: backend
         env:
           NODE_ENV: test
