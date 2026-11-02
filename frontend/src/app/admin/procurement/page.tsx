@@ -220,9 +220,12 @@ export default function ProcurementPage(){
     <h1 className="mt-2 text-3xl font-black sm:text-4xl">الموردون والمشتريات</h1>
     <p className="site-muted mt-2 text-sm leading-7">نظام ثنايا للموردين ومسودات الشراء والاعتماد وتوثيق الإرسال اليدوي، بدون تغيير المخزون أو الحسابات.</p>
    </div>
-   <button type="button" className="site-btn site-btn-outline" onClick={()=>void refresh()} disabled={loading||busy}>
-    <RefreshCw size={17}/> تحديث
-   </button>
+   <div className="flex flex-wrap gap-2">
+    <Link className="site-btn site-btn-primary" href="/admin/receiving">استلام البضاعة</Link>
+    <button type="button" className="site-btn site-btn-outline" onClick={()=>void refresh()} disabled={loading||busy}>
+     <RefreshCw size={17}/> تحديث
+    </button>
+   </div>
   </header>
   <div className="mb-5 flex items-start gap-3 rounded-2xl border border-brand/35 bg-paper2/40 p-4 text-sm">
    <ShieldCheck size={21} className="mt-1 shrink-0 text-brand"/>
@@ -359,6 +362,8 @@ export default function ProcurementPage(){
       </div>)}
       {d.note&&<p className="site-muted text-xs">ملاحظة: {d.note}</p>}
       <div className="mt-4 flex flex-wrap gap-2">
+        {d.status==='ordered'&&<Link href={'/admin/receiving?orderId='+encodeURIComponent(d.id)}
+         className="site-btn site-btn-primary !min-h-9 !px-3 !text-xs">فتح استلام البضاعة</Link>}
         {['approved','ordered'].includes(d.status)&&
          <button type="button" className="site-btn site-btn-outline !min-h-9 !px-3 !text-xs"
           onClick={()=>void copyPurchaseRequest(d)}><Copy size={14}/> نسخ نص طلب المورد</button>}
