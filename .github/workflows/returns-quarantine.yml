@@ -107,6 +107,12 @@ jobs:
         env:
           NODE_ENV: test
           JWT_SECRET: ci-placeholder-not-used-by-live-store
+      - name: ERP05 private cost snapshots and qualified margin test
+        run: node tests/cogs.integration.cjs
+        working-directory: backend
+        env:
+          NODE_ENV: test
+          JWT_SECRET: ci-placeholder-not-used-by-live-store
       - name: Install frontend dependencies
         run: npm ci
         working-directory: frontend
