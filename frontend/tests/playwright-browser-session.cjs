@@ -168,6 +168,43 @@ async function playwrightBrowserSession(base, { ownerEmail, ownerPassword, recei
     assert.equal(trackedLine.lotTracking, true);
     console.log('PASS Playwright: owner goods receiving form, partial stock and tracked lot');
 
+    // ERP04: real owner-facing form creates a bill only after goods received,
+    // then records an out-of-band supplier payment with a durable reference.
+    await owner.goto(base + '/admin/payables');
+    await owner.getByRole('heading', { name: 'فواتير الموردين والذمم' }).waitFor({ timeout: 16000 });
+    await owner.getByRole('combobox', { name: 'أمر الشراء' }).selectOption(receivingFixture.purchaseId);
+    await owner.getByText(/قيمة البضاعة المستلمة غير المفوترة: 98,000/).waitFor({ timeout: 16000 });
+    await owner.getByRole('textbox', { name: 'رقم فاتورة المورد' }).fill('BROWSER-INV-01');
+    await owner.getByRole('spinbutton', { name: 'القيمة بالدينار العراقي' }).fill('98000');
+    await owner.getByRole('textbox', { name: 'مرجع الفاتورة / ملاحظة التحقق' }).fill('CI original invoice for supplier receipt');
+    await owner.getByRole('button', { name: 'مراجعة الفاتورة' }).click();
+    await owner.getByRole('button', { name: 'تأكيد تسجيل الفاتورة' }).click();
+    await owner.getByText('تم تسجيل فاتورة المورد. لم يتم دفع أموال أو تغيير المخزون.').waitFor({ timeout: 18000 });
+    const beforePayment = await owner.evaluate(async () => {
+      const response=await fetch('/api/payables/invoices');
+      const body=await response.json();
+      return {status:response.status,body};
+    });
+    assert.equal(beforePayment.status,200);
+    const invoice=beforePayment.body.invoices.find(x=>x.invoiceNumber==='BROWSER-INV-01');
+    assert.ok(invoice, 'new supplier invoice must be visible to the owner');
+    assert.equal(invoice.amountIqd,98000);
+    assert.equal(invoice.remainingIqd,98000);
+    await owner.getByRole('spinbutton', { name: 'قيمة الدفعة المؤكدة' }).fill('30000');
+    await owner.getByRole('textbox', { name: 'رقم الوصل أو مرجع التحويل' }).fill('CI bank transfer reference 1337');
+    await owner.getByRole('button', { name: 'مراجعة الدفعة' }).click();
+    await owner.getByRole('button', { name: 'تأكيد توثيق الدفعة' }).click();
+    await owner.getByText('تم توثيق الدفعة التي سُددت خارج الموقع.').waitFor({ timeout: 18000 });
+    const afterPayment=await owner.evaluate(async id => {
+      const response=await fetch('/api/payables/invoices/'+encodeURIComponent(id));
+      return {status:response.status,body:await response.json()};
+    },invoice.id);
+    assert.equal(afterPayment.status,200);
+    assert.equal(afterPayment.body.paidIqd,30000);
+    assert.equal(afterPayment.body.remainingIqd,68000);
+    assert.equal(afterPayment.body.status,'partial');
+    console.log('PASS Playwright: owner supplier invoice and partial payable from real admin forms');
+
     await owner.goto(base + '/admin');
     await owner.getByRole('button', { name: 'خروج', exact: true }).first().click();
     await owner.waitForURL(/\/login(?:\?|$)/, { timeout: 15000 });
