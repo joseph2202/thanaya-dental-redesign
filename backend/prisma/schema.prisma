@@ -24,6 +24,8 @@ model User {
   createdPurchaseOrders PurchaseOrder[] @relation("PurchaseOrderCreator")
   purchaseDecisions PurchaseOrderEvent[] @relation("PurchaseOrderEventActor")
   receivedPurchases PurchaseReceipt[] @relation("PurchaseReceiptActor")
+  createdSupplierInvoices SupplierInvoice[] @relation("SupplierInvoiceCreator")
+  recordedSupplierPayments SupplierPayment[] @relation("SupplierPaymentActor")
 }
 
 // Address book is private to one user. Order address fields are immutable snapshots.
@@ -347,6 +349,7 @@ model Supplier {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   purchaseOrders PurchaseOrder[]
+  invoices SupplierInvoice[]
 
   @@index([name])
   @@index([active])
@@ -360,6 +363,7 @@ model PurchaseOrder {
   status      String   @default("draft") // draft | approved | ordered | cancelled
   revision    Int      @default(0) // Optimistic guard against concurrent transitions
   receiptRevision Int @default(0) // CAS for concurrent goods receipts
+  invoiceRevision Int @default(0) // CAS: invoiced total must not exceed received value
   note        String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -368,6 +372,7 @@ model PurchaseOrder {
   lines       PurchaseOrderLine[]
   events      PurchaseOrderEvent[]
   receipts    PurchaseReceipt[]
+  invoices    SupplierInvoice[]
 
   @@index([supplierId,createdAt])
   @@index([createdAt])
@@ -443,4 +448,52 @@ model PurchaseReceiptLine {
  @@unique([receiptId,purchaseOrderLineId])
  @@index([purchaseOrderLineId])
  @@index([lotId])
+}
+
+
+// ERP04 — Accounts payable: independent supplier invoice tied to physically
+// received goods. Invoice amounts are immutable and do not change stock.
+// Only full IQD are supported; extra freight/tax/mismatch reconciliation
+// requires an explicit later design rather than silently guessing.
+model SupplierInvoice {
+  id              String   @id @default(cuid())
+  requestId       String   @unique
+  supplierId      String
+  purchaseOrderId String
+  invoiceNumber   String
+  amountIqd       Int
+  invoiceDate     String   // YYYY-MM-DD, supplier's document date
+  dueDate         String   // YYYY-MM-DD
+  note            String
+  createdById     String
+  paymentRevision Int      @default(0)
+  createdAt       DateTime @default(now())
+  supplier        Supplier @relation(fields:[supplierId],references:[id],onDelete:Restrict)
+  purchaseOrder   PurchaseOrder @relation(fields:[purchaseOrderId],references:[id],onDelete:Restrict)
+  createdBy       User @relation("SupplierInvoiceCreator",fields:[createdById],references:[id],onDelete:Restrict)
+  payments        SupplierPayment[]
+
+  @@unique([supplierId,invoiceNumber])
+  @@index([supplierId,createdAt])
+  @@index([purchaseOrderId])
+  @@index([dueDate])
+}
+
+// Append-only manual confirmations of payments actually made to a supplier.
+// Does NOT transfer money or automatically reconcile a bank/processor.
+model SupplierPayment {
+  id        String @id @default(cuid())
+  invoiceId String
+  requestId String
+  actorId   String
+  method    String // cash | bank_transfer | other
+  amountIqd Int
+  reference String // mandatory external proof/reference
+  createdAt DateTime @default(now())
+  invoice   SupplierInvoice @relation(fields:[invoiceId],references:[id],onDelete:Restrict)
+  actor     User @relation("SupplierPaymentActor",fields:[actorId],references:[id],onDelete:Restrict)
+
+  @@unique([invoiceId,requestId])
+  @@index([invoiceId,createdAt])
+  @@index([actorId,createdAt])
 }

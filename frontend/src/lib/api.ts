@@ -360,3 +360,41 @@ export const procurementAPI={
   Promise<{id:string;alreadyCreated:boolean;notice:string}>=>
   apiRequest('/procurement/purchase-drafts',{method:'POST',body:JSON.stringify(input)})
 };
+
+export type SupplierPaymentEvent={
+ id:string;requestId:string;actorId:string;
+ method:'cash'|'bank_transfer'|'other';amountIqd:number;reference:string;createdAt:string
+};
+export type SupplierInvoiceRecord={
+ id:string;supplierId:string;purchaseOrderId:string;invoiceNumber:string;
+ invoiceDate:string;dueDate:string;amountIqd:number;note:string;
+ createdById:string;createdAt:string;paymentRevision:number;
+ paidIqd:number;remainingIqd:number;status:'unpaid'|'partial'|'paid';
+ supplier:{id:string;name:string;code:string};
+ payments:SupplierPaymentEvent[]
+};
+export type SupplierPayablesList={
+ invoices:SupplierInvoiceRecord[];limit:number;totalInvoices:number;matchedInvoices:number;hasMore:boolean;
+ totals:{invoicedIqd:number;paidIqd:number;remainingIqd:number};
+ explanation:string
+};
+export const payablesAPI={
+ list:(supplierId?:string,search?:string):Promise<SupplierPayablesList>=>{
+  const query=new URLSearchParams();
+  if(supplierId)query.set('supplierId',supplierId);
+  if(search)query.set('search',search);
+  return apiRequest('/payables/invoices'+(query.size?'?'+query.toString():''));
+ },
+ get:(id:string):Promise<SupplierInvoiceRecord> =>
+  apiRequest('/payables/invoices/'+encodeURIComponent(id)),
+ create:(input:{requestId:string;purchaseOrderId:string;invoiceNumber:string;
+  invoiceDate:string;dueDate:string;amountIqd:number;note:string}):
+  Promise<{id:string;alreadyCreated:boolean;message:string}> =>
+  apiRequest('/payables/invoices',{method:'POST',body:JSON.stringify(input)}),
+ recordPayment:(id:string,input:{requestId:string;amountIqd:number;
+  method:'cash'|'bank_transfer'|'other';reference:string}):
+  Promise<{id:string;alreadyProcessed:boolean;message:string}> =>
+  apiRequest('/payables/invoices/'+encodeURIComponent(id)+'/payments',{
+   method:'POST',body:JSON.stringify(input)
+  })
+};
