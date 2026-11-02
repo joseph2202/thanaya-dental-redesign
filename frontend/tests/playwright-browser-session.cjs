@@ -190,6 +190,10 @@ async function playwrightBrowserSession(base, { ownerEmail, ownerPassword, recei
     assert.ok(invoice, 'new supplier invoice must be visible to the owner');
     assert.equal(invoice.amountIqd,98000);
     assert.equal(invoice.remainingIqd,98000);
+    await owner.getByRole('textbox', { name: 'ابحث برقم الفاتورة أو اسم المورد' })
+      .fill('BROWSER-INV-01');
+    await owner.getByRole('button', { name: 'بحث', exact: true }).click();
+    await owner.getByText('1 فاتورة مطابقة للبحث.').waitFor({ timeout: 12000 });
     await owner.getByRole('spinbutton', { name: 'قيمة الدفعة المؤكدة' }).fill('30000');
     await owner.getByRole('textbox', { name: 'رقم الوصل أو مرجع التحويل' }).fill('CI bank transfer reference 1337');
     await owner.getByRole('button', { name: 'مراجعة الدفعة' }).click();
