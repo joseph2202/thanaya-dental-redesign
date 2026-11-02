@@ -135,6 +135,7 @@ model OrderItem {
   productId String
   quantity  Int
   price     Int
+  unitCostIqd Int? // Immutable cost at checkout; null if legacy/unknown or lot-tracked item
   productName String? // immutable product-name snapshot at checkout; null for legacy orders
   order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
   product   Product @relation(fields: [productId], references: [id])
@@ -167,6 +168,7 @@ model OrderItemLot {
   orderItemId String
   lotId       String
   quantity    Int
+  unitCostIqd Int? // Exact lot cost at allocation, never use mutable ProductLot later
   orderItem   OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Restrict)
   lot         ProductLot @relation(fields: [lotId], references: [id], onDelete: Restrict)
 
