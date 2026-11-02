@@ -215,7 +215,7 @@ export default function SupplierPayablesPage(){
     </section>
 
     <section className="site-surface min-w-0 rounded-2xl p-4 sm:p-5">
-     <h2 className="text-lg font-black">الدفعات المستلمة من المورد؟ لا، المدفوعة للمورد</h2>
+     <h2 className="text-lg font-black">دفعات الموردين الموثّقة</h2>
      <p className="site-muted mt-1 text-sm">وثّق فقط دفعة تمت خارج الموقع فعلياً، ويُفضّل رقم الوصل أو التحويل.</p>
      <label className="mt-4 block text-sm font-bold">فاتورة المورد
       <select className={inputClass} value={selectedInvoice} disabled={loading||busy}
