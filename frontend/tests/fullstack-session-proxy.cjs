@@ -104,15 +104,40 @@ async function main() {
   const bcrypt = require(path.join(backend, 'node_modules', 'bcryptjs'));
   const ownerEmail = 'e2e-owner-' + randomUUID() + '@test.invalid';
   const ownerPassword = 'IsolatedOwner#2026';
+  let receivingFixture;
   const prismaClient = new PrismaClient({ datasources: { db: { url: db } } });
   try {
-    await prismaClient.user.create({ data: {
+    const owner = await prismaClient.user.create({ data: {
       name: 'Browser Test Owner',
       email: ownerEmail,
       phone: '07811111111',
       password: await bcrypt.hash(ownerPassword, 10),
       role: 'owner'
     } });
+    const supplier = await prismaClient.supplier.create({
+      data: { code: 'CI-BROWSER-RECEIPT', name: 'Isolated test supplier' }
+    });
+    const regular = await prismaClient.product.create({ data: {
+      name: 'Browser Receipt Plain Product',
+      description: 'disposable browser fixture', price: 40000, usdPrice: 1,
+      category: 'Dental', brand: 'CI', icon: 'Package', stock: 3
+    } });
+    const tracked = await prismaClient.product.create({ data: {
+      name: 'Browser Receipt Tracked Product',
+      description: 'disposable browser fixture', price: 90000, usdPrice: 1,
+      category: 'Dental', brand: 'CI', icon: 'Package', stock: 0, lotTracking: true
+    } });
+    const purchase = await prismaClient.purchaseOrder.create({ data: {
+      requestId: randomUUID(), supplierId: supplier.id, createdById: owner.id,
+      status: 'ordered',
+      lines: { create: [
+        { productId: regular.id, productName: regular.name, quantity: 5, unitCostIqd: 21000 },
+        { productId: tracked.id, productName: tracked.name, quantity: 2, unitCostIqd: 56000 }
+      ] }
+    } });
+    receivingFixture = {
+      purchaseId: purchase.id, plainId: regular.id, trackedId: tracked.id
+    };
   } finally {
     await prismaClient.$disconnect();
   }
@@ -194,7 +219,7 @@ async function main() {
 
   // Exercise an actual headless Chrome tab with React forms and real cookies.
   // Reuses the disposable SQLite database and isolated Next/API servers above.
-  await require('./playwright-browser-session.cjs').playwrightBrowserSession(base, { ownerEmail, ownerPassword });
+  await require('./playwright-browser-session.cjs').playwrightBrowserSession(base, { ownerEmail, ownerPassword, receivingFixture });
 }
 
 main().catch(error => { console.error(error, logs); process.exitCode = 1; })
