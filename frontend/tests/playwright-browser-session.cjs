@@ -5,7 +5,7 @@ const { spawnSync } = require('node:child_process');
 const { randomUUID } = require('node:crypto');
 const { chromium } = require('playwright-core');
 
-async function playwrightBrowserSession(base, { ownerEmail, ownerPassword }) {
+async function playwrightBrowserSession(base, { ownerEmail, ownerPassword, receivingFixture }) {
   const chrome = ['google-chrome-stable', 'google-chrome', 'chromium']
     .map(name => spawnSync('which', [name], { encoding: 'utf8' }))
     .find(result => result.status === 0)?.stdout.trim();
@@ -134,6 +134,39 @@ async function playwrightBrowserSession(base, { ownerEmail, ownerPassword }) {
     assert.equal((await owner.request.get(base + upload.body.url)).status(), 200,
       'uploaded synthetic image must be reachable through Next rewrite');
     console.log('PASS Playwright: owner browser image upload with cookie/CSRF');
+
+    // Exercise the actual ERP03 admin form in Chromium, including stock changes
+    // on disposable SQLite only. Receipt and purchase IDs are synthetic.
+    await owner.goto(base + '/admin/receiving?orderId=' + encodeURIComponent(receivingFixture.purchaseId));
+    await owner.getByRole('heading', { name: 'استلام البضاعة من الموردين' }).waitFor({ timeout: 15000 });
+    const plainField = owner.locator('fieldset').filter({ hasText: 'Browser Receipt Plain Product' });
+    const lotField = owner.locator('fieldset').filter({ hasText: 'Browser Receipt Tracked Product' });
+    await plainField.getByRole('spinbutton').fill('2');
+    await lotField.getByRole('spinbutton').fill('1');
+    await lotField.getByRole('textbox', { name: 'رقم التشغيلة' }).fill('CI-LOT-001');
+    await lotField.getByLabel('تاريخ انتهاء الصلاحية').fill('2031-12-31');
+    await owner.getByPlaceholder('مثلاً: سند تسليم المورد رقم 1254 وتاريخ الاستلام')
+      .fill('CI test shipment 001');
+    await owner.getByRole('button', { name: 'مراجعة سند الاستلام' }).click();
+    await owner.getByText('راجع قبل التثبيت').waitFor();
+    await owner.getByRole('button', { name: 'تأكيد الاستلام وتحديث المخزون' }).click();
+    await owner.getByText('تم تسجيل البضاعة وتحديث المخزون بنجاح.').waitFor({ timeout: 18000 });
+    const snapshot = await owner.evaluate(async orderId => {
+      const response = await fetch('/api/receiving/purchase-orders/' + encodeURIComponent(orderId));
+      return { status: response.status, body: await response.json() };
+    }, receivingFixture.purchaseId);
+    assert.equal(snapshot.status, 200);
+    assert.equal(snapshot.body.receiptRevision, 1);
+    assert.equal(snapshot.body.receipts.length, 1);
+    assert.equal(snapshot.body.complete, false, 'partial shipment must not complete the order');
+    const plainLine = snapshot.body.lines.find(line => line.productId === receivingFixture.plainId);
+    const trackedLine = snapshot.body.lines.find(line => line.productId === receivingFixture.trackedId);
+    assert.equal(plainLine.receivedQuantity, 2);
+    assert.equal(plainLine.remainingQuantity, 3);
+    assert.equal(trackedLine.receivedQuantity, 1);
+    assert.equal(trackedLine.remainingQuantity, 1);
+    assert.equal(trackedLine.lotTracking, true);
+    console.log('PASS Playwright: owner goods receiving form, partial stock and tracked lot');
 
     await owner.goto(base + '/admin');
     await owner.getByRole('button', { name: 'خروج', exact: true }).first().click();
