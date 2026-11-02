@@ -8,6 +8,16 @@
 - ERP receipt database schema, backend endpoint, admin receiving page/nav, purchase order linkage, historical receipt viewer and tests are present. `backend/package.json` includes test:receiving.
 - **CI of combined branch must be checked independently**; separate parent PR successes are not sufficient. Status at creation: pending.
 
+## Verified on unified branch
+
+- ✅ GitHub Actions Run #171 and #172: initial integrated security + ERP3 build/tests succeeded.
+- ✅ Run #174: real Playwright owner session and partial receipt with expiry-tracked batch succeeded, alongside nine backend stock/idempotency checks.
+- ✅ Run #177: read-only receipt schema rehearsal on a temporary SQLite clone succeeded.
+- ✅ **Run #181 (ID 41503168839) succeeded** on code commit `ec86bad44e729167d1637cae373c3a4fab3889a7`.
+- ✅ Run #181 specifically passed six receipt rehearsal tests and eight guarded receipt activation tests using disposable SQLite, plus the Playwright receipt screen, existing auth, finance, orders, roles and frontend build.
+- ✅ Admin procurement UX was cleaned of "stage one" and internal English phase labels, without falsely enabling supplier invoicing.
+- New guarded scripts: `backend/scripts/rehearse_erp_receiving.py` (source READ ONLY) and `backend/scripts/apply_erp_receiving.py` (REQUIRES verified external backup and exact explicit confirmation). **Neither script was executed on the user's Mac database**.
+
 ## Absolute safeguards
 - Not deployed or merged to main. No payment card provider live.
 - No changes to Mac database. The user has a local store SQLite `backend/prisma/dev.db`, uploads, .env and a saved git stash. **Never run `prisma db push` or destructive migrations on the real database.**
