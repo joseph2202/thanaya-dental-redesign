@@ -119,6 +119,12 @@ jobs:
         env:
           NODE_ENV: test
           JWT_SECRET: ci-placeholder-not-used-by-live-store
+      - name: ERP06 expense and private cash movement invariants
+        run: node tests/cash.integration.cjs
+        working-directory: backend
+        env:
+          NODE_ENV: test
+          JWT_SECRET: ci-placeholder-not-used-by-live-store
       - name: Install frontend dependencies
         run: npm ci
         working-directory: frontend
