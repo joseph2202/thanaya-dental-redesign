@@ -29,9 +29,13 @@ const nextConfig: NextConfig = {
   // The backend remains on this Mac at 127.0.0.1:4000; remote visitors
   // only ever need the single HTTPS address of the Next.js storefront.
   async rewrites() {
+    const backend = process.env.THANAYA_INTERNAL_API_ORIGIN || "http://127.0.0.1:4000";
+    if (!/^http:\/\/127\.0\.0\.1:\d{2,5}$/.test(backend)) {
+      throw new Error("THANAYA_INTERNAL_API_ORIGIN must be a local backend URL");
+    }
     return [
-      { source: "/api/:path*", destination: "http://127.0.0.1:4000/api/:path*" },
-      { source: "/uploads/:path*", destination: "http://127.0.0.1:4000/uploads/:path*" },
+      { source: "/api/:path*", destination: `${backend}/api/:path*` },
+      { source: "/uploads/:path*", destination: `${backend}/uploads/:path*` },
     ];
   },
   turbopack: {
