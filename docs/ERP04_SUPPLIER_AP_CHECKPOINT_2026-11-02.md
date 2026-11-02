@@ -22,7 +22,7 @@
 1. Check **latest HEAD CI** and require green backend/Prisma build, isolated AP suite, migration rehearsal & guarded apply suite, Next.js build, and real Playwright admin payment flow.
 2. At a later controlled offline migration, apply prior ERP procurement + ERP03 schema first on a protected SQLite backup, before ERP04. Never pull production data into CI.
 3. Manual audit of partial receipt -> invoice -> partially paid -> fully paid -> duplicate request -> simultaneous payment, including supplier invoice photo/document workflow (not yet implemented).
-4. The overview intentionally caps displayed invoices at 200; values are totals of that window, **not a full-history financial general ledger**.
+4. The invoice picker shows the latest 200 invoices, but API/UI **summary totals are aggregated across every stored invoice and payment**, not just the visible 200. Older invoice selection/search and general ledger reconciliation remain future work. A separate regression seeds 201 additional historical invoices to prove full-history totals.
 5. Invoicing outside received-goods cost, taxes, currency conversion, opening supplier balances, chargebacks, supplier credits, payment reversal, and financial period closing are **not implemented**. Do not claim otherwise.
 6. Continue ERP05 COGS, ERP06 expenses/cash, disaster recovery, server-side session revocation and UX polish. No live card integration.
 
