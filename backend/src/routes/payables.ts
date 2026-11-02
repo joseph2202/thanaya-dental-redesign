@@ -77,17 +77,28 @@ router.use(requireAdmin);
 // supplier debt inferred from orders or goods receipts.
 router.get('/invoices',async(req,res)=>{
  try{
-  if(Object.keys(req.query).some(k=>k!=='supplierId')||
-   (req.query.supplierId!==undefined&&!validId(req.query.supplierId)))
-   throw new PayableError(400,'معرّف فلتر المورد غير صالح');
+  if(Object.keys(req.query).some(k=>!['supplierId','search'].includes(k))||
+   (req.query.supplierId!==undefined&&!validId(req.query.supplierId))||
+   (req.query.search!==undefined&&typeof req.query.search!=='string'))
+   throw new PayableError(400,'بحث أو فلتر فواتير الموردين غير صالح');
   const supplierId=req.query.supplierId as string|undefined;
-  const where:Prisma.SupplierInvoiceWhereInput=supplierId?{supplierId}:{};
-  const [invoices,totalInvoices,invoiced,payments]=await Promise.all([
+  const search=(req.query.search as string|undefined)?.trim()||'';
+  if(search.length>100)throw new PayableError(400,'بحث الفواتير طويل جداً');
+  const allWhere:Prisma.SupplierInvoiceWhereInput=supplierId?{supplierId}:{};
+  const where:Prisma.SupplierInvoiceWhereInput={
+   ...allWhere,...(search?{OR:[
+    {invoiceNumber:{contains:search}},
+    {id:{contains:search}},
+    {supplier:{name:{contains:search}}}
+   ]}:{})
+  };
+  const [invoices,totalInvoices,matchedInvoices,invoiced,payments]=await Promise.all([
    prisma.supplierInvoice.findMany({
     where,include:selectInvoice,orderBy:[{createdAt:'desc'},{id:'desc'}],take:200
    }),
+   prisma.supplierInvoice.count({where:allWhere}),
    prisma.supplierInvoice.count({where}),
-   prisma.supplierInvoice.aggregate({where,_sum:{amountIqd:true}}),
+   prisma.supplierInvoice.aggregate({where:allWhere,_sum:{amountIqd:true}}),
    prisma.supplierPayment.aggregate({
     where:supplierId?{invoice:{supplierId}}:{},_sum:{amountIqd:true}
    })
@@ -99,7 +110,7 @@ router.get('/invoices',async(req,res)=>{
    throw new PayableError(409,'مجموع الذمم يتجاوز نطاق الأرقام المدعوم');
   res.setHeader('Cache-Control','no-store');
   return res.json({
-   invoices:rows,limit:200,totalInvoices,hasMore:totalInvoices>rows.length,
+   invoices:rows,limit:200,totalInvoices,matchedInvoices,hasMore:matchedInvoices>rows.length,
    totals:{invoicedIqd,paidIqd,remainingIqd:invoicedIqd-paidIqd},
    explanation:'المجاميع تشمل كل الفواتير المسجلة؛ القائمة تعرض أحدث 200 فاتورة فقط'
   });
