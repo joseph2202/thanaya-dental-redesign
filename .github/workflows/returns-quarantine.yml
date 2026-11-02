@@ -87,6 +87,12 @@ jobs:
         env:
           NODE_ENV: test
           JWT_SECRET: ci-placeholder-not-used-by-live-store
+      - name: Isolated ERP physical receiving and stock invariants
+        run: node tests/receiving.integration.cjs
+        working-directory: backend
+        env:
+          NODE_ENV: test
+          JWT_SECRET: ci-placeholder-not-used-by-live-store
       - name: Install frontend dependencies
         run: npm ci
         working-directory: frontend
