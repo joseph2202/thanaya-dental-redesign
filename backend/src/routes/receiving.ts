@@ -71,7 +71,7 @@ function fail(res:import('express').Response,error:unknown){
 }
 const snapshot=(order:{
  id:string;status:string;receiptRevision:number;
- lines:{id:string;productId:string;productName:string;quantity:number;unitCostIqd:number}[];
+ lines:{id:string;productId:string;productName:string;quantity:number;unitCostIqd:number;product:{lotTracking:boolean}}[];
  receipts:{id:string;createdAt:Date;actorId:string;note:string;lines:{purchaseOrderLineId:string;quantity:number;unitCostIqd:number;lotCode:string|null;expiryDate:string|null}[]}[]
 })=>{
  const received=new Map<string,number>();
@@ -79,7 +79,7 @@ const snapshot=(order:{
   for(const line of receipt.lines)
    received.set(line.purchaseOrderLineId,(received.get(line.purchaseOrderLineId)||0)+line.quantity);
  }
- const lines=order.lines.map(l=>({...l,receivedQuantity:received.get(l.id)||0,
+ const lines=order.lines.map(({product,...l})=>({...l,lotTracking:product.lotTracking,receivedQuantity:received.get(l.id)||0,
   remainingQuantity:l.quantity-(received.get(l.id)||0)}));
  return {id:order.id,status:order.status,receiptRevision:order.receiptRevision,
   lines,receipts:order.receipts.map(r=>({...r})),
@@ -93,7 +93,7 @@ router.get('/purchase-orders/:id',async(req,res)=>{
   if(!validId(id))throw new ReceiptError(400,'رقم أمر الشراء غير صالح');
   const order=await prisma.purchaseOrder.findUnique({
    where:{id},select:{id:true,status:true,receiptRevision:true,
-    lines:{select:{id:true,productId:true,productName:true,quantity:true,unitCostIqd:true}},
+    lines:{select:{id:true,productId:true,productName:true,quantity:true,unitCostIqd:true,product:{select:{lotTracking:true}}}},
     receipts:{orderBy:[{createdAt:'asc'},{id:'asc'}],
      select:{id:true,createdAt:true,actorId:true,note:true,
       lines:{select:{purchaseOrderLineId:true,quantity:true,unitCostIqd:true,lotCode:true,expiryDate:true}}}}}
