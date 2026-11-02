@@ -113,6 +113,33 @@ async function main(){
     assert.equal(r.status,400);
    }
   });
+  await check('real customer checkout creates private cost snapshots exactly once',async()=>{
+   const requestId=randomUUID();
+   const payload={
+    requestId,items:[{productId:product.id,quantity:1}],
+    customer:{name:'Test Customer',phone:'07811111111',address:'Test street Basra',
+      city:'البصرة'},paymentMethod:'cod'
+   };
+   const first=await request(base,'/api/orders',auth(buyer),'POST',payload);
+   assert.equal(first.status,201,JSON.stringify(first.body));
+   assert.equal(JSON.stringify(first.body).includes('costSnapshots'),false);
+   assert.equal(JSON.stringify(first.body).includes('purchaseCostIqd'),false);
+   const snapshots=await db.orderItemCostSnapshot.findMany({
+    where:{orderItem:{orderId:first.body.id}}
+   });
+   assert.equal(snapshots.length,1);
+   assert.equal(snapshots[0].quantity,1);
+   assert.equal(snapshots[0].unitCostIqd,99999);
+   const repeated=await request(base,'/api/orders',auth(buyer),'POST',payload);
+   assert.equal(repeated.status,200);
+   assert.equal(await db.orderItemCostSnapshot.count({where:{
+    orderItem:{orderId:first.body.id}
+   }}),1);
+   await db.product.update({where:{id:product.id},data:{purchaseCostIqd:4500}});
+   assert.equal((await db.orderItemCostSnapshot.findFirst({
+    where:{orderItem:{orderId:first.body.id}}
+   })).unitCostIqd,99999);
+  });
   console.log('THANAYA ERP05 private COGS coverage: '+passed+' tests passed');
  }finally{
   if(server&&server.exitCode===null)server.kill('SIGTERM');
