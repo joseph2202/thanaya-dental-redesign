@@ -374,7 +374,7 @@ export type SupplierInvoiceRecord={
  payments:SupplierPaymentEvent[]
 };
 export type SupplierPayablesList={
- invoices:SupplierInvoiceRecord[];limit:number;
+ invoices:SupplierInvoiceRecord[];limit:number;totalInvoices:number;hasMore:boolean;
  totals:{invoicedIqd:number;paidIqd:number;remainingIqd:number};
  explanation:string
 };
