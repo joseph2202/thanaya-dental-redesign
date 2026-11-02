@@ -304,6 +304,31 @@ export type PurchaseDraftRecord={
  supplier:{id:string;name:string;code:string;active:boolean};
  createdBy:{id:string;name:string};lines:PurchaseDraftLine[];events:PurchaseDecision[]
 };
+export type ReceivingLine = {
+  id:string;productId:string;productName:string;quantity:number;
+  unitCostIqd:number;lotTracking:boolean;receivedQuantity:number;remainingQuantity:number
+};
+export type SupplierGoodsReceipt = {
+  id:string;createdAt:string;actorId:string;note:string;
+  lines:{purchaseOrderLineId:string;quantity:number;unitCostIqd:number;lotCode:string|null;expiryDate:string|null}[]
+};
+export type ReceivingSnapshot = {
+  id:string;status:PurchaseStatus;receiptRevision:number;
+  lines:ReceivingLine[];receipts:SupplierGoodsReceipt[];complete:boolean
+};
+export type ReceivingRequest = {
+  requestId:string;expectedRevision:number;note:string;
+  lines:{purchaseOrderLineId:string;quantity:number;lotCode?:string;expiryDate?:string}[]
+};
+export const receivingAPI = {
+  get:(orderId:string):Promise<ReceivingSnapshot> =>
+    apiRequest('/receiving/purchase-orders/'+encodeURIComponent(orderId)),
+  receive:(orderId:string,input:ReceivingRequest):Promise<{id:string;alreadyProcessed:boolean;message:string}> =>
+    apiRequest('/receiving/purchase-orders/'+encodeURIComponent(orderId)+'/receipts',{
+      method:'POST',body:JSON.stringify(input)
+    })
+};
+
 export const procurementAPI={
  suppliers:(search=''):Promise<SupplierRecord[]>=>
   apiRequest('/procurement/suppliers?'+new URLSearchParams({search}).toString()),
