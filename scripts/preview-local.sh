@@ -26,7 +26,9 @@ cleanup() {
   echo ""
   echo "Preview stopped; its disposable SQLite and uploads were deleted."
 }
-trap cleanup EXIT INT TERM
+trap cleanup EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
 
 export THANAYA_PREVIEW_ROOT="$PREVIEW_ROOT"
 export THANAYA_PREVIEW_ONLY=1
