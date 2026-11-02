@@ -99,6 +99,24 @@ async function main() {
     });
   if (prisma.status !== 0) throw Error('Isolated Prisma initialization failed: ' + (prisma.stderr || prisma.stdout));
 
+  // Seed an owner only in disposable SQLite for browser permission checks.
+  const { PrismaClient } = require(path.join(backend, 'node_modules', '@prisma', 'client'));
+  const bcrypt = require(path.join(backend, 'node_modules', 'bcryptjs'));
+  const ownerEmail = 'e2e-owner-' + randomUUID() + '@test.invalid';
+  const ownerPassword = 'IsolatedOwner#2026';
+  const prismaClient = new PrismaClient({ datasources: { db: { url: db } } });
+  try {
+    await prismaClient.user.create({ data: {
+      name: 'Browser Test Owner',
+      email: ownerEmail,
+      phone: '07811111111',
+      password: await bcrypt.hash(ownerPassword, 10),
+      role: 'owner'
+    } });
+  } finally {
+    await prismaClient.$disconnect();
+  }
+
   apiProcess = start(process.execPath, ['dist/index.js'], backend, runEnv);
   await ready('http://127.0.0.1:' + apiPort + '/api/health', apiProcess);
 
@@ -176,7 +194,7 @@ async function main() {
 
   // Exercise an actual headless Chrome tab with React forms and real cookies.
   // Reuses the disposable SQLite database and isolated Next/API servers above.
-  await require('./playwright-browser-session.cjs').playwrightBrowserSession(base);
+  await require('./playwright-browser-session.cjs').playwrightBrowserSession(base, { ownerEmail, ownerPassword });
 }
 
 main().catch(error => { console.error(error, logs); process.exitCode = 1; })
