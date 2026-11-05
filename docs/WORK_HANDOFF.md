@@ -1,19 +1,19 @@
 # THANAYA — استئناف المواصفات الكاملة
 
 ## آخر أساس متحقق
-PR #65، feature/payment-sandbox-console-20261105، 6b5929d4ef2bedfdf35e0f0952ca3ffc02019e08. CI #241 ناجح بالكامل: https://github.com/joseph2202/thanaya-dental-redesign/actions/runs/42092911548 . كل إصلاحات PRs #56–#64 محفوظة. المواصفات في WORK_MISSION.md ولا تعاد مرحلة Recovery.
+PR #66، feature/admin-financial-command-center-20261105، e48ef53ff4546974bb6918a7e49527da91e74bd7. CI #242 ناجح بالكامل: https://github.com/joseph2202/thanaya-dental-redesign/actions/runs/42094229202 . تأكدت منه عند الاستئناف، ولم أعد الفحوص المكتملة. جميع دفعات #60–#66 وما قبلها محفوظة. المواصفات في WORK_MISSION.md ولا تعاد مرحلة Recovery.
 
-## الدفعة الحالية 11
-الفرع feature/admin-financial-command-center-20261105، الأب #65. API /reports/operations خاصة owner/admin، مصدر تحصيل/مصاريف/حركة نقد للفترة وذمم زبائن وموردين وتنبيه صلاحية حالي. استبعاد معلن للطلبات ذات المرتجع من الذمم غير المسواة، ورفض السجلات غير المتناسقة، بلا أرباح أو رصيد صندوق مختلق. المصدر يقرأ transaction فقط. شرح OPERATIONAL_REPORTS.md. ربط UI تالٍ؛ لا تعد Dashboard مكتملة بعد.
+## الدفعة الحالية 12
+الفرع feature/admin-financial-dashboard-20261105، الأب #66. FinancialDashboard داخل /admin تربط operations وcosts، بتحصيل/مصاريف وذمم زبائن/موردين وتغطية تكلفة وهامش مؤهل وحركة نقد وصلاحية. شرح الفترة ومهام المتابعة واستثناء المرتجعات وحدود الأرقام. AbortController وrange matching وحالات تحميل/فشل تخفي القديم، وتصحيح stale overview أيضاً. حافظت على الرسوم والطلبات والمخزون والتنقل السابق. لقطات الأقسام تخفي الهيدر الثابت أثناء التصوير فقط.
 
 ## الفحوص الفعلية
-دفعة 10 اجتازت CI #241 مع Chrome الفعلي، وراجعت صورتي timeline وsandbox (عنوان sandbox مغطى بالهيدر الثابت في اللقطة الطويلة؛ ليس فشل بيانات). دفعة 11: backend build و9 فحوص operations API نجحت مع Node22/RUST_LOG=info/NODE_ENV=test، تغطي فترات وذمم ومصاريف واسترداداً جزئياً وexpiry وسجلات تالفة وصلاحيات وقراءة بلا تغيير bytes. الأوامر npm run build ثم node tests/operations.integration.cjs. CI الكامل بعد الحفظ.
+CI #242 ناجح، وفيه 9 فحوص operations وغيرها. للدفعة 12 بناء frontend (35 مساراً) وsyntax وgit diff --check؛ Chrome الجديد ينتظر CI بعد الحفظ. السيناريو يستعمل الفاتورة 98,000 وسداد 30,000 فعليين في fixture، لذلك مستحقات المورد 68,000 (تصحيح ملاحظة الاستئناف السابقة التي كتبت 48,000). المصروف 25,000 ومساهمة المالك 50,000، حركة النقد 25,000 والتحصيل صفر. ثم delayed/failed period/retry و390/768px. لا يدعى تشغيل Chrome محلياً؛ البيئة تقيده.
 
 ## المخطط
-الدفعات 7–11 لا تحتاج مخططاً إضافياً في قاعدة المتجر. للمحاكي ملف مستقل جديد فقط في root مؤقت. الدفعة 6 تحتاج جدول OrderStatusEvent، ولم تطبق على Mac. أداة rehearse_order_history.py قراءة فقط للمصدر وكتابة لنسخة مؤقتة، بلا apply. تعليمات وحدود التفعيل في ORDER_STATUS_AUDIT_ROLLOUT.md؛ لا db push أو reset على الحقيقي.
+الدفعات 7–12 لا تحتاج مخططاً إضافياً في قاعدة المتجر. للمحاكي ملف مستقل جديد فقط في root مؤقت. الدفعة 6 تحتاج جدول OrderStatusEvent، ولم تطبق على Mac. أداة rehearse_order_history.py قراءة فقط للمصدر وكتابة لنسخة مؤقتة، بلا apply. تعليمات وحدود التفعيل في ORDER_STATUS_AUDIT_ROLLOUT.md؛ لا db push أو reset على الحقيقي.
 
 ## بيئة الاختبار وPreview
 Node 22 وRUST_LOG=info في Work. قواعد الاختبار تحت temp. Preview: نسخة مستقلة ثم bash scripts/preview-local.sh، بورتات 3108/4108 ومالك صناعي مؤقت وتنظيف عند الإيقاف. لا .env أو dev.db حقيقي هنا ولا نشر. Chromium المحلي مقيد؛ Chrome الفعلي يعمل في GitHub CI مع صور صناعية.
 
 ## التالي بدقة
-تحقق من CI الدفعة 11 بعد الحفظ، ثم FinancialDashboard تستخدم operations وcosts تحت range موحد مع AbortController وحالات تحميل/خطأ تخفي الأرقام القديمة. اربط /admin وحافظ على charts/navigation القديمة، وصحح توصيف أسفل الصفحة القديم. اختبر Chrome بعد وجود مصروف 25,000 وسداد مورد 50,000: الذمم 48,000، حركة النقد 25,000 بلا تحصيل؛ واختبر تبديل الفترة بلا أرقام قديمة، وصورة موبايل/تابلت. لقطات الأقسام الطويلة تخفي .thanaya-admin header أثناء التصوير فقط بعد معرفة selector الصحيح. ثم رحلة الشراء والمنتجات والبحث وبقية WORK_ROADMAP. لا دفع تاجر حقيقي.
+تحقق من CI الدفعة 12 وصور mobile/tablet/sandbox وعالج أي فشل قبل اعتمادها. بعدها المنتجات والبحث: افحص تطبيق SKU والتوفر بالـAPI وURL وحالات الصور/zoom، أصلح النقص الفعلي واختبره على fixture. ثم رحلة سلة/شراء حقيقية واستعادة فقدان الرد، وبقية WORK_ROADMAP. لا تعاد بروفة ERP أو auth الناجحة دون تغيير يمسها. لا دفع تاجر حقيقي.
