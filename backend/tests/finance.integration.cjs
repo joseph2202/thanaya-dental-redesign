@@ -206,6 +206,39 @@ async function main(){
    assert.equal(r.body.receipts,2);
    assert.equal(r.body.refunds,1);
   });
+  await test('large discounted return ceiling is exact to the IQD, never rounded above entitlement',async()=>{
+   const second=await prisma.product.create({data:{
+    name:'Exact IQD return fixture',description:'Isolated financial test',price:999999999,
+    usdPrice:1,category:'Sample',brand:'Test',icon:'Package',stock:1
+   }});
+   const large=await prisma.order.create({data:{
+    customerName:'Synthetic precision check',customerPhone:'07811111111',
+    customerAddress:'Basrah test only',customerCity:'Basrah',status:'delivered',
+    subtotal:1999999999,discountAmount:2,shippingFee:0,total:1999999997,
+    items:{create:[
+     {productId:product.id,quantity:1,price:1000000000,productName:'Historical unit price'},
+     {productId:second.id,quantity:1,price:999999999,productName:second.name}
+    ]}
+   },include:{items:true}});
+   const largeUrl='/api/finance/orders/'+large.id;
+   const collect=await request(base,largeUrl+'/events','POST',intent('collection',1999999997),auth);
+   assert.equal(collect.status,201,JSON.stringify(collect));
+   await prisma.orderReturn.create({data:{
+    orderId:large.id,requestId:randomUUID(),actorId:admin.id,reason:'Actual synthetic item receipt',
+    lines:{create:[{orderItemId:large.items.find(i=>i.price===1000000000).id,quantity:1,disposition:'quarantined'}]}
+   }});
+   const read=await request(base,largeUrl,'GET',undefined,auth);
+   assert.equal(read.status,200,JSON.stringify(read));
+   assert.equal(read.body.totals.refundableCeilingIqd,999999998,
+    'floor((1,999,999,997 × 1,000,000,000) / 1,999,999,999) is exactly 999,999,998');
+   const excess=await request(base,largeUrl+'/events','POST',intent('refund',999999999),auth);
+   assert.equal(excess.status,409,'one IQD above the exact entitlement must be rejected');
+   const refund=intent('refund',999999998);
+   const accepted=await request(base,largeUrl+'/events','POST',refund,auth);
+   assert.equal(accepted.status,201,JSON.stringify(accepted));
+   assert.equal((await request(base,largeUrl+'/events','POST',refund,auth)).status,200);
+   assert.equal(await prisma.orderPaymentEvent.count({where:{orderId:large.id,kind:'refund'}}),1);
+  });
   console.log('THANAYA FINANCE — ALL '+passed+' ISOLATED CHECKS PASSED.');
  }catch(e){console.error('Finance test server output:',logs);throw e;}
 }

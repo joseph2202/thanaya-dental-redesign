@@ -64,11 +64,14 @@ export function snapshot(order:LedgerOrder){
  // discount allocation. Shipping is not automatically refundable.
  // This cumulative ceiling is stable for all partial return sequences.
  const discount=order.discountAmount??0;
- if(discount<0||discount>grossMerchandiseIqd)
+ if(!Number.isSafeInteger(discount)||discount<0||discount>grossMerchandiseIqd)
   throw new PaymentError(409,'تفاصيل الخصم في الطلب غير متناسقة');
  const merchandiseNetIqd=grossMerchandiseIqd-discount;
+ // Even valid 32-bit IQD totals can produce an intermediate product above
+ // Number.MAX_SAFE_INTEGER. Integer division must happen before converting
+ // back to Number, or a partial return can be rounded one IQD too high.
  const refundableCeilingIqd=grossMerchandiseIqd>0
-  ?Math.floor(merchandiseNetIqd*returnedGrossIqd/grossMerchandiseIqd):0;
+  ?Number(BigInt(merchandiseNetIqd)*BigInt(returnedGrossIqd)/BigInt(grossMerchandiseIqd)):0;
  const refundableRemainingIqd=Math.max(0,Math.min(collectedIqd-refundedIqd,
   refundableCeilingIqd-refundedIqd));
  return {
