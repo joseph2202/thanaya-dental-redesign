@@ -11,7 +11,7 @@ async function captureReview(page, name) {
   const directory = process.env.THANAYA_QA_SCREENSHOT_DIR;
   if (!directory) return;
   await mkdir(directory, { recursive: true });
-  await page.screenshot({ path: path.join(directory, name + '.png') });
+  await page.screenshot({ path: path.join(directory, name + '.png'), animations: 'disabled' });
 }
 
 async function playwrightBrowserSession(base, { ownerEmail, ownerPassword, receivingFixture }) {
@@ -95,6 +95,9 @@ async function playwrightBrowserSession(base, { ownerEmail, ownerPassword, recei
       'mobile storefront must not overflow horizontally');
     await captureReview(page, 'store-mobile-light');
     await page.emulateMedia({ contrast: 'more', reducedMotion: 'reduce' });
+    await page.waitForFunction(() => matchMedia('(prefers-contrast: more)').matches &&
+      getComputedStyle(document.querySelector('header.thanaya-site-header')).backdropFilter === 'none',
+      undefined, { timeout: 5000 });
     assert.equal(await page.locator('header.thanaya-site-header').evaluate(el =>
       getComputedStyle(el).backdropFilter), 'none',
       'higher contrast replaces glass with a solid navigation surface');
