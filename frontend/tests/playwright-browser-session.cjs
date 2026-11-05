@@ -11,7 +11,8 @@ async function captureReview(page, name, target=page) {
   const directory = process.env.THANAYA_QA_SCREENSHOT_DIR;
   if (!directory) return;
   await mkdir(directory, { recursive: true });
-  await target.screenshot({ path: path.join(directory, name + '.png'), animations: 'disabled' });
+  await target.screenshot({ path: path.join(directory, name + '.png'), animations: 'disabled',
+    ...(target!==page?{style:'.thanaya-admin-header { visibility: hidden !important; }'}:{}) });
 }
 
 async function playwrightBrowserSession(base, { ownerEmail, ownerPassword, receivingFixture }) {
@@ -425,6 +426,59 @@ async function playwrightBrowserSession(base, { ownerEmail, ownerPassword, recei
     assert.equal(cashReport.data.netRecordedCashMovementIqd,25000);
     console.log('PASS Playwright: owner expense and cash-adjustment forms update real summary');
     await owner.goto(base + '/admin');
+    const financial=owner.getByRole('region',{name:'المؤشرات المالية والتشغيلية',exact:true});
+    const expenseFigure=()=>financial.getByRole('link',{name:/المصاريف التشغيلية المسجلة/});
+    await expenseFigure().getByText('25,000 د.ع',{exact:true}).waitFor();
+    await financial.getByRole('link',{name:/مستحقات الموردين الحالية/}).getByText('68,000 د.ع',{exact:true}).waitFor();
+    await financial.getByRole('link',{name:/التحصيل الموثّق/}).getByText('0 د.ع',{exact:true}).waitFor();
+    await financial.getByRole('region',{name:'حركة النقد وحدود الأرقام'}).getByText('25,000 د.ع',{exact:true}).waitFor();
+    await financial.getByRole('region',{name:'تنبيهات صلاحية التشغيلات'}).waitFor();
+    console.log('PASS Playwright: financial dashboard shows recorded expense, supplier dues, zero collections and cash movement from actual forms');
+
+    let releaseOperations,seenOperations,doneOperations;
+    const heldOperations=new Promise(resolve=>{releaseOperations=resolve;});
+    const operationsSeen=new Promise(resolve=>{seenOperations=resolve;});
+    const operationsDone=new Promise(resolve=>{doneOperations=resolve;});
+    const opsSeven='**/api/reports/operations?range=7',opsNinety='**/api/reports/operations?range=90';
+    await owner.route(opsSeven,async route=>{
+      const response=await route.fetch(),report=await response.json();seenOperations();await heldOperations;
+      try{if(!route.request().failure())await route.fulfill({response,json:{...report,period:{...report.period,expenseIqd:7000}}});}
+      finally{doneOperations();}
+    });
+    await owner.route(opsNinety,async route=>{
+      const response=await route.fetch(),report=await response.json();
+      await route.fulfill({response,json:{...report,period:{...report.period,expenseIqd:90000}}});
+    });
+    try{
+      await owner.getByRole('button',{name:'7 أيام',exact:true}).click();
+      await completeWithin(operationsSeen,'delayed operations summary');
+      await financial.getByText('جاري تحميل المؤشرات المالية للفترة المحددة...',{exact:true}).waitFor();
+      assert.equal(await expenseFigure().count(),0,'old dashboard figures disappear during period loading');
+      await owner.getByRole('button',{name:'90 يوم',exact:true}).click();
+      await expenseFigure().getByText('90,000 د.ع',{exact:true}).waitFor();
+      releaseOperations();await completeWithin(operationsDone,'cancelled or completed old operations summary');
+      await owner.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
+      assert.equal(await financial.getByText('7,000 د.ع',{exact:true}).count(),0);
+      await expenseFigure().getByText('90,000 د.ع',{exact:true}).waitFor();
+    }finally{releaseOperations();await owner.unroute(opsSeven);await owner.unroute(opsNinety);}
+    await owner.route(opsSeven,route=>route.fulfill({status:503,contentType:'application/json',body:JSON.stringify({error:'تعذر استخراج المؤشرات التجريبية مؤقتاً'})}));
+    try{
+      await owner.getByRole('button',{name:'7 أيام',exact:true}).click();
+      await financial.getByRole('alert').getByText('تعذر استخراج المؤشرات التجريبية مؤقتاً',{exact:true}).waitFor();
+      assert.equal(await expenseFigure().count(),0,'failed dashboard refresh never presents stale money figures');
+    }finally{await owner.unroute(opsSeven);}
+    await financial.getByRole('button',{name:'إعادة تحميل المؤشرات',exact:true}).click();
+    await expenseFigure().getByText('25,000 د.ع',{exact:true}).waitFor();
+    await owner.getByRole('button',{name:'30 يوم',exact:true}).click();
+    await expenseFigure().getByText('25,000 د.ع',{exact:true}).waitFor();
+    await owner.setViewportSize({width:390,height:844});
+    assert.equal(await owner.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false);
+    await captureReview(owner,'admin-financial-dashboard-mobile',financial);
+    await owner.setViewportSize({width:768,height:1024});
+    assert.equal(await owner.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false);
+    await captureReview(owner,'admin-financial-dashboard-tablet',financial);
+    await owner.setViewportSize({width:1440,height:900});
+    console.log('PASS Playwright: dashboard ignores stale periods, hides failed figures, retries safely and fits mobile/tablet');
     await owner.getByRole('button', { name: 'خروج', exact: true }).first().click();
     await owner.waitForURL(/\/login(?:\?|$)/, { timeout: 15000 });
     assert.equal((await owner.evaluate(async () => (await fetch('/api/auth/me')).status)), 401);

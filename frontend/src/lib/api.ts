@@ -291,9 +291,19 @@ export type CostCoverageReport={
  knownCostIqd:number;coveredSalesIqd:number;knownMerchandiseMarginIqd:number;
  complete:boolean;warning:string
 };
+export type OperationalSummary={range:string;generatedAt:string;
+ period:{collectedIqd:number;refundedIqd:number;netCollectionsIqd:number;expenseIqd:number;netRecordedCashMovementIqd:number};
+ receivables:{dueIqd:number;orders:number;excludedReturnOrders:number;returnedOrders:number;scope:string};
+ payables:{dueIqd:number;invoices:number;overdueIqd:number;overdueInvoices:number;scope:string};
+ expiry:{today:string;through:string;expiredLots:number;expiredUnits:number;soonLots:number;soonUnits:number;
+  lots:{id:string;code:string;expiryDate:string;stock:number;product:{id:string;name:string}}[];limit:number;hasMore:boolean};
+ netProfitIqd:null;actualCashBalanceIqd:null;
+ explanations:{period:string;receivables:string;payables:string;cash:string};
+};
 export const reportsAPI={
  overview:(range:'7'|'30'|'90'|'all'):Promise<SalesReport>=>apiRequest('/reports/overview?range='+range),
- costs:(range:'7'|'30'|'90'|'all'):Promise<CostCoverageReport>=>apiRequest('/reports/costs?range='+range)
+ costs:(range:'7'|'30'|'90'|'all',signal?:AbortSignal):Promise<CostCoverageReport>=>apiRequest('/reports/costs?range='+range,{signal}),
+ operations:(range:'7'|'30'|'90'|'all',signal?:AbortSignal):Promise<OperationalSummary>=>apiRequest('/reports/operations?range='+range,{signal})
 };
 
 export type CartQuote={items:{productId:string;quantity:number;product:{id:string;name:string;price:number;stock:number;availableStock:number;saleUnit:string|null}|null;available:boolean}[];subtotal:number;canCheckout:boolean};

@@ -8,6 +8,7 @@ import {
   ShieldCheck,ShoppingBasket,TriangleAlert,Truck,UsersRound
 } from 'lucide-react';
 import AdminLayout from '@/components/admin/AdminLayout';
+import FinancialDashboard from '@/components/admin/FinancialDashboard';
 import {ordersAPI,reportsAPI,SalesReport} from '@/lib/api';
 import {useAuth} from '@/context/AuthContext';
 import {shortOrderCode} from '@/lib/orderPresentation';
@@ -87,7 +88,7 @@ export default function AdminDashboard(){
  const currentTotal=useMemo(()=>report?Object.values(report.statusCounts).reduce((s,n)=>s+n,0):0,[report]);
  const maxDaily=Math.max(1,...(report?.trend.map(d=>d.value)??[0]));
  const hasSales=Boolean(report?.trend.some(d=>d.value>0));
- const dateLabel=report?new Date(report.generatedAt).toLocaleString('ar-IQ',{dateStyle:'medium',timeStyle:'short'}):'—';
+ const dateLabel=report?.range===range&&!error?new Date(report.generatedAt).toLocaleString('ar-IQ',{dateStyle:'medium',timeStyle:'short',timeZone:'Asia/Baghdad'}):'—';
 
  if(user?.role==='inventory'||user?.role==='sales'){
    const inventory=user.role==='inventory';
@@ -139,13 +140,15 @@ export default function AdminDashboard(){
        <span>{error}</span><button onClick={()=>setRevision(x=>x+1)} className="underline">إعادة المحاولة</button>
      </div>}
      {!loaded&&!report?<p role="status" className="rounded-2xl border border-[#d4e8ef] bg-white p-8 text-center text-[#587483]">جاري تحميل لوحة ثنايا...</p>:null}
-     {report&&<>
+     {refreshing&&report&&report.range!==range&&<p role="status" className="site-muted py-5 text-sm">جاري تحميل تقرير الفترة المحددة...</p>}
+     {report&&report.range===range&&!error&&<>
        <div className="grid grid-cols-2 gap-3 xl:grid-cols-4 print:grid-cols-4 print:gap-2">
          <Metric icon={Clock3} title="تحتاج متابعة" value={report.stats.awaitingOrders.toLocaleString('en-US')} note="جديد + مؤكد + بالطريق" href="/admin/orders" accent="bg-amber-100 text-amber-700"/>
          <Metric icon={CircleCheckBig} title="قيمة الطلبات المُسلّمة" value={shortMoney(report.stats.deliveredValue)} note="ليست إثبات تحصيل ولا صافي ربح" href="/admin/reports" accent="bg-emerald-100 text-emerald-700"/>
          <Metric icon={ShoppingBasket} title="الطلبات ضمن الفترة" value={report.stats.orders.toLocaleString('en-US')} note={report.stats.deliveredOrders+' منها حالتها مُسلّم'} href="/admin/orders" accent="bg-sky-100 text-sky-700"/>
          <Metric icon={Package} title="منتجات مسجّلة" value={report.stats.totalProducts.toLocaleString('en-US')} note="تشمل المخفية من واجهة الزبون" href="/admin/products" accent="bg-indigo-100 text-indigo-700"/>
        </div>
+       <FinancialDashboard range={range} refreshKey={report.generatedAt}/>
        <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1.45fr)_minmax(310px,1fr)] print:grid-cols-2 print:gap-3">
          <section className="min-w-0 rounded-[23px] border border-[#cfe7f0] bg-white p-4 sm:p-5" aria-labelledby="trend-label">
            <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
@@ -206,7 +209,7 @@ export default function AdminDashboard(){
          {navigation.map(item=>{const Icon=item.icon;return <Link key={item.href} href={item.href} className="group flex items-center gap-3 rounded-xl border border-[#dcebf1] bg-[#f8fbfd] p-3 transition hover:border-brand hover:bg-[#eaf8fc]"><span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#e2f4fa] text-[#0589b7]"><Icon size={20}/></span><span className="min-w-0 flex-1"><strong className="block text-sm text-[#2b4858]">{item.title}</strong><small className="mt-1 block text-[11px] text-[#758e99]">{item.description}</small></span><ArrowUpLeft size={15} className="text-[#85abbc] transition group-hover:text-brand"/></Link>})}
        </div>
      </section>
-     <p className="pb-1 text-center text-xs leading-6 text-[#738b98]">نسخة العمليات الأولى: التقارير والأوامر مرتبطة ببيانات المتجر الحالية؛ الفواتير وإثبات الدفع وصافي الربح ستضاف بمراحل مستقلة.</p>
+     <p className="pb-1 text-center text-xs leading-6 text-[#738b98]">مؤشرات تشغيلية من السجلات المحفوظة؛ لا تمثل دفتر أستاذ عاماً أو رصيد بنك أو أرباحاً صافية.</p>
    </div>
  </AdminLayout>;
 }
