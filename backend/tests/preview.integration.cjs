@@ -58,8 +58,14 @@ async function main(){
   assert.ok(allowed.split(',').includes('http://127.0.0.1:3108'));
   assert.ok(allowed.split(',').includes('http://localhost:3108'));
   assert.ok(!allowed.includes('*'));
-  const password=seed.stdout.match(/^Password: ([^\\r\\n]+)$/m)?.[1];
+  // Exclude actual line endings, not the literal letters r/n. The old
+  // double escape swallowed the next banner line or rejected random passwords.
+  const password=seed.stdout.match(/^Password: ([^\r\n]+)$/m)?.[1];
   assert.ok(password,'seed must emit temporary owner password');
+  const owner=await db.user.findUnique({where:{email:'preview-owner@thanaya.local'}});
+  assert.ok(owner,'isolated seed creates the preview owner');
+  assert.ok(await require('bcryptjs').compare(password,owner.password),
+    'extracted preview credential must match the seeded password exactly');
   const port=await openPort();
   const started={...env,PORT:String(port),JWT_SECRET:randomBytes(32).toString('hex'),
    CORS_ALLOWED_ORIGINS:allowed,THANAYA_UPLOAD_DIR:path.join(root,'uploads')};
@@ -80,15 +86,17 @@ async function main(){
    await new Promise(done=>setTimeout(done,180));
   }
   assert.ok(healthy,'isolated preview backend starts: '+diagnostic);
-  const login=async origin=>fetch(base+'/api/auth/login',{
+  const login=async (origin,credential=password)=>fetch(base+'/api/auth/login',{
    method:'POST',headers:{'Content-Type':'application/json',
     'X-Thanaya-Auth-Mode':'cookie',Origin:origin},
-   body:JSON.stringify({email:'preview-owner@thanaya.local',password}),
+   body:JSON.stringify({email:'preview-owner@thanaya.local',password:credential}),
    signal:AbortSignal.timeout(8000)
   });
   const refused=await login('http://127.0.0.1:3109');
   assert.equal(refused.status,403,'other ports must remain forbidden');
   assert.match((await refused.json()).error,/مصدر طلب/);
+  const invalid=await login('http://127.0.0.1:3108',password+'invalid');
+  assert.equal(invalid.status,401,'trusted origin must not accept a wrong password');
   for(const origin of ['http://127.0.0.1:3108','http://localhost:3108']){
    const accepted=await login(origin);
    assert.equal(accepted.status,200,
