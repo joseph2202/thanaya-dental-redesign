@@ -265,6 +265,67 @@ async function playwrightBrowserSession(base, { ownerEmail, ownerPassword, recei
 
     await owner.goto(base + '/admin/cash');
     await owner.getByRole('heading', { name:'المصاريف وحركة الصندوق' }).waitFor({ timeout: 18000 });
+    await owner.getByRole('region', { name:'تقرير حركة النقد' }).waitFor();
+    // Simulate out-of-order HTTP completion without writing any financial data.
+    // A slow 7-day report must never replace the selected 90-day report.
+    let releaseSeven, markSevenSeen, markSevenDone;
+    const holdSeven = new Promise(resolve => { releaseSeven = resolve; });
+    const sevenSeen = new Promise(resolve => { markSevenSeen = resolve; });
+    const sevenDone = new Promise(resolve => { markSevenDone = resolve; });
+    const completeWithin = async (promise, label) => {
+      let timer;
+      try {
+        await Promise.race([promise,new Promise((_,reject) => {
+          timer=setTimeout(() => reject(Error('Timed out waiting for '+label)),10000);
+        })]);
+      } finally { clearTimeout(timer); }
+    };
+    const fixture = (report, amount) => ({
+      ...report, recordedExpenseIqd:amount, cashOutIqd:amount,
+      netRecordedCashMovementIqd:-amount, expenseCount:1,
+      components:{...report.components,cashOperatingExpensesIqd:amount},
+    });
+    const sevenPattern='**/api/cash/summary?range=7';
+    const ninetyPattern='**/api/cash/summary?range=90';
+    await owner.route(sevenPattern, async route => {
+      const response=await route.fetch();
+      const report=await response.json();
+      markSevenSeen();
+      await holdSeven;
+      await route.fulfill({response,json:fixture(report,7000)});
+      markSevenDone();
+    });
+    await owner.route(ninetyPattern, async route => {
+      const response=await route.fetch();
+      await route.fulfill({response,json:fixture(await response.json(),90000)});
+    });
+    try {
+      await owner.getByRole('button', { name:'7 أيام', exact:true }).click();
+      await completeWithin(sevenSeen,'the delayed 7-day report request');
+      await owner.getByText('جاري تحميل تقرير الصندوق للفترة المحددة...').waitFor();
+      assert.equal(await owner.getByRole('region', { name:'تقرير حركة النقد' }).count(),0,
+        'old financial figures are hidden while the new range loads');
+      await owner.getByRole('button', { name:'90 يوم', exact:true }).click();
+      const report=owner.getByRole('region', { name:'تقرير حركة النقد' });
+      await report.getByText('90,000 د.ع', { exact:true }).first().waitFor();
+      releaseSeven();
+      await completeWithin(sevenDone,'the obsolete 7-day report response');
+      await owner.evaluate(() => new Promise(resolve =>
+        requestAnimationFrame(() => requestAnimationFrame(resolve))));
+      assert.equal(await owner.getByRole('button', { name:'90 يوم',exact:true }).getAttribute('aria-pressed'),'true');
+      await report.getByText('90,000 د.ع', { exact:true }).first().waitFor();
+      assert.equal(await report.getByText('7,000 د.ع', { exact:true }).count(),0,
+        'a completed stale report never overwrites the current range');
+    } finally {
+      releaseSeven();
+      await owner.unroute(sevenPattern);
+      await owner.unroute(ninetyPattern);
+    }
+    const realReport=owner.waitForResponse(response => response.url().endsWith('/api/cash/summary?range=30'));
+    await owner.getByRole('button', { name:'30 يوم', exact:true }).click();
+    await realReport;
+    await owner.getByRole('region', { name:'تقرير حركة النقد' }).waitFor();
+    console.log('PASS Playwright: cash period changes hide old figures and ignore a delayed obsolete report');
     const expenseForm=owner.locator('form').first();
     await expenseForm.getByRole('spinbutton', { name:'المبلغ بالدينار العراقي' }).fill('25000');
     await expenseForm.getByRole('textbox', { name:'مرجع الوصل أو المصروف' })
