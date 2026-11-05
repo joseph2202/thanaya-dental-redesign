@@ -8,7 +8,7 @@ import ProductMedia from '@/components/ui/ProductMedia';
 import {saleUnitLabel} from '@/lib/saleUnits';
 
 export type CatalogCardProduct=Product & {
-  category?:string;brand?:string;price:number;availableStock?:number;saleUnit?:string|null;
+  category?:string;brand?:string;price:number;availableStock?:number;saleUnit?:string|null;sku?:string|null;
 };
 
 export default function CatalogProductCard({product}:{product:CatalogCardProduct}){
@@ -46,6 +46,7 @@ export default function CatalogProductCard({product}:{product:CatalogCardProduct
     {product.name}
    </Link>
    {product.brand&&<p className="mt-1 truncate text-[11px] font-medium text-[#6f8994]">{product.brand}</p>}
+   {product.sku&&<p className="mt-1 truncate text-[10px] font-semibold text-[#608392]" dir="ltr" title={product.sku}>SKU: {product.sku}</p>}
    <div className="thanaya-product-price mt-auto border-t border-[#edf3f5] pt-3.5">
     <p className="text-[10px] font-semibold text-[#8499a3]">السعر / {saleUnit}</p>
     <div className="mt-0.5 flex flex-wrap items-end gap-1.5">
