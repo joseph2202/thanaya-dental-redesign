@@ -7,6 +7,7 @@ import { requireAdmin, requireSales } from '../middleware/requireAdmin';
 import { isProvince } from './delivery';
 import {discountFor,normalizeCode} from './coupons';
 import {ReturnError,parseReturnSelection,applyOrderReturn} from '../lib/orderReturnLedger';
+import {OrderHistoryError,recordOrderStatus} from '../lib/orderStatusHistory';
 
 const router = Router();
 const prisma = new PrismaClient();
@@ -90,7 +91,7 @@ function parseCustomer(input: unknown): Customer {
 }
 
 function reportError(res: import('express').Response, error: unknown, context: string) {
-  if (error instanceof OrderError || error instanceof ReturnError) {
+  if (error instanceof OrderError || error instanceof ReturnError || error instanceof OrderHistoryError) {
     res.status(error.status).json({ error: error.message });
     return;
   }
@@ -365,6 +366,9 @@ router.post('/', async (req, res) => {
         })));
       }
       if(costEvidence.length)await tx.orderItemCostSnapshot.createMany({data:costEvidence});
+      await recordOrderStatus(tx,{
+        orderId:created.id,actorId:principal.id,kind:'placed',fromStatus:null,toStatus:'pending'
+      });
       const staff=await tx.user.findMany({where:{role:{in:['owner','admin','sales']}},select:{id:true}});
       if(staff.length)await tx.notification.createMany({data:staff.map(u=>({
         recipientId:u.id,kind:'new_order',title:'طلب جديد',message:'وصل طلب من '+customer.name+' بقيمة '+total.toLocaleString('en-US')+' د.ع',orderId:created.id
@@ -428,6 +432,13 @@ const transitions: Record<string, string[]> = {
 // itemized, admin-only receipt and condition recording through POST /:id/returns.
 router.patch('/:id/status', requireSales, async (req, res) => {
   try {
+    const input=req.body;
+    if(!input||typeof input!=='object'||Array.isArray(input)||
+      Object.keys(input).some(key=>!['status','reason'].includes(key)))
+      throw new OrderError(400,'بيانات إجراء الطلب غير صالحة');
+    const reason=input.reason===undefined?undefined:typeof input.reason==='string'?input.reason.trim():null;
+    if(reason===null||(reason!==undefined&&(reason.length<3||reason.length>250)))
+      throw new OrderError(400,'سبب الإجراء يجب أن يكون بين 3 و250 حرفاً');
     const status = req.body?.status;
     if (status === 'returned') {
       return res.status(409).json({
@@ -471,10 +482,36 @@ router.patch('/:id/status', requireSales, async (req, res) => {
         message:'تغيرت حالة الطلب إلى '+({confirmed:'مؤكد',shipped:'تم الشحن',delivered:'تم التوصيل',cancelled:'ملغي',returned:'مرتجع'} as Record<string,string>)[status],
         orderId:current.id
       }});
+      await recordOrderStatus(tx,{
+        orderId:current.id,actorId:res.locals.adminUserId as string,kind:'status_changed',
+        fromStatus:current.status,toStatus:status,...(reason?{reason}:{})
+      });
       return tx.order.findUniqueOrThrow({ where: { id: current.id } });
     }, { maxWait: 5000, timeout: 10000 });
     res.json(order);
   } catch (error) { reportError(res, error, 'update order status'); }
+});
+
+// Staff-only action evidence; no contact details, purchase costs or secrets.
+// Absence of a recorded placement event is disclosed instead of backfilled.
+router.get('/:id/history',requireSales,async(req,res)=>{
+  try{
+    if(Object.keys(req.query).length)throw new OrderError(400,'معلمات السجل غير صالحة');
+    const result=await prisma.$transaction(async tx=>{
+      const order=await tx.order.findUnique({where:{id:String(req.params.id)},
+        select:{id:true,status:true,createdAt:true}});
+      if(!order)throw new OrderError(404,'الطلب غير موجود');
+      const rows=await tx.orderStatusEvent.findMany({where:{orderId:order.id},
+        orderBy:[{createdAt:'desc'},{id:'desc'}],take:101,
+        select:{id:true,kind:true,fromStatus:true,toStatus:true,actorName:true,
+          actorRole:true,createdAt:true,reason:true,referenceId:true}});
+      const events=rows.slice(0,100).reverse();
+      return {order,events,hasMore:rows.length>100,
+        completeFromCreation:events.some(event=>event.kind==='placed'),recordedOnly:true,
+        explanation:'يعرض السجل الإجراءات الموثقة فقط؛ الأحداث القديمة غير المسجلة لا تُستنتج من الحالة الحالية.'};
+    });
+    res.json(result);
+  }catch(error){reportError(res,error,'order status history');}
 });
 
 export default router;

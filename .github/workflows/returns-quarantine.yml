@@ -48,6 +48,8 @@ jobs:
         run: python3 -m unittest discover -s backend/tests -p 'test_apply_erp_payables.py' -v
       - name: Rehearse ERP05/06 costing and expense schema on SQLite copy
         run: python3 -m unittest discover -s backend/tests -p 'test_rehearse_erp_cost_cash.py' -v
+      - name: Rehearse order history without inventing legacy events
+        run: python3 -m unittest discover -s backend/tests -p 'test_rehearse_order_history.py' -v
       - name: Install backend dependencies
         run: npm ci
         working-directory: backend
@@ -64,6 +66,11 @@ jobs:
         env:
           NODE_ENV: test
           JWT_SECRET: ci-placeholder-not-used-by-live-store
+      - name: Order status evidence, authorization and atomic rollback
+        run: node tests/order-history.integration.cjs
+        working-directory: backend
+        env:
+          NODE_ENV: test
       - name: Admin role boundary regression checks
         run: node tests/roles.integration.cjs
         working-directory: backend
