@@ -483,6 +483,7 @@ async function playwrightBrowserSession(base, { ownerEmail, ownerPassword, recei
     await owner.waitForURL(/\/login(?:\?|$)/, { timeout: 15000 });
     assert.equal((await owner.evaluate(async () => (await fetch('/api/auth/me')).status)), 401);
     console.log('PASS Playwright: owner logout revokes browser access to workspace');
+    await require('./product-gallery-browser.cjs').productGalleryBrowser(context,base,receivingFixture);
     await staff.close();
     if (failures.length) console.log('Browser nonfatal page errors count:', failures.length);
   } finally {

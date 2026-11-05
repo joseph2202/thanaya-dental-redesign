@@ -122,7 +122,9 @@ async function main() {
     const regular = await prismaClient.product.create({ data: {
       name: 'Browser Receipt Plain Product',
       description: 'disposable browser fixture', price: 40000, usdPrice: 1,
-      category: 'Dental', brand: 'CI', icon: 'Package', stock: 3
+      category: 'Dental', brand: 'CI', icon: 'Package', stock: 3,
+      sku:'CI-SKU-440',image:'/logo-icon.png',
+      gallery:JSON.stringify(['/logo.png','/uploads/intentionally-missing-gallery.png'])
     } });
     const tracked = await prismaClient.product.create({ data: {
       name: 'Browser Receipt Tracked Product',
