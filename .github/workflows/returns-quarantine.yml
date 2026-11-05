@@ -155,3 +155,12 @@ jobs:
         working-directory: frontend
         env:
           NODE_ENV: test
+          THANAYA_QA_SCREENSHOT_DIR: ${{ runner.temp }}/thanaya-browser-review
+      - name: Preserve synthetic browser screenshots for review
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: thanaya-browser-review-${{ github.run_number }}
+          path: ${{ runner.temp }}/thanaya-browser-review
+          if-no-files-found: ignore
+          retention-days: 7

@@ -3,7 +3,16 @@
 const assert = require('node:assert/strict');
 const { spawnSync } = require('node:child_process');
 const { randomUUID } = require('node:crypto');
+const path = require('node:path');
+const { mkdir } = require('node:fs/promises');
 const { chromium } = require('playwright-core');
+
+async function captureReview(page, name) {
+  const directory = process.env.THANAYA_QA_SCREENSHOT_DIR;
+  if (!directory) return;
+  await mkdir(directory, { recursive: true });
+  await page.screenshot({ path: path.join(directory, name + '.png') });
+}
 
 async function playwrightBrowserSession(base, { ownerEmail, ownerPassword, receivingFixture }) {
   const chrome = ['google-chrome-stable', 'google-chrome', 'chromium']
@@ -47,6 +56,7 @@ async function playwrightBrowserSession(base, { ownerEmail, ownerPassword, recei
 
     await page.reload();
     await page.getByRole('heading', { name: /أهلاً/ }).waitFor({ timeout: 15000 });
+    await captureReview(page, 'store-desktop-dark');
     const api = await page.evaluate(async () => {
       const mine = await fetch('/api/orders/mine');
       const denied = await fetch('/api/addresses', {
@@ -69,6 +79,29 @@ async function playwrightBrowserSession(base, { ownerEmail, ownerPassword, recei
     });
     assert.deepEqual(api, { ordersStatus: 200, deniedStatus: 403, allowedStatus: 201, addressCount: 1 });
     console.log('PASS Playwright: reload session and CSRF enforcement');
+    await page.setViewportSize({ width: 390, height: 844 });
+    const mobileToggle = page.getByRole('button', { name: 'فتح القائمة', exact: true });
+    await mobileToggle.click();
+    const mobileNav = page.getByRole('navigation', { name: 'قائمة التنقل', exact: true });
+    await mobileNav.getByRole('link', { name: 'الرئيسية', exact: true }).focus();
+    await page.keyboard.press('Escape');
+    await mobileNav.waitFor({ state: 'detached' });
+    assert.equal(await mobileToggle.getAttribute('aria-expanded'), 'false');
+    assert.equal(await mobileToggle.evaluate(el => el === document.activeElement), true,
+      'Escape closes storefront navigation and returns keyboard focus');
+    await page.getByRole('button', { name: 'تفعيل المظهر الفاتح' }).click();
+    assert.equal(await page.locator('html').getAttribute('data-thanaya-theme'), 'light');
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1), false,
+      'mobile storefront must not overflow horizontally');
+    await captureReview(page, 'store-mobile-light');
+    await page.emulateMedia({ contrast: 'more', reducedMotion: 'reduce' });
+    assert.equal(await page.locator('header.thanaya-site-header').evaluate(el =>
+      getComputedStyle(el).backdropFilter), 'none',
+      'higher contrast replaces glass with a solid navigation surface');
+    await page.emulateMedia({ contrast: 'no-preference', reducedMotion: 'no-preference' });
+    await page.getByRole('button', { name: 'تفعيل المظهر الداكن' }).click();
+    await page.setViewportSize({ width: 1440, height: 900 });
+    console.log('PASS Playwright: mobile navigation Escape/focus, light/dark toggle and page width');
     // Customer role must be enforced by backend and frontend independently.
     const customerExport = await page.evaluate(async () => (await fetch('/api/exports/inventory')).status);
     assert.equal(customerExport, 403, 'customer session may not export private inventory');
@@ -100,6 +133,17 @@ async function playwrightBrowserSession(base, { ownerEmail, ownerPassword, recei
     assert.equal(staffCookies.find(c => c.name === 'thanaya_session')?.httpOnly, true);
     await owner.reload();
     await owner.getByRole('heading', { name: 'لوحة التحكم', exact: true }).waitFor({ timeout: 15000 });
+    await captureReview(owner, 'admin-desktop-dark');
+    await owner.setViewportSize({ width: 390, height: 844 });
+    await owner.getByRole('button', { name: 'فتح قائمة الإدارة' }).click();
+    const adminMenu = owner.getByRole('dialog', { name: 'قائمة إدارة ثنايا' });
+    await adminMenu.waitFor({ state: 'visible' });
+    await owner.keyboard.press('Escape');
+    await adminMenu.waitFor({ state: 'hidden' });
+    assert.equal(await owner.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1), false,
+      'mobile admin workspace must not overflow horizontally');
+    await captureReview(owner, 'admin-mobile-dark');
+    await owner.setViewportSize({ width: 1440, height: 900 });
     console.log('PASS Playwright: owner login, admin access and session after reload');
 
     await owner.goto(base + '/admin/orders');

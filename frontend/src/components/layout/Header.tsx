@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { Search, ShoppingBag, UserRound, LogOut, LayoutDashboard, Menu, X } from "lucide-react";
 import { useCart } from "@/context/CartContext";
@@ -21,6 +21,7 @@ export default function Header() {
   const { user, logout } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
   const router = useRouter();
   const pathname = usePathname();
 
@@ -57,7 +58,14 @@ export default function Header() {
   );
 
   return (
-    <header className="thanaya-site-header sticky top-0 z-50 border-b border-[#dceaf1] border-t-[3px] border-t-[#059BD0] bg-white/95 shadow-[0_4px_22px_rgba(5,64,102,.035)] backdrop-blur-xl">
+    <header className="thanaya-site-header thanaya-glass-navigation sticky top-0 z-50 border-b border-[#dceaf1] border-t-[3px] border-t-[#059BD0] bg-white/95 shadow-[0_4px_22px_rgba(5,64,102,.035)]"
+      onKeyDown={(event) => {
+        if (event.key === "Escape" && menuOpen) {
+          event.preventDefault();
+          setMenuOpen(false);
+          menuButtonRef.current?.focus();
+        }
+      }}>
       <div className="site-container">
         <div className="flex min-h-[64px] items-center gap-3 py-1.5 xl:gap-5">
           <Link href="/" aria-label="ثنايا — الصفحة الرئيسية" className="flex shrink-0 items-center gap-2">
@@ -70,12 +78,12 @@ export default function Header() {
 
           {search(false)}
 
-          <nav aria-label="التنقل الرئيسي" className="hidden shrink-0 items-center gap-4 xl:flex 2xl:gap-5">
+          <nav aria-label="التنقل الرئيسي" className="hidden shrink-0 items-center gap-1 xl:flex 2xl:gap-2">
             {navigation.map((item) => {
               const active = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
               return (
                 <Link key={item.href} href={item.href} aria-current={active ? "page" : undefined}
-                  className={`whitespace-nowrap text-[13px] font-bold transition hover:text-brand ${active ? "text-[#047BA8]" : "text-[#34495c]"}`}>
+                  className={`thanaya-store-nav-link whitespace-nowrap text-[13px] font-bold transition hover:text-brand ${active ? "text-[#047BA8]" : "text-[#34495c]"}`}>
                   {item.label}
                 </Link>
               );
@@ -109,6 +117,7 @@ export default function Header() {
               {totalItems > 0 && <span className="absolute -left-2 -top-2 grid h-5 min-w-5 place-items-center rounded-full bg-[#18364d] px-1 text-[10px] text-white">{totalItems}</span>}
             </Link>
             <button
+              ref={menuButtonRef}
               type="button"
               className="grid h-10 w-10 place-items-center rounded-full border border-[#d5e8ef] text-ink xl:hidden"
               aria-expanded={menuOpen}
@@ -129,6 +138,7 @@ export default function Header() {
           <div className="mx-auto grid max-w-[1220px] grid-cols-2 gap-2 sm:grid-cols-4">
             {navigation.map((item) => (
               <Link key={item.href} href={item.href} onClick={() => setMenuOpen(false)}
+                aria-current={(item.href === "/" ? pathname === "/" : pathname.startsWith(item.href)) ? "page" : undefined}
                 className={`rounded-xl px-4 py-3 text-center text-sm font-bold ${pathname === item.href ? "bg-[#E8EEF1] text-brand" : "bg-[#f6fbfe] text-[#24445a]"}`}>
                 {item.label}
               </Link>
