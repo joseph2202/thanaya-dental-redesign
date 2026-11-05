@@ -87,6 +87,25 @@ export async function apiRequest<T = any>(endpoint: string, options: RequestInit
   return normalizeLegacyUploadLinks(parsed as T);
 }
 
+export type SandboxPayment={provider:'mock';environment:'sandbox';reference:string;orderId:string;
+ amountIqd:number;currency:'IQD';status:'pending'|'authorized'|'paid'|'failed'|'cancelled'|'refunded';refundedIqd:number;sequence:number};
+export type SandboxPaymentDetail={payment:SandboxPayment;sandbox:true;realMoney:false;events:{eventId:string;
+ sequence:number;status:SandboxPayment['status'];refundedIqd:number;source:string;outcome:string;
+ actorName:string|null;occurredAt:string;recordedAt:string}[];webhookDelivered?:boolean};
+export type SandboxPaymentCatalog={enabled:boolean;sandbox:true;realMoney:false;
+ intents?:{payment:SandboxPayment;createdBy:string;createdAt:string}[];orders?:{id:string;total:number;status:string}[]};
+export const paymentSandboxAPI={
+ status:(signal?:AbortSignal):Promise<SandboxPaymentCatalog>=>apiRequest('/payment-sandbox',{signal}),
+ get:(reference:string):Promise<SandboxPaymentDetail>=>apiRequest('/payment-sandbox/intents/'+encodeURIComponent(reference)),
+ create:(orderId:string,requestId:string):Promise<SandboxPaymentDetail>=>apiRequest('/payment-sandbox/intents',{
+  method:'POST',body:JSON.stringify({orderId,requestId})}),
+ simulate:(reference:string,status:'authorized'|'paid'|'failed'|'cancelled',deliverWebhook=true):Promise<SandboxPaymentDetail>=>
+  apiRequest('/payment-sandbox/intents/'+encodeURIComponent(reference)+'/simulate',{method:'POST',body:JSON.stringify({status,deliverWebhook})}),
+ reconcile:(reference:string):Promise<SandboxPaymentDetail>=>apiRequest('/payment-sandbox/intents/'+encodeURIComponent(reference)+'/reconcile',{method:'POST',body:'{}'}),
+ refund:(reference:string,amountIqd:number,requestId:string):Promise<SandboxPaymentDetail>=>
+  apiRequest('/payment-sandbox/intents/'+encodeURIComponent(reference)+'/refunds',{method:'POST',body:JSON.stringify({amountIqd,requestId})}),
+};
+
 // Auth API
 export const authAPI = {
   register: (data: { name: string; email: string; phone: string; password: string }) =>

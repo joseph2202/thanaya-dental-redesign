@@ -7,11 +7,11 @@ const path = require('node:path');
 const { mkdir } = require('node:fs/promises');
 const { chromium } = require('playwright-core');
 
-async function captureReview(page, name) {
+async function captureReview(page, name, target=page) {
   const directory = process.env.THANAYA_QA_SCREENSHOT_DIR;
   if (!directory) return;
   await mkdir(directory, { recursive: true });
-  await page.screenshot({ path: path.join(directory, name + '.png'), animations: 'disabled' });
+  await target.screenshot({ path: path.join(directory, name + '.png'), animations: 'disabled' });
 }
 
 async function playwrightBrowserSession(base, { ownerEmail, ownerPassword, receivingFixture }) {
@@ -252,9 +252,39 @@ async function playwrightBrowserSession(base, { ownerEmail, ownerPassword, recei
     assert.equal(recorded.events[1].reason,actionNote);assert.equal(recorded.collected,0);
     await owner.setViewportSize({width:390,height:844});
     assert.equal(await owner.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false);
-    await captureReview(owner,'admin-order-timeline-mobile');
+    await captureReview(owner,'admin-order-timeline-mobile',auditTimeline);
     await owner.setViewportSize({width:1440,height:900});
     console.log('PASS Playwright: admin state confirmation stores the real actor/reason and refreshes the timeline without collecting money');
+
+    await owner.goto(base+'/admin/payment-settings');
+    const paymentLab=owner.getByRole('region',{name:'محاكي الدفع',exact:true});
+    await paymentLab.getByRole('heading',{name:'محاكي الدفع — معاينة فقط'}).waitFor();
+    await paymentLab.getByRole('combobox',{name:'طلب المعاينة',exact:true}).selectOption(audited.order.id);
+    await paymentLab.getByRole('button',{name:'بدء محاولة تجريبية',exact:true}).click();
+    const labStatus=paymentLab.getByRole('status',{name:'حالة المحاولة التجريبية',exact:true});
+    await labStatus.getByText('بانتظار الدفع',{exact:true}).waitFor();
+    await paymentLab.getByRole('button',{name:'محاكاة تفويض',exact:true}).click();
+    await labStatus.getByText('مفوّض فقط؛ لم يدفع بعد',{exact:true}).waitFor();
+    await paymentLab.getByRole('button',{name:'محاكاة دفع بإشعار مفقود',exact:true}).click();
+    await paymentLab.getByText('تمت المحاكاة دون وصول الإشعار. استعلم لمطابقة الحالة.',{exact:true}).waitFor();
+    await owner.reload();
+    await labStatus.getByText('مفوّض فقط؛ لم يدفع بعد',{exact:true}).waitFor();
+    await paymentLab.getByRole('button',{name:'الاستعلام ومطابقة الحالة',exact:true}).click();
+    await labStatus.getByText('مدفوع تجريبياً',{exact:true}).waitFor();
+    await paymentLab.getByRole('spinbutton',{name:'مبلغ الاسترداد التجريبي بالدينار',exact:true}).fill('10000');
+    await paymentLab.getByRole('button',{name:'تأكيد استرداد تجريبي',exact:true}).click();
+    await paymentLab.getByRole('status',{name:'مجموع الاسترداد التجريبي',exact:true}).getByText('10,000 د.ع',{exact:true}).waitFor();
+    const untouched=await owner.evaluate(async id=>{
+      const finance=await (await fetch('/api/finance/orders/'+id)).json();
+      const order=await (await fetch('/api/orders/'+id)).json();
+      return {collected:finance.totals.collectedIqd,refunded:finance.totals.refundedIqd,status:order.status};
+    },audited.order.id);
+    assert.deepEqual(untouched,{collected:0,refunded:0,status:'confirmed'});
+    await owner.setViewportSize({width:390,height:844});
+    assert.equal(await owner.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false);
+    await captureReview(owner,'admin-payment-sandbox-mobile',paymentLab);
+    await owner.setViewportSize({width:1440,height:900});
+    console.log('PASS Playwright: owner payment sandbox form, authorization, lost callback, reload, reconciliation and refund; real order/cash unchanged');
 
     // ERP04: real owner-facing form creates a bill only after goods received,
     // then records an out-of-band supplier payment with a durable reference.

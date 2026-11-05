@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import AdminLayout from '@/components/admin/AdminLayout';
+import PaymentSandboxPanel from '@/components/admin/PaymentSandboxPanel';
 import {ArrowUpLeft,Banknote,BadgeCheck,CreditCard,FileClock,KeyRound,LockKeyhole,ShieldAlert,ShieldCheck,Webhook} from 'lucide-react';
 
 export const metadata={title:'طرق الدفع | ثنايا — إدارة المتجر'};
@@ -60,6 +61,7 @@ export default function PaymentSettings(){
      إدارة المفاتيح وبيانات البطاقات تتم عبر مزوّد الدفع المخصّص، ولا تُدخل في ملاحظات الطلب.
     </p>
    </section>
+   <PaymentSandboxPanel/>
   </div>
  </AdminLayout>;
 }

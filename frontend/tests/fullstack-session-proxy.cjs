@@ -2,9 +2,9 @@
 // Runs on GitHub Actions with a throwaway SQLite database and random test users.
 // No customer DB, stored credentials, production server, or external deployment.
 const assert = require('node:assert/strict');
-const { randomUUID } = require('node:crypto');
+const { randomUUID,randomBytes } = require('node:crypto');
 const { spawn, spawnSync } = require('node:child_process');
-const { mkdtempSync, rmSync } = require('node:fs');
+const { mkdtempSync, rmSync,realpathSync,statSync,writeFileSync } = require('node:fs');
 const { once } = require('node:events');
 const net = require('node:net');
 const os = require('node:os');
@@ -13,8 +13,8 @@ const path = require('node:path');
 const root = path.resolve(__dirname, '../..');
 const backend = path.join(root, 'backend');
 const frontend = path.join(root, 'frontend');
-const scratch = mkdtempSync(path.join(os.tmpdir(), 'thanaya-fullstack-auth-'));
-const dbPath = path.join(scratch, 'test.db');
+const scratch = realpathSync(mkdtempSync(path.join(os.tmpdir(), 'thanaya-preview-')));
+const dbPath = path.join(scratch, 'preview.sqlite');
 const db = 'file:' + dbPath;
 const jwtSecret = randomUUID() + randomUUID();
 const apiPort = 4000; // next.config.ts has an explicit loopback rewrite to this port.
@@ -92,6 +92,8 @@ async function main() {
     THANAYA_UPLOAD_DIR: path.join(scratch, 'uploads'),
     CORS_ALLOWED_ORIGINS: base,
     PORT: String(apiPort),
+    THANAYA_PREVIEW_ONLY:'1',THANAYA_PREVIEW_ROOT:scratch,THANAYA_PAYMENT_SANDBOX:'1',
+    THANAYA_PAYMENT_MOCK_SECRET:randomBytes(32).toString('hex'),
   };
   const prisma = spawnSync(path.join(backend, 'node_modules/.bin/prisma'),
     ['db', 'push', '--skip-generate'], {
@@ -141,6 +143,12 @@ async function main() {
   } finally {
     await prismaClient.$disconnect();
   }
+  // Only this freshly initialized synthetic fixture receives the sandbox
+  // marker. Never mark, copy or point at an existing shop database.
+  const stat=statSync(dbPath);
+  writeFileSync(path.join(scratch,'payment-sandbox.json'),JSON.stringify({
+    kind:'thanaya-synthetic-preview-v1',database:dbPath,device:stat.dev,inode:stat.ino
+  }),{mode:0o600,flag:'wx'});
 
   apiProcess = start(process.execPath, ['dist/index.js'], backend, runEnv);
   await ready('http://127.0.0.1:' + apiPort + '/api/health', apiProcess);

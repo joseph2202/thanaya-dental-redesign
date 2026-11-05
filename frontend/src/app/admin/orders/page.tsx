@@ -103,7 +103,7 @@ export default function AdminOrders(){
    </div>
   </div>
   {error&&<p className="mb-4 rounded-xl bg-red-50 p-4 text-red-700 font-bold" role="alert">{error}</p>}
-  {notice&&<p className="mb-4 rounded-xl bg-green-50 p-4 text-green-700 font-bold" role="status">{notice}</p>}
+  {notice&&<p className="mb-4 break-all rounded-xl bg-green-50 p-4 text-green-700 font-bold" role="status">{notice}</p>}
   <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
    {(['pending','confirmed','shipped','delivered'] as const).map(x=><button key={x} onClick={()=>{setStatus(x);setPage(1)}} className={`rounded-2xl border p-4 text-right transition ${status===x?'border-brand bg-[#e9f8fd] shadow-sm':'border-brand/20 bg-white hover:border-brand'}`} aria-pressed={status===x}>
    <span className="text-sm text-neutral-600">{labels[x]}</span><strong className="mt-2 block text-3xl text-brand">{data?.statusCounts[x]??'—'}</strong></button>)}
