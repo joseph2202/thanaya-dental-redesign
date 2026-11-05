@@ -20,8 +20,12 @@ async function productGalleryBrowser(browser,base,fixture){
   assert.equal(await modal.evaluate(element=>element.contains(document.activeElement)),true);
   const zoom=modal.getByRole('button',{name:'تكبير 2×',exact:true});
   await zoom.click();
+  await modal.getByRole('button',{name:'الحجم الطبيعي',exact:true}).waitFor();
   const viewport=modal.locator('[aria-label="مساحة الصورة المكبّرة"]');
-  assert.equal(await viewport.evaluate(element=>element.scrollWidth>element.clientWidth&&element.scrollHeight>element.clientHeight),true);
+  const dimensions=await viewport.evaluate(element=>({scrollWidth:element.scrollWidth,clientWidth:element.clientWidth,
+    scrollHeight:element.scrollHeight,clientHeight:element.clientHeight,className:element.className,
+    canvasWidth:element.firstElementChild?.getBoundingClientRect().width,canvasHeight:element.firstElementChild?.getBoundingClientRect().height}));
+  assert.ok(dimensions.scrollWidth>dimensions.clientWidth&&dimensions.scrollHeight>dimensions.clientHeight,JSON.stringify(dimensions));
   await modal.getByRole('button',{name:'الحجم الطبيعي',exact:true}).click();
   await page.keyboard.press('ArrowLeft');
   await modal.getByText('الصورة 2 من 3',{exact:true}).waitFor();
