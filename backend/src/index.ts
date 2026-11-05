@@ -49,18 +49,14 @@ app.use((_req, res, next) => {
   res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
   next();
 });
-app.use(cors({ origin: (origin, callback) => callback(null, !origin || allowedOrigins.has(origin)) }));
-app.use(express.json());
-// Cookie transport is opt-in. Existing Bearer sessions keep working during migration.
-// CSRF checks happen before any authenticated mutation reaches the API routes.
-app.use(cookieSessionBridge(allowedOrigins));
-
 // Sensitive customer and staff data must not enter shared/browser HTTP caches.
+// Run before parsing, auth and CSRF so rejected requests get the same policy.
 // Public product/catalog endpoints remain unaffected.
 const privateApiPrefixes=[
   '/api/auth','/api/orders','/api/addresses','/api/finance',
   '/api/users','/api/procurement','/api/notifications','/api/exports',
-  '/api/upload','/api/reports','/api/products/manage'
+  '/api/upload','/api/reports','/api/products/manage',
+  '/api/receiving','/api/payables','/api/cash'
 ];
 app.use((req, res, next) => {
   if(privateApiPrefixes.some(prefix=>req.path===prefix||req.path.startsWith(prefix+'/'))){
@@ -69,6 +65,11 @@ app.use((req, res, next) => {
   }
   next();
 });
+app.use(cors({ origin: (origin, callback) => callback(null, !origin || allowedOrigins.has(origin)) }));
+app.use(express.json());
+// Cookie transport is opt-in. Existing Bearer sessions keep working during migration.
+// CSRF checks happen before any authenticated mutation reaches the API routes.
+app.use(cookieSessionBridge(allowedOrigins));
 
 // ==========================================
 // إعدادات رفع الصور (Multer)

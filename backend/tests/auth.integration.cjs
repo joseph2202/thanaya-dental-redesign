@@ -234,6 +234,8 @@ async function main() {
   const newAddress = { label: 'تجربة', name: 'مستلم محلي', phone: '07812345678', city: 'البصرة', address: 'عنوان اختبار خاص في البصرة' };
   const withoutCsrf = await cookieRequest('/api/addresses', 'POST', newAddress, { Origin: origin });
   assert.equal(withoutCsrf.status, 403, 'cookie writes require CSRF token');
+  assert.equal(withoutCsrf.headers.get('cache-control'), 'no-store',
+    'CSRF rejection must carry the same privacy policy as a successful private response');
   const foreignCsrf = await cookieRequest('/api/addresses', 'POST', newAddress,
     { Origin: 'https://attacker.invalid', 'X-Thanaya-CSRF': csrf });
   assert.equal(foreignCsrf.status, 403, 'correct CSRF token is insufficient from foreign Origin');
@@ -325,6 +327,24 @@ async function main() {
   const privateOrders=await request(base,'/api/orders/mine','GET',undefined,login.body.token);
   assert.equal(privateOrders.headers.get('cache-control'),'no-store',
     'private customer orders must not be cached');
+  // Cover the actual financial/receiving routes, including rejected access
+  // and missing records. Errors must not bypass the private response policy.
+  for (const [route, ownerStatus] of [
+    ['/api/cash/summary', 200],
+    ['/api/cash/expenses', 200],
+    ['/api/payables/invoices', 200],
+    ['/api/receiving/purchase-orders/missing-test-order', 404],
+  ]) {
+    for (const [token, status] of [[undefined, 401], [login.body.token, 403], [legacy.body.token, ownerStatus]]) {
+      const response = await request(base, route, 'GET', undefined, token);
+      assert.equal(response.status, status, route + ' keeps its role boundary');
+      assert.equal(response.headers.get('cache-control'), 'no-store',
+        route + ' must prevent caching for status ' + status);
+      assert.match(response.headers.get('content-security-policy') || '', /frame-ancestors 'none'/,
+        route + ' keeps private response headers for status ' + status);
+    }
+  }
+  console.log('PASS: cash, payables and receiving responses are private for owner, customer and anonymous access');
   const trusted = await request(base, '/api/health', 'GET', undefined, undefined, 'http://localhost:3000');
   assert.equal(trusted.headers.get('access-control-allow-origin'), 'http://localhost:3000');
   assert.equal(trusted.headers.get('x-content-type-options'), 'nosniff');
