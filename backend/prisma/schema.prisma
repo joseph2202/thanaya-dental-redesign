@@ -28,6 +28,7 @@ model User {
   recordedSupplierPayments SupplierPayment[] @relation("SupplierPaymentActor")
   recordedExpenses StoreExpense[] @relation("ExpenseActor")
   cashAdjustments CashAdjustment[] @relation("CashAdjustmentActor")
+  orderStatusActions OrderStatusEvent[] @relation("OrderStatusActor")
 }
 
 // Address book is private to one user. Order address fields are immutable snapshots.
@@ -129,6 +130,26 @@ model Order {
   returnRevision  Int         @default(0) // CAS guard against simultaneous partial returns
   paymentRevision Int         @default(0) // CAS guard for concurrent financial events
   paymentEvents OrderPaymentEvent[]
+  statusEvents OrderStatusEvent[]
+}
+
+// Append-only operational evidence. Never synthesize events for historical orders.
+model OrderStatusEvent {
+  id String @id @default(cuid())
+  orderId String
+  actorId String
+  actorName String
+  actorRole String
+  kind String
+  fromStatus String?
+  toStatus String
+  reason String?
+  referenceId String?
+  createdAt DateTime @default(now())
+  order Order @relation(fields:[orderId],references:[id],onDelete:Restrict)
+  actor User @relation("OrderStatusActor",fields:[actorId],references:[id],onDelete:Restrict)
+  @@index([orderId,createdAt])
+  @@index([actorId,createdAt])
 }
 
 model OrderItem {

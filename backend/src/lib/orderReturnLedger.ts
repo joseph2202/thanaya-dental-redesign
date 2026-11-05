@@ -1,4 +1,5 @@
 import {Prisma} from '@prisma/client';
+import {recordOrderStatus} from './orderStatusHistory';
 
 export class ReturnError extends Error {
   constructor(public status:number,message:string){super(message);}
@@ -184,5 +185,9 @@ export async function applyOrderReturn(
     message:complete?'تم تسجيل استلام كامل المرتجع':'تم تسجيل استلام بعض منتجات طلبك',
     orderId:order.id
   }});
+  if(complete)await recordOrderStatus(tx,{
+    orderId:order.id,actorId,kind:'full_return',fromStatus:'delivered',toStatus:'returned',
+    reason,referenceId:saved.id
+  });
   return {returnEvent:saved,orderStatus:complete?'returned':'delivered',alreadyProcessed:false};
 }

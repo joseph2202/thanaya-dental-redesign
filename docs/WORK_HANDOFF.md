@@ -1,22 +1,19 @@
-# THANAYA — نقطة استئناف المهمة الكاملة
+# THANAYA — استئناف المواصفات الكاملة
 
-## الأساس
-المواصفات الكاملة وصلت وتوجد في WORK_MISSION.md. آخر نقطة متحققة قبلها: PR #59، f84ec5f4239ab34b74e0331219cf28c723093641، CI #235 ناجح. لا تعد CI #229 أو استنساخ المشروع من الصفر.
+## آخر أساس متحقق
+PR #60، fix/iqd-refund-precision-20261105، e8aca5de373813e4bf246e5726a32be1995a2f4e. CI #236 ناجح بالكامل: https://github.com/joseph2202/thanaya-dental-redesign/actions/runs/42086517169 . كل إصلاحات PRs #56–#59 محفوظة. المواصفات في WORK_MISSION.md ولا تعاد مرحلة Recovery.
 
-## الدفعة الحالية 5
-الفرع: fix/iqd-refund-precision-20261105، الأب #59. إصلاح دقة حد الاسترداد بنسب الخصم. أعيد إنتاج الخطأ مباشرة وعبر API على قاعدة مؤقتة: السقف زاد ديناراً واحداً. بعد الإصلاح نجح بناء Backend وفحوص finance (14 حالة) وcash وCOGS على قواعد مؤقتة. اختبار API الجديد فشل قبل الإصلاح ثم نجح بعده، ورفض الدينار الزائد وحفظ استرداداً واحداً عند التكرار. CI الكامل ينتظر حفظ Draft PR.
+## الدفعة الحالية 6
+الفرع feature/order-status-audit-20261105، الأب #60. OrderStatusEvent جديد مع actor/name/role/from/to/time، وإنشاء الدليل بنفس transaction للإجراء، وGET history للموظفين المخولين فقط. القديم لا يعاد اختراع تاريخه. فشل كتابة الحدث يلغي الحالة والمخزون والإشعار.
 
-## المكتمل وغير المكتمل
-الدفعات السابقة الأربع محفوظة، وتفاصيلها في ../HANDOFF.md و../CHANGELOG.md. مصفوفة بقية المشروع في WORK_ROADMAP.md؛ المشروع لم يكتمل. سجل الحالة وبنية الدفع وDashboard المتقدم وبقية المتجر والجودة مراحل تنفيذ تالية.
+## الفحوص الفعلية
+نجح generate وبناء Backend، و7 فحوص Python للبروفة، و9 فحوص history API، ومجموعات orders/finance/COGS. اختبار history يشمل صلاحيات السيرفر وتزوير الفاعل والاسم/الدور التاريخي والتكرار والتزامن والمرتجعات وrollback ومقارنة مخطط Prisma ببروفة Python. CI الكامل بعد حفظ Draft PR.
 
-## الفحوص
-Node 22، RUST_LOG=info في بيئة Work. Backend dependencies مثبتة. أوامر الدفعة بعد البناء: NODE_ENV=test node tests/finance.integration.cjs ثم cash وcogs. استخدم RUST_LOG=info. production npm audit --omit=dev للـBackend حالياً 0. لا تعاد اختبارات ثقيلة بلا تغيير مؤثر.
+## المخطط
+الدفعة 5 لم تحتج Migration. الدفعة 6 تحتاج جدول OrderStatusEvent فقط، ولم تطبق على Mac. أداة rehearse_order_history.py قراءة فقط للمصدر وكتابة لنسخة مؤقتة، بلا apply. تعليمات وحدود التفعيل في ORDER_STATUS_AUDIT_ROLLOUT.md؛ لا db push أو reset على الحقيقي.
 
-## المخطط والسلامة
-الدفعة 5 لا تغير Prisma schema ولا تحتاج Migration. كل DB اختبار مؤقتة؛ لا dev.db حقيقي ولا .env حقيقي. أي إضافة جداول لاحقة تستلزم rehearsal ومسار تفعيل منفصل؛ لا تفعيل على Mac ولا prisma db push عليه.
+## بيئة الاختبار وPreview
+Node 22 وRUST_LOG=info في Work. قواعد الاختبار تحت temp. Preview: نسخة مستقلة ثم bash scripts/preview-local.sh، بورتات 3108/4108 ومالك صناعي مؤقت وتنظيف عند الإيقاف. لا .env أو dev.db حقيقي هنا ولا نشر. Chromium المحلي مقيد؛ Chrome الفعلي يعمل في GitHub CI مع صور صناعية.
 
-## Preview
-في نسخة مستقلة فقط: bash scripts/preview-local.sh. ينشئ SQLite صناعية مؤقتة، ويطبع دخول مالك مؤقتاً ويستخدم 127.0.0.1:3108 و4108 وينظفها عند الإيقاف. لا مشاركة عامة أو ربط بوابة حقيقية. Chromium المحلي مقيد؛ Chrome الفعلي يفحص في GitHub CI وتوجد screenshots artifacts.
-
-## التالي الدقيق
-تحقق من حفظ الدفعة 5 وCI ثم أضف OrderStatusEvent كسجل خاص append-only مع actor/time/from/to في نفس معاملة إنشاء الطلب أو انتقال الحالة أو اكتمال المرتجع. اختبر الصلاحيات والتزامن وعدم تكرار الأحداث وبروفة الإضافة على نسخة صناعية. بعدها timeline واضحة بالإدارة، ثم بنية الدفع التجريبية.
+## التالي بدقة
+تحقق من CI الدفعة 6 بعد حفظها، ثم فرع من رأسها لإضافة OrderStatusTimeline داخل تفاصيل طلب الإدارة، وحقل سبب اختياري، وتحديث السجل بعد الإجراء مع تحميل/خطأ/حالة قديمة صريحة. اختبر عبر Chrome إنشاء طلب وتأكيده وظهور الفاعل والسبب، دون تغيير التحصيل. بعدها بنية Payment Provider Adapter وsandbox معزولة وبحث مزودين رسمي. بقية المتطلبات في WORK_ROADMAP ولم تعتبر مكتملة.
