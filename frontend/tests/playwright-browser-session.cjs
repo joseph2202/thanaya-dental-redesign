@@ -215,6 +215,47 @@ async function playwrightBrowserSession(base, { ownerEmail, ownerPassword, recei
     assert.equal(trackedLine.lotTracking, true);
     console.log('PASS Playwright: owner goods receiving form, partial stock and tracked lot');
 
+    // Place an order only in this disposable shop, then change its state from
+    // the actual admin form and inspect its persisted staff timeline.
+    const audited=await owner.evaluate(async productId=>{
+      const proof=document.cookie.split(';').map(value=>value.trim())
+        .find(value=>value.startsWith('thanaya_csrf='))?.split('=')[1];
+      const response=await fetch('/api/orders',{
+        method:'POST',headers:{'Content-Type':'application/json','X-Thanaya-CSRF':proof},
+        body:JSON.stringify({requestId:crypto.randomUUID(),items:[{productId,quantity:1}],
+          customer:{name:'زبون سجل تجريبي',phone:'07811111111',city:'البصرة',address:'عنوان صناعي لا يخص زبوناً'}}),
+      });
+      return {status:response.status,order:await response.json()};
+    },receivingFixture.plainId);
+    assert.equal(audited.status,201,JSON.stringify(audited));
+    await owner.goto(base+'/admin/orders');
+    await owner.getByRole('searchbox',{name:'البحث عن طلب بالرقم أو اسم الزبون أو الهاتف'}).fill(audited.order.id);
+    await owner.getByRole('button',{name:'بحث',exact:true}).click();
+    const auditCard=owner.locator('article.signature-order-card').filter({hasText:'زبون سجل تجريبي'});
+    await auditCard.getByRole('button',{name:/الفاتورة وتفاصيل الطلب/}).click();
+    const auditTimeline=auditCard.getByRole('region',{name:'سجل حالة الطلب'});
+    await auditTimeline.getByText('تم إنشاء الطلب',{exact:true}).waitFor();
+    await auditCard.getByRole('button',{name:'تغيير إلى مؤكد',exact:true}).click();
+    const stateDialog=owner.getByRole('dialog',{name:'تأكيد تغيير حالة الطلب'});
+    const actionNote='تمت مراجعة الطلب وتأكيد بيانات التوصيل';
+    await stateDialog.getByRole('textbox',{name:'ملاحظة الإجراء (اختياري)'}).fill(actionNote);
+    await stateDialog.getByRole('button',{name:'تأكيد تغيير الحالة',exact:true}).click();
+    await stateDialog.waitFor({state:'hidden'});
+    await auditTimeline.getByText(actionNote,{exact:true}).waitFor();
+    assert.equal(await auditTimeline.getByText(/بواسطة Browser Test Owner/).count(),2);
+    const recorded=await owner.evaluate(async id=>{
+      const history=await (await fetch('/api/orders/'+encodeURIComponent(id)+'/history')).json();
+      const ledger=await (await fetch('/api/finance/orders/'+encodeURIComponent(id))).json();
+      return {events:history.events,collected:ledger.totals.collectedIqd};
+    },audited.order.id);
+    assert.equal(recorded.events.length,2);assert.equal(recorded.events[1].actorRole,'owner');
+    assert.equal(recorded.events[1].reason,actionNote);assert.equal(recorded.collected,0);
+    await owner.setViewportSize({width:390,height:844});
+    assert.equal(await owner.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false);
+    await captureReview(owner,'admin-order-timeline-mobile');
+    await owner.setViewportSize({width:1440,height:900});
+    console.log('PASS Playwright: admin state confirmation stores the real actor/reason and refreshes the timeline without collecting money');
+
     // ERP04: real owner-facing form creates a bill only after goods received,
     // then records an out-of-band supplier payment with a durable reference.
     await owner.goto(base + '/admin/payables');
