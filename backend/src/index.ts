@@ -17,6 +17,7 @@ import procurementRoutes from './routes/procurement';
 import receivingRoutes from './routes/receiving';
 import payablesRoutes from './routes/payables';
 import cashRoutes from './routes/cash';
+import paymentSandboxRoutes,{paymentSandboxWebhook} from './routes/paymentSandbox';
 import exportsRoutes from './routes/exports';
 import addressesRoutes from './routes/addresses';
 
@@ -56,7 +57,7 @@ const privateApiPrefixes=[
   '/api/auth','/api/orders','/api/addresses','/api/finance',
   '/api/users','/api/procurement','/api/notifications','/api/exports',
   '/api/upload','/api/reports','/api/products/manage',
-  '/api/receiving','/api/payables','/api/cash'
+  '/api/receiving','/api/payables','/api/cash','/api/payment-sandbox'
 ];
 app.use((req, res, next) => {
   if(privateApiPrefixes.some(prefix=>req.path===prefix||req.path.startsWith(prefix+'/'))){
@@ -66,6 +67,7 @@ app.use((req, res, next) => {
   next();
 });
 app.use(cors({ origin: (origin, callback) => callback(null, !origin || allowedOrigins.has(origin)) }));
+app.use('/api/payment-sandbox',paymentSandboxWebhook);
 app.use(express.json());
 // Cookie transport is opt-in. Existing Bearer sessions keep working during migration.
 // CSRF checks happen before any authenticated mutation reaches the API routes.
@@ -178,6 +180,7 @@ app.use('/api/procurement', procurementRoutes);
 app.use('/api/receiving', receivingRoutes);
 app.use('/api/payables', payablesRoutes);
 app.use('/api/cash', cashRoutes);
+app.use('/api/payment-sandbox', paymentSandboxRoutes);
 app.use('/api/exports', exportsRoutes);
 
 app.get('/api/health', (req, res) => {
