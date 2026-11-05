@@ -12,6 +12,7 @@
     "db:studio": "prisma studio",
     "test:orders": "prisma generate && npm run build && node tests/orders.integration.cjs",
     "test:order-history": "prisma generate && npm run build && node tests/order-history.integration.cjs",
+    "test:payment-provider": "npm run build && node --test tests/payment-provider.test.cjs",
     "test:finance": "prisma generate && npm run build && node tests/finance.integration.cjs",
     "test:procurement": "prisma generate && npm run build && node tests/procurement.integration.cjs",
     "test:receiving": "prisma generate && npm run build && node tests/receiving.integration.cjs",
