@@ -32,17 +32,27 @@ export default function CashAndExpenses(){
  const [busy,setBusy]=useState(false),[loading,setLoading]=useState(true);
  const [error,setError]=useState(""),[notice,setNotice]=useState("");
  const expenseKey=useRef<string|null>(null),drawerKey=useRef<string|null>(null);
+ const loadVersion=useRef(0);
  const resetExpense=()=>{expenseKey.current=null;setConfirmExpense(false);setNotice("");};
  const resetDrawer=()=>{drawerKey.current=null;setConfirmDrawer(false);setNotice("");};
  const load=useCallback(async()=>{
-  setLoading(true);setError("");
+  const version=++loadVersion.current;
+  setLoading(true);setError("");setSummary(null);
   try{
    const [report,items]=await Promise.all([cashAPI.summary(range),cashAPI.expenses()]);
+   if(version!==loadVersion.current)return;
    setSummary(report);setExpenses(items);
-  }catch(e){setError(e instanceof Error?e.message:"تعذر تحميل الصندوق والمصاريف");}
-  finally{setLoading(false);}
+  }catch(e){
+   if(version===loadVersion.current)setError(e instanceof Error?e.message:"تعذر تحميل الصندوق والمصاريف");
+  }finally{if(version===loadVersion.current)setLoading(false);}
  },[range]);
- useEffect(()=>{void load()},[load]);
+ useEffect(()=>{
+  void load();
+  return()=>{loadVersion.current++;};
+ },[load]);
+ // A range change renders before its effect starts: never label old figures
+ // with the new period, even during that first render or after a failed load.
+ const currentSummary=!loading&&summary?.range===range?summary:null;
  async function addExpense(e:FormEvent){
   e.preventDefault();setError("");setNotice("");
   const money=Number(amount);
@@ -100,33 +110,34 @@ export default function CashAndExpenses(){
    </header>
    <div className="flex flex-wrap gap-2">
     {(["7","30","90","all"] as const).map((v,i)=>
-     <button key={v} type="button" aria-pressed={range===v} onClick={()=>setRange(v)}
+     <button key={v} type="button" aria-pressed={range===v} disabled={busy} onClick={()=>setRange(v)}
       className={"rounded-full border px-3 py-1.5 text-sm font-bold "+(range===v?"bg-brand text-white border-brand":"border-brand/25")}>
       {["7 أيام","30 يوم","90 يوم","كل الفترة"][i]}
      </button>)}
    </div>
    {error&&<p role="alert" className="rounded-xl border border-red-300 bg-red-50 p-4 text-sm font-bold text-red-900">{error}</p>}
    {notice&&<p role="status" className="rounded-xl border border-emerald-300 bg-emerald-50 p-4 text-sm font-bold text-emerald-900">{notice}</p>}
-   {summary&&<section className={"space-y-3 "+(loading?"opacity-60":"")}>
+   {loading&&<p role="status" className="site-muted rounded-xl border border-brand/20 p-4 text-sm">جاري تحميل تقرير الصندوق للفترة المحددة...</p>}
+   {currentSummary&&<section aria-label="تقرير حركة النقد" className="space-y-3">
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
      {[
-      ["مصاريف تشغيلية مدفوعة",summary.recordedExpenseIqd],
-      ["نقد داخل مسجل",summary.cashInIqd],
-      ["نقد خارج مسجل",summary.cashOutIqd],
-      ["صافي حركة النقد المسجلة",summary.netRecordedCashMovementIqd]
+      ["مصاريف تشغيلية مدفوعة",currentSummary.recordedExpenseIqd],
+      ["نقد داخل مسجل",currentSummary.cashInIqd],
+      ["نقد خارج مسجل",currentSummary.cashOutIqd],
+      ["صافي حركة النقد المسجلة",currentSummary.netRecordedCashMovementIqd]
      ].map(([name,value])=><div className="site-surface rounded-2xl p-4" key={String(name)}>
        <p className="site-muted text-xs font-bold">{String(name)}</p>
        <p className="mt-3 text-xl font-black text-brand">{iqd(Number(value))}</p>
       </div>)}
     </div>
-    <p className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-xs leading-6 text-amber-950">{summary.warning}</p>
+    <p className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-xs leading-6 text-amber-950">{currentSummary.warning}</p>
     <div className="site-surface grid gap-3 rounded-2xl p-4 text-sm sm:grid-cols-2 lg:grid-cols-3">
-     <p>تحصيل نقدي من الطلبات: <strong>{iqd(summary.components.customerCashCollectedIqd)}</strong></p>
-     <p>استرداد نقدي للزبائن: <strong>{iqd(summary.components.customerCashRefundedIqd)}</strong></p>
-     <p>مدفوع نقداً للموردين: <strong>{iqd(summary.components.supplierCashPaidIqd)}</strong></p>
-     <p>مصاريف نقدية: <strong>{iqd(summary.components.cashOperatingExpensesIqd)}</strong></p>
-     <p>إضافات نقدية من المالك: <strong>{iqd(summary.components.ownerCashContributionsIqd)}</strong></p>
-     <p>سحوبات المالك: <strong>{iqd(summary.components.ownerCashWithdrawalsIqd)}</strong></p>
+     <p>تحصيل نقدي من الطلبات: <strong>{iqd(currentSummary.components.customerCashCollectedIqd)}</strong></p>
+     <p>استرداد نقدي للزبائن: <strong>{iqd(currentSummary.components.customerCashRefundedIqd)}</strong></p>
+     <p>مدفوع نقداً للموردين: <strong>{iqd(currentSummary.components.supplierCashPaidIqd)}</strong></p>
+     <p>مصاريف نقدية: <strong>{iqd(currentSummary.components.cashOperatingExpensesIqd)}</strong></p>
+     <p>إضافات نقدية من المالك: <strong>{iqd(currentSummary.components.ownerCashContributionsIqd)}</strong></p>
+     <p>سحوبات المالك: <strong>{iqd(currentSummary.components.ownerCashWithdrawalsIqd)}</strong></p>
     </div>
    </section>}
 
