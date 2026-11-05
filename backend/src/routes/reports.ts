@@ -1,12 +1,27 @@
 import { Router } from 'express';
 import { Prisma, PrismaClient } from '@prisma/client';
 import { requireAdmin } from '../middleware/requireAdmin';
+import {operationalSummary,OperationsError} from '../lib/operationalSummary';
 
 const router = Router();
 const prisma = new PrismaClient();
 const DAY_MS = 24 * 60 * 60 * 1000;
 const STATES = ['pending', 'confirmed', 'shipped', 'delivered', 'cancelled', 'returned'] as const;
 const BAGHDAD_MS = 3 * 60 * 60 * 1000;
+
+router.get('/operations',requireAdmin,async(req,res)=>{
+ const range=req.query.range===undefined?'30':req.query.range;
+ if(typeof range!=='string'||!['7','30','90','all'].includes(range)||Object.keys(req.query).some(key=>key!=='range'))
+  return res.status(400).json({error:'فترة مؤشرات العمليات غير صالحة'});
+ try{
+  const summary=await prisma.$transaction(tx=>operationalSummary(tx,range,new Date()),{timeout:15000});
+  res.json(summary);
+ }catch(error){
+  if(error instanceof OperationsError)return res.status(409).json({error:error.message});
+  console.error('operational financial summary failed');
+  res.status(503).json({error:'تعذر استخراج مؤشرات العمليات؛ أعد المحاولة.'});
+ }
+});
 
 // Report periods measure rolling days. The visual trend groups dates by Iraq time (UTC+3).
 router.get('/overview', requireAdmin, async (req, res) => {

@@ -142,6 +142,11 @@ jobs:
         env:
           NODE_ENV: test
           JWT_SECRET: ci-placeholder-not-used-by-live-store
+      - name: Operational dashboard money, receivables, payables and expiry checks
+        run: node tests/operations.integration.cjs
+        working-directory: backend
+        env:
+          NODE_ENV: test
       - name: Install frontend dependencies
         run: npm ci
         working-directory: frontend

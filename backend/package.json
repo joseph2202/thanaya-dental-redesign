@@ -14,6 +14,7 @@
     "test:order-history": "prisma generate && npm run build && node tests/order-history.integration.cjs",
     "test:payment-provider": "npm run build && node --test tests/payment-provider.test.cjs",
     "test:payment-sandbox": "prisma generate && npm run build && node tests/payment-sandbox.integration.cjs",
+    "test:operations": "prisma generate && npm run build && node tests/operations.integration.cjs",
     "test:finance": "prisma generate && npm run build && node tests/finance.integration.cjs",
     "test:procurement": "prisma generate && npm run build && node tests/procurement.integration.cjs",
     "test:receiving": "prisma generate && npm run build && node tests/receiving.integration.cjs",
