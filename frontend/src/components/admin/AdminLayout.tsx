@@ -114,7 +114,7 @@ export default function AdminLayout({children}:{children:ReactNode}){
     </dialog>
 
     <div className="min-w-0 flex-1">
-      <div className="thanaya-admin-header sticky top-0 z-30 border-b border-[#d9e9ef] bg-white/95 px-4 py-3 backdrop-blur-md md:px-7 print:hidden">
+      <div className="thanaya-admin-header thanaya-glass-navigation sticky top-0 z-30 border-b border-[#d9e9ef] bg-white/95 px-4 py-3 md:px-7 print:hidden">
         <div className="flex items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-3">
             <button type="button" onClick={()=>setMenuOpen(true)} aria-label="فتح قائمة الإدارة"

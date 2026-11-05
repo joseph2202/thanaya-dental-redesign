@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import "./site-dual-theme.css";
+import "./liquid-glass.css";
 import { CartProvider } from "@/context/CartContext";
 import { AuthProvider } from "@/context/AuthContext";
 import BackgroundPattern from "@/components/layout/BackgroundPattern";
