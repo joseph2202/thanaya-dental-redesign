@@ -1,5 +1,6 @@
 // Seed strictly isolated disposable Thanaya preview data. NEVER touches dev.db.
 const path=require('node:path');
+const fs=require('node:fs');
 const {randomUUID,randomBytes}=require('node:crypto');
 const bcrypt=require('bcryptjs');
 const {PrismaClient}=require('@prisma/client');
@@ -94,6 +95,12 @@ async function main(){
   kind:'collection',method:'cash',amountIqd:60000,
   note:'تحصيل نقدي تجريبي — جزء من الطلب'
  }});
+ if(process.env.THANAYA_PAYMENT_SANDBOX==='1'){
+  const stat=fs.statSync(absDb);
+  fs.writeFileSync(path.join(absRoot,'payment-sandbox.json'),JSON.stringify({
+   kind:'thanaya-synthetic-preview-v1',database:absDb,device:stat.dev,inode:stat.ino
+  }),{mode:0o600,flag:'wx'});
+ }
  console.log('');
  console.log('==========================================');
  console.log('THANAYA PRIVATE PREVIEW — DEMO ONLY');

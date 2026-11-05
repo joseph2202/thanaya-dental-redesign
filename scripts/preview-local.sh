@@ -17,6 +17,7 @@ for port in 4108 3108; do
 done
 PREVIEW_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/thanaya-preview-XXXXXXXX")"
 chmod 700 "$PREVIEW_ROOT"
+PREVIEW_ROOT="$(cd "$PREVIEW_ROOT" && pwd -P)"
 BACK_PID=""
 FRONT_PID=""
 cleanup() {
@@ -32,6 +33,8 @@ trap 'exit 143' TERM
 
 export THANAYA_PREVIEW_ROOT="$PREVIEW_ROOT"
 export THANAYA_PREVIEW_ONLY=1
+export THANAYA_PAYMENT_SANDBOX=1
+export THANAYA_PAYMENT_MOCK_SECRET="$(node -e 'process.stdout.write(require("node:crypto").randomBytes(32).toString("hex"))')"
 export THANAYA_UPLOAD_DIR="$PREVIEW_ROOT/uploads"
 export DATABASE_URL="file:$PREVIEW_ROOT/preview.sqlite"
 export JWT_SECRET="$(node -e 'process.stdout.write(require("node:crypto").randomBytes(32).toString("hex"))')"

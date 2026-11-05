@@ -74,6 +74,11 @@ jobs:
       - name: Payment adapter protocol, signature and idempotent refund checks
         run: node --test tests/payment-provider.test.cjs
         working-directory: backend
+      - name: Durable payment sandbox restart, replay and isolation checks
+        run: node tests/payment-sandbox.integration.cjs
+        working-directory: backend
+        env:
+          NODE_ENV: test
       - name: Admin role boundary regression checks
         run: node tests/roles.integration.cjs
         working-directory: backend
