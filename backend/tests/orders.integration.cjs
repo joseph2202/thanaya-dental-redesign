@@ -189,7 +189,18 @@ async function main() {
       assert.equal((await prisma.product.findUniqueOrThrow({ where: { id: item.id } })).stock, 4);
     });
 
-    console.log('\nALL 6 CHECKS PASSED. Database was isolated and will be deleted.');
+    await check('stock ledger reconciles sales, cancellation and returns', async () => {
+      const all = await prisma.inventoryMovement.findMany();
+      const sales = all.filter(entry => entry.reason === 'order_placed');
+      const cancels = all.filter(entry => entry.reason === 'order_cancelled');
+      const returns = all.filter(entry => entry.reason === 'order_returned');
+      assert.ok(sales.length >= 4, 'sale movements missing');
+      assert.ok(cancels.length >= 1, 'cancellation movements missing');
+      assert.ok(returns.length >= 1, 'return movements missing');
+      for (const entry of all) assert.equal(entry.before + entry.delta, entry.after);
+    });
+
+    console.log('\\nALL 7 CHECKS PASSED. Database was isolated and will be deleted.');
   } catch (error) {
     console.error('\nORDER INTEGRATION FAILED. Server output:\n' + logs);
     throw error;

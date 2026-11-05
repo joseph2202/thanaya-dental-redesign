@@ -13,7 +13,9 @@ export async function apiRequest(endpoint: string, options: RequestInit = {}) {
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.error || 'خطأ في الطلب');
+    const apiError = new Error(error.error || 'خطأ في الطلب') as Error & { status: number };
+    apiError.status = response.status;
+    throw apiError;
   }
 
   return response.json();
@@ -24,6 +26,7 @@ export const authAPI = {
   register: (data: { name: string; email: string; phone: string; password: string }) =>
     apiRequest('/auth/register', { method: 'POST', body: JSON.stringify(data) }),
   
+  me: () => apiRequest('/auth/me'),
   login: (email: string, password: string) =>
     apiRequest('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) }),
 };
@@ -42,6 +45,8 @@ export const productsAPI = {
   update: (id: string, data: any) => apiRequest(`/products/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   
   delete: (id: string) => apiRequest(`/products/${id}`, { method: 'DELETE' }),
+  getInventory: (id: string) => apiRequest(`/products/${id}/inventory`),
+  adjustStock: (id: string, delta: number, reason: string) => apiRequest(`/products/${id}/stock-adjustment`, { method: 'POST', body: JSON.stringify({ delta, reason }) }),
 };
 
 // Orders API

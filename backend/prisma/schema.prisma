@@ -32,6 +32,7 @@ model Product {
   stock       Int         @default(0)
   createdAt   DateTime    @default(now())
   orderItems  OrderItem[]
+  inventoryMovements InventoryMovement[]
 }
 
 model Category {
@@ -70,4 +71,22 @@ model OrderItem {
   price     Int
   order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
   product   Product @relation(fields: [productId], references: [id])
+}
+
+// Append-only record of every stock change. It is NOT a replacement for Product.stock;
+// each movement and its matching balance update are saved in one transaction.
+model InventoryMovement {
+  id          String   @id @default(cuid())
+  productId   String
+  delta       Int
+  before      Int
+  after       Int
+  reason      String
+  referenceId String?
+  actorId     String?
+  createdAt   DateTime @default(now())
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@index([productId, createdAt])
+  @@index([referenceId])
 }

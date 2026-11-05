@@ -1,13 +1,15 @@
 "use client";
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Suspense } from 'react';
 import Link from 'next/link';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import { loginUser } from '@/lib/auth';
 import { useAuth } from '@/context/AuthContext';
 
-export default function LoginPage() {
+function LoginContent() {
+  const searchParams = useSearchParams();
   const router = useRouter();
   const { refreshUser } = useAuth();
   const [form, setForm] = useState({ email: '', password: '' });
@@ -23,7 +25,8 @@ export default function LoginPage() {
     
     if (result.user) {
       refreshUser();
-      router.push('/account');
+      const redirect = searchParams.get('redirect');
+      router.replace(redirect?.startsWith('/admin') && result.user.role === 'admin' ? redirect : result.user.role === 'admin' ? '/admin' : '/account');
     } else {
       setError(result.error);
     }
@@ -91,3 +94,5 @@ export default function LoginPage() {
     </>
   );
 }
+
+export default function LoginPage() { return <Suspense fallback={<p className="p-12 text-center">جاري التحميل...</p>}><LoginContent /></Suspense>; }

@@ -19,13 +19,15 @@ const navItems = [
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { user, isAdmin, logout } = useAuth();
+  const { user, isAdmin, logout, isLoading } = useAuth();
 
   useEffect(() => {
-    if (!user) router.push('/login?redirect=/admin');
-    else if (!isAdmin) router.push('/');
-  }, [user, isAdmin, router]);
+    if (isLoading) return;
+    if (!user) router.replace('/login?redirect=/admin');
+    else if (!isAdmin) router.replace('/');
+  }, [user, isAdmin, isLoading, router]);
 
+  if (isLoading) return <div className="site-main grid place-items-center p-8 text-sm text-ink" role="status">جاري التحقق من صلاحيات الإدارة...</div>;
   if (!user || !isAdmin) return null;
   const current = navItems.find(n => n.href === pathname);
 
