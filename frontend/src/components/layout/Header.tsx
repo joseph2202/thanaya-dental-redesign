@@ -44,6 +44,7 @@ export default function Header() {
         <Search size={18} className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[#7e9aaa]" aria-hidden="true" />
         <input
           type="search"
+          maxLength={100}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="ابحث عن منتج، ماركة، تصنيف..."
