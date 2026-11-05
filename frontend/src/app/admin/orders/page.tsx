@@ -6,6 +6,7 @@ import {Printer,FileSpreadsheet,Copy,Phone,HandCoins} from 'lucide-react';
 import {ordersAPI,exportsAPI} from '@/lib/api';
 import SiteActionDialog from '@/components/ui/SiteActionDialog';
 import PartialReturnDialog from '@/components/admin/PartialReturnDialog';
+import OrderStatusTimeline from '@/components/admin/OrderStatusTimeline';
 import {useAuth} from '@/context/AuthContext';
 import {shortOrderCode} from '@/lib/orderPresentation';
 
@@ -30,6 +31,7 @@ export default function AdminOrders(){
  const [pendingChange,setPendingChange]=useState<{order:Order;next:string}|null>(null);
  const [returnOrder,setReturnOrder]=useState<Order|null>(null);
  const [changeError,setChangeError]=useState('');
+ const [changeReason,setChangeReason]=useState('');
  const requestSequence=useRef(0);
  const load=useCallback(async()=>{
   const sequence=++requestSequence.current;
@@ -44,13 +46,15 @@ export default function AdminOrders(){
   }
  },[page,status,query]);
  useEffect(()=>{load()},[load]);
- function change(order:Order,next:string){setChangeError('');setPendingChange({order,next});}
+ function change(order:Order,next:string){setChangeError('');setChangeReason('');setPendingChange({order,next});}
  async function confirmChange(){
   if(!pendingChange||busy)return;
   const {order,next}=pendingChange;
+  const reason=changeReason.trim();
+  if(reason&&reason.length<3){setChangeError('اكتب ملاحظة من 3 إلى 250 حرفاً أو اترك الحقل فارغاً');return;}
   setBusy(order.id);setError('');setNotice('');setChangeError('');
   try{
-   await ordersAPI.updateStatus(order.id,next);
+   await ordersAPI.updateStatus(order.id,next,reason||undefined);
    setPendingChange(null);
    setNotice('تم تحديث حالة الطلب '+order.id);
    await load();
@@ -83,7 +87,13 @@ export default function AdminOrders(){
    error={changeError}
    destructive={pendingChange?.next==='returned'||pendingChange?.next==='cancelled'}
   >
-   {pendingChange&&<p className="break-all rounded-xl bg-[#f0f9fc] p-3 text-sm font-bold">رقم الطلب: <span dir="ltr">{pendingChange.order.id}</span></p>}
+   {pendingChange&&<>
+    <p className="break-all rounded-xl bg-[#f0f9fc] p-3 text-sm font-bold">رقم الطلب: <span dir="ltr">{pendingChange.order.id}</span></p>
+    <label className="mt-4 block text-sm font-bold">ملاحظة الإجراء (اختياري)
+      <textarea value={changeReason} onChange={event=>setChangeReason(event.target.value)}
+        disabled={Boolean(busy)} maxLength={250} rows={2} className="site-input mt-2 w-full px-3 py-2"/>
+    </label>
+   </>}
   </SiteActionDialog>
   <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
    <div><h1 className="text-3xl font-black text-ink">إدارة الطلبات</h1><p className="mt-2 text-sm text-neutral-600">بحث سريع، متابعة الحالات، وتفاصيل فاتورة محفوظة من السيرفر.</p></div>
@@ -202,6 +212,7 @@ export default function AdminOrders(){
         </div>)}
       </div>}
       </section>
+     <OrderStatusTimeline orderId={o.id} currentStatus={o.status}/>
     </div>}
    </article>
   })}

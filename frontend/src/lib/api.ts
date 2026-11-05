@@ -167,6 +167,13 @@ export const exportsAPI={
 };
 
 // Orders API
+export type OrderStatusHistory={
+  order:{id:string;status:string;createdAt:string};
+  events:{id:string;kind:string;fromStatus:string|null;toStatus:string;actorName:string;
+    actorRole:string;createdAt:string;reason:string|null;referenceId:string|null}[];
+  hasMore:boolean;completeFromCreation:boolean;recordedOnly:true;explanation:string;
+};
+
 export const ordersAPI = {
   getAll: () => apiRequest('/orders'),
   manage: (params: {page:number;status:string;search:string}) => apiRequest('/orders/manage?'+new URLSearchParams({page:String(params.page),status:params.status,search:params.search}).toString()),
@@ -176,8 +183,10 @@ export const ordersAPI = {
   
   create: (data: any) => apiRequest('/orders', { method: 'POST', body: JSON.stringify(data) }),
   
-  updateStatus: (id: string, status: string) =>
-    apiRequest(`/orders/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }),
+  history:(id:string,signal?:AbortSignal):Promise<OrderStatusHistory> =>
+    apiRequest('/orders/'+encodeURIComponent(id)+'/history',{signal}),
+  updateStatus: (id: string, status: string,reason?:string) =>
+    apiRequest(`/orders/${encodeURIComponent(id)}/status`, { method: 'PATCH', body: JSON.stringify({ status,...(reason?{reason}:{}) }) }),
   receiveReturn: (id:string,data:{requestId:string;reason:string;items:{orderItemId:string;quantity:number;quarantinedQuantity?:number;lots?:{lotId:string;quantity:number;quarantinedQuantity?:number}[]}[]})=>
     apiRequest('/orders/'+encodeURIComponent(id)+'/returns',{method:'POST',body:JSON.stringify(data)}),
 };
