@@ -14,8 +14,7 @@ permissions:
 
 jobs:
   isolated-returns-and-build:
-    # Pin the OS with the pinned browser driver; ubuntu-latest moved to 26.04,
-    # which Playwright 1.56.1 does not support for native WebKit.
+    # Stable baseline runner. Native RC browsers use a matching image below.
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -199,7 +198,7 @@ jobs:
           NODE_ENV: test
       - name: Prepare browser E2E driver
         # Keep the already-built app's lockfile dependency tree unchanged.
-        run: npm install --prefix "$RUNNER_TEMP/thanaya-browser-driver" --no-save --package-lock=false --ignore-scripts playwright-core@1.56.1 @axe-core/playwright@4.10.2
+        run: npm install --prefix "$RUNNER_TEMP/thanaya-browser-driver" --no-save --package-lock=false --ignore-scripts playwright-core@1.56.1
       - name: Full-stack session and CSRF smoke through Next.js API rewrite
         run: node tests/fullstack-session-proxy.cjs
         working-directory: frontend
@@ -207,20 +206,56 @@ jobs:
           NODE_ENV: test
           NODE_PATH: ${{ runner.temp }}/thanaya-browser-driver/node_modules
           THANAYA_QA_SCREENSHOT_DIR: ${{ runner.temp }}/thanaya-browser-review
-      - name: Real private preview launcher and synthetic storefront/admin browser review
-        run: node tests/private-preview-qa.cjs
-        working-directory: frontend
-        env:
-          NODE_ENV: test
-          NODE_PATH: ${{ runner.temp }}/thanaya-browser-driver/node_modules
-          THANAYA_QA_SCREENSHOT_DIR: ${{ runner.temp }}/thanaya-browser-review
-          THANAYA_RC_QUALITY: '1'
-          DEBUG: pw:browser
       - name: Preserve synthetic browser screenshots for review
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: thanaya-browser-review-${{ github.run_number }}
           path: ${{ runner.temp }}/thanaya-browser-review
+          if-no-files-found: ignore
+          retention-days: 7
+
+  rc-browser-quality:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    # Browsers + shared libraries are already present. Avoid slow apt mirror
+    # downloads; the isolated driver version must match this exact image tag.
+    container:
+      image: mcr.microsoft.com/playwright:v1.65.0-noble
+      options: --shm-size=1g --init
+    steps:
+      - name: Checkout RC branch
+        uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: |
+            backend/package-lock.json
+            frontend/package-lock.json
+      - name: Install locked backend dependencies
+        run: npm ci
+        working-directory: backend
+      - name: Install locked frontend dependencies
+        run: npm ci
+        working-directory: frontend
+      - name: Prepare driver matching the bundled native browsers
+        run: npm install --prefix "$RUNNER_TEMP/thanaya-browser-driver" --no-save --package-lock=false --ignore-scripts playwright-core@1.65.0 @axe-core/playwright@4.10.2
+      - name: Real production preview, accessibility, performance and native WebKit journeys
+        run: node tests/private-preview-qa.cjs
+        working-directory: frontend
+        env:
+          NODE_ENV: test
+          NODE_PATH: ${{ runner.temp }}/thanaya-browser-driver/node_modules
+          THANAYA_QA_SCREENSHOT_DIR: ${{ runner.temp }}/thanaya-rc-browser-review
+          THANAYA_RC_QUALITY: '1'
+          DEBUG: pw:browser
+      - name: Preserve actual RC browser diagnostics and screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: thanaya-rc-browser-review-${{ github.run_number }}
+          path: ${{ runner.temp }}/thanaya-rc-browser-review
           if-no-files-found: ignore
           retention-days: 7

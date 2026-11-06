@@ -1,6 +1,6 @@
 // Release gates on the exact synthetic production preview. No public service.
 const assert=require('node:assert/strict');
-const {writeFileSync}=require('node:fs');
+const {writeFileSync,existsSync}=require('node:fs');
 const {randomUUID}=require('node:crypto');
 const path=require('node:path');
 const {spawn}=require('node:child_process');
@@ -10,16 +10,25 @@ async function prepareWebKit(){
  // Run after Chrome evidence has been persisted. A stalled external download
  // must produce a bounded failure with diagnostics, never a silent skip/pass.
  if(process.env.CI!=='true')throw Error('Automatic WebKit system-dependency installation is restricted to CI');
+ if(existsSync(require('playwright-core').webkit.executablePath())){
+  console.log('Using bundled native WebKit; no system-package download required');return;
+ }
  const cli=path.join(path.dirname(require.resolve('playwright-core/package.json')),'cli.js');
- await new Promise((resolve,reject)=>{
+ const deadline=Date.now()+180000;
+ const install=(args,asRoot=false)=>new Promise((resolve,reject)=>{
   let logs='',timedOut=false;
-  const child=spawn(process.execPath,[cli,'install','--with-deps','webkit'],{
+  const elevate=asRoot&&process.getuid?.()!==0;
+  const child=spawn(elevate?'sudo':process.execPath,elevate?['-E','--',process.execPath,cli,...args]:[cli,...args],{
    detached:true,env:{...process.env,DEBIAN_FRONTEND:'noninteractive',NEEDRESTART_MODE:'a'},stdio:['ignore','pipe','pipe']});
   for(const stream of [child.stdout,child.stderr])stream.on('data',chunk=>{logs=(logs+String(chunk)).slice(-5000)});
-  const timer=setTimeout(()=>{timedOut=true;try{process.kill(-child.pid,'SIGTERM')}catch{child.kill('SIGTERM')}},180000);
+  const timer=setTimeout(()=>{timedOut=true;try{process.kill(-child.pid,'SIGTERM')}catch{child.kill('SIGTERM')}},Math.max(1,deadline-Date.now()));
   child.once('error',error=>{clearTimeout(timer);reject(error)});
   child.once('exit',code=>{clearTimeout(timer);if(code===0&&!timedOut)resolve();else reject(Error('WebKit preparation '+(timedOut?'exceeded 180 seconds':'failed')+'; Chrome findings are saved.\n'+logs))});
  });
+ // The older CLI's internal sudo drops noninteractive variables. Preserve them
+ // for system packages, then download the browser as the normal runner user.
+ await install(['install-deps','webkit'],true);
+ await install(['install','webkit']);
  console.log('PASS RC WebKit engine preparation (bounded CI installation)');
 }
 
@@ -64,12 +73,13 @@ async function qualityReview({browser,base,password,product,directory,shopperPag
   await page.evaluate(()=>document.fonts.ready);await delay(800);
   result.performance=await page.evaluate(()=>{
    const n=performance.getEntriesByType('navigation')[0],resources=performance.getEntriesByType('resource');
-   return {engine:'Chrome',viewport:'390x844',ttfbMs:Math.round(n.responseStart-n.requestStart),
+   return {engine:'Chromium',viewport:'390x844',ttfbMs:Math.round(n.responseStart-n.requestStart),
     fcpMs:Math.round(performance.getEntriesByName('first-contentful-paint')[0]?.startTime||0),
     observedLcpMs:Math.round(window.__rcPerf.lcp),observedLayoutShiftScore:window.__rcPerf.layoutShift,
     sameOriginScriptEncodedBytes:resources.filter(r=>r.initiatorType==='script'&&r.name.startsWith(location.origin)).reduce((s,r)=>s+r.encodedBodySize,0),
     resourceCount:resources.length};
   });persist();
+  result.performance.browserVersion=browser.version();
   const perf=result.performance;
   if(!(perf.fcpMs>0&&perf.fcpMs<=2500&&perf.observedLcpMs>0&&perf.observedLcpMs<=3500&&
     perf.ttfbMs<=1500&&perf.observedLayoutShiftScore<=0.1&&perf.sameOriginScriptEncodedBytes<=600000))
@@ -169,7 +179,7 @@ async function qualityReview({browser,base,password,product,directory,shopperPag
   result.webkit={passed:true,engine:wk.version(),viewport:'390x844 touch',orderCreated:true,
    journeys:['register','reload session','cart','COD','confirmation/reload','logout','owner login','admin menu/Escape','return review'],errors};persist();
   console.log('PASS RC WebKit: actual mobile registration/session/cart/COD/reload/logout and owner admin/report/menu journey');
-  console.log('RC Chrome lab performance:',JSON.stringify(result.performance));
+  console.log('RC Chromium lab performance:',JSON.stringify(result.performance));
   assert.deepEqual(failures,[],'RC accessibility/layout failures; see rc-quality.json');
   console.log('PASS RC axe: no serious/critical violations across '+result.axe.length+' real page/theme samples');
  }finally{persist();if(wk)await wk.close();}

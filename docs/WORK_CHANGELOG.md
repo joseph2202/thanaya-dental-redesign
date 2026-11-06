@@ -1,6 +1,8 @@
 # سجل تنفيذ المواصفات الكاملة
 
 ## RC1-4 — بوابات وصولية/WebKit وأداء مقاس — 2026-11-06
+- #268 timeout/cancelled بسبب بطء mirror لتنزيل87 مكتبة. baseline بقيت host/driver1.56، وQA صارت job مستقلة بالصورة الرسمية1.65.0-noble وdriver مطابق (لا تغيير اعتماديات التطبيق)، مع bundled Chromium/WebKit وعدم apt عند وجودها. يجب نجاح job الاثنتين. artifact الجديدة thanaya-rc-browser-review-N.
+- bootstrap fallback بمهلة180s يحتفظ بالـnoninteractive env مع sudo -E للـdeps ثم download عادية. لا تجاوز crash/قواعد، والنشر أو originalDB لم يتغيرا.
 - تجهيز WebKit علّق #268/#269 قبل Chrome؛ انتقل إلى ما بعد حفظ نتائج Chrome، بمهلة180s وbootstrap CI-only غير تفاعلي. يبقى فشله فشلاً واضحاً مع logs، ولا قواعد/رحلات معطلة.
 - توسعة إلى32 عينة بوصول scroll لهوية المنتج ووصفه، وإصلاح multiple image labels وroles وsurface/validation للثيمين. بناء Next35 مساراً ناجح؛ Chrome/WebKit الجديدة مطلوبة.
 - سلامة clone DDL: BEGIN IMMEDIATE صريح، لأن context manager في sqlite3 لا تبدأ DDL transaction وحدها. regression late UNIQUE فشلت على parent فعلياً ثم نجحت11 فحصاً بعد الإصلاح، مع rollback CREATE/ALTER وsource ثابت. البروفة الصناعية أعيدت والنتيجة محفوظة؛ لا live apply.

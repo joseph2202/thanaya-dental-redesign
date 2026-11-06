@@ -4,6 +4,10 @@
 المرجع الإضافي RC_SCOPE.md يثبت النطاق حسب طلب المستخدم الأخير: معاينة حقيقية، تقرير مراجعة المرتجعات، انتقال Schema آمن، فحوص release وتسليم Mac. لا ميزات ثانوية أو توسع مفتوح.
 
 ## دفعة RC1-4 — معالجة نتائج الجودة الفعلية
+آخر تغيير للـCI: #268 انتهت cancelled بعد20 دقيقة، وسجلاتها أثبتت تنزيل87 حزمة من مرآة azure Ubuntu ببطء شديد، لا مجرد prompt. رُتبت jobs: baseline host/driver1.56.1 كما سبق، وrc-browser-quality مستقلة داخل الصورة الرسمية mcr.microsoft.com/playwright:v1.65.0-noble وdriver1.65.0 مطابق (الإصدار الرسمي متحقق). متصفحات/مكتبات جاهزة، بلا apt عند وجود binary، وChromium bundled fallback. لا runtime/lockfile للتطبيق تغيرا، ولا موقع منشور أو ports عامة. مهلة bootstrap180s تبقى fallback CI-only، مع sudo -E لـinstall-deps ثم download كمستخدم عادي كي لا تضيع noninteractive env أو cache path.
+
+مهم للمتابعة: افحص **كلتا job** في CI الجديدة. artifacts baseline اسمها thanaya-browser-review-N، وأدلة Preview/axe/WebKit الجديدة اسمها **thanaya-rc-browser-review-N**. اقرأ rc-quality.json وchromeFindings حتى لو فشلت WebKit. #270 القديمة تشغّل Chrome أولاً ثم bootstrap bounded؛ نتيجتها لم تصل عند الحفظ. الجولتان269/268 ليستا دليلاً جديداً على التطبيق بعد المرحلة التي وصلتاها.
+
 تحديث تسلسل QA: #268/#269 علقتا في تجهيز WebKit قبل أي Chrome، لذا أزيلت خطوة التجهيز المبكرة. rc-quality-browser تنجز Chrome/axe والقياسات وتحفظ JSON أولاً ثم تشغل CLI WebKit المقفلة بمهلة180s وDEBIAN_FRONTEND/NEEDRESTART غير تفاعليين. الفشل/المهلة يرسبان الفحص مع tail logs؛ لا skip/pass وهمي. تثبيت system dependencies تلقائياً مسموح داخل CI فقط.
 
 أضيفت عينات scroll لهوية المنتج ووصفه (32 عينة مستهدفة)، وتصحيح multiple labels للرفع، وroles لمجموعتي المنتجات والفلاتر، وسطح identity/validation حسب الثيم. بناء Next35 مساراً وsyntax/diff ناجحة؛ تحتاج CI بعد الحفظ. افحص rc-quality.json حتى عند فشل native bootstrap، ثم عالج أي serious/critical/overflow. لا تدّع WebKit ناجحة بعد.
