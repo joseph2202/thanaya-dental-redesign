@@ -4,4 +4,4 @@
 
 CatalogProductCard والمعرض ورسالة غياب الصور في صفحة التفاصيل تستعمله، وsnapshot المضافة للسلة من البطاقة أو ProductPurchaseActions تحتوي أول صورة فعلية. يبقى broken-image fallback من #71 قائماً، ولا تتحول image ناقصة إلى توفر مخزون أو سعر جديد. كل أقسام الرئيسية والبحث والمنتجات والاقتراحات تستعمل البطاقة المشتركة.
 
-بناء Next نجح (35 مساراً)، وsyntax/diff ناجحة. فحص المعرض في Chrome أضيفت له بطاقة gallery-only: img.src=/logo.png وcomplete/naturalWidth>0، ولا نص غياب كاذب، وزر إضافة معطل لأن stock=0. حالات missing/broken/gallery-only/zoom/keyboard وSKU/السلة السابقة مستمرة. نتيجة CI الفعلية تسجل بعد الحفظ.
+بناء Next نجح (35 مساراً)، وsyntax/diff ناجحة. فحص المعرض في Chrome أضيفت له بطاقة gallery-only: img.src=/logo.png وcomplete/naturalWidth>0، ولا نص غياب كاذب، وزر إضافة معطل لأن stock=0. حالات missing/broken/gallery-only/zoom/keyboard وSKU/السلة السابقة مستمرة. CI #259 ناجح بالكامل على a890256a (PR #77)، بما فيه سيناريو الصورة الجديد وكل الاختبارات السابقة.
