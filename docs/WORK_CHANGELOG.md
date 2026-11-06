@@ -1,11 +1,12 @@
 # سجل تنفيذ المواصفات الكاملة
 
 ## RC1-4 — بوابات وصولية/WebKit وأداء مقاس — 2026-11-06
-- #266 كشفت عدم دعم WebKit/Playwright المقفلة لـubuntu-latest الجديدة26.04؛ ثبتت runner إلى24.04 المدعومة. أضيفت أسماء ProductForm وh1/رفع صورة عبر keyboard ورحلة create/edit UI والتحويل الصحيح للألف IQD وثبات stock؛ الفحص التالي مطلوب.
-- إضافة فحص axe حقيقي لكل الثيمين وصفحات المتجر/auth/السلة/checkout والإدارة/تقرير المرتجعات، مع errors/overflow gate وartifact JSON لكل selector. قياسات lab قبل axe وWebKit native touch لرحلة COD وصلاحيات/قائمة/تقارير. النتيجة الجديدة تنتظر CI.
-- label/id/name/autocomplete للنماذج الأساسية وrole alert، وmain للرئيسية. سطر المرتجع أوضح بالهاتف ورمز طلب موحد وحالة عربية، بلا تغيير أموال أو API.
-- أدوات QA مقفلة منفصلة عن lockfiles التطبيق، لا تصادق axe على كل WCAG ولا WebKit على جهاز iPhone فعلي أو lab على field CWV/INP.
-- الأساس #80/d3fea77 وCI #265 ناجحان بالكامل؛ #79/CI #264 نجحت وصورة تقريرها قُرئت. لا live DB/نشر/دفع/merge.
+- #266 كشفت عدم دعم Playwright/WebKit1.56.1 لـubuntu-latest26.04؛ runner24.04 سمحت بالتثبيت. #267 اجتازت schema/API/build وChrome الأساسية والتقرير وcreate/edit المنتج من UI (10,000→12,500 وثبات stock2).
+- axe #267 قاست 28 عينة dark/light/desktop/mobile وكشفت serious contrast: cyan/white وروابط/نصوص muted وحالات stock وتحذير فاتح/نص أبيض. أصلحت أزواج الألوان بتوكنات theme مع حفظ الهوية، وlandmarks/heading hierarchy. لا استثناء selector/rule.
+- أسماء وautocomplete/alerts لـauth وProductForm، رفع صورة native keyboard وmain للرئيسية. تقرير المرتجع أوضح برمز موحد وحالة عربية؛ لا مال أو API تغيرا.
+- Chrome lab فعلية: TTFB4ms/FCP236ms/observedLCP236ms/shift0.01594/JS429,765 bytes؛ ميزانيات انحدار مضافة. ليست field/INP أو شهادة WCAG.
+- WebKit سجلت/reload ثم تعطلت عند product؛ سبب غير مثبت. software Mesa وcrash logs أضيفا للتشخيص مع كل الاختبارات مفعلة. النتيجة التالية مطلوبة قبل اعتماد الجودة.
+- preflight ترفض تداخل output مع صور الأصل، وتتحقق من Int32/Boolean: oversized3e9 فشلت قراءتها P2023 في تجربة صناعية. 10 فحوص محدثة وبناء Next ناجحان؛ آخر كامل معتمد #80/CI #265. لا live DB أو نشر/دفع/merge.
 
 ## RC1-3 — انتقال مخطط متكامل بدون live apply — 2026-11-06
 - جرد كامل 34 جدولاً ومرجع SQL من Prisma المقفلة، مع hash schema وفحص semantic مقابل المولد في CI. preflight يرفض drift/قيود غير متوافقة وبيانات stock/money/FK/quantity/roles/states غير متناسقة.

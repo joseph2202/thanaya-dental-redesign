@@ -126,6 +126,9 @@ class ReleaseSchemaTests(unittest.TestCase):
         with self.assertRaises(rc.Blocked):rc.run(self.source,self.root/'already')
         uploads=self.root/'photos';uploads.mkdir();(uploads/'leak').symlink_to(self.source)
         with self.assertRaises(rc.Blocked):rc.run(self.source,self.root/'safe-output',uploads)
+        (uploads/'leak').unlink()
+        with self.assertRaises(rc.Blocked):rc.run(self.source,uploads/'backup',uploads)
+        self.assertEqual(list(uploads.iterdir()),[],'refused overlap must not create anything in source images')
 
     def test_rejects_unknown_tables_custom_triggers_and_wrong_definition(self):
         self.fixture()
@@ -145,6 +148,8 @@ class ReleaseSchemaTests(unittest.TestCase):
         for statement,undo in [
             ('UPDATE Product SET stock=-1','UPDATE Product SET stock=7'),
             ('UPDATE "Order" SET total=1.5','UPDATE "Order" SET total=10000'),
+            ('UPDATE Product SET price=3000000000','UPDATE Product SET price=5000'),
+            ('UPDATE Product SET published=2','UPDATE Product SET published=1'),
             ('UPDATE OrderReturnLine SET quantity=3','UPDATE OrderReturnLine SET quantity=1'),
             ("UPDATE OrderItem SET productId='missing'","UPDATE OrderItem SET productId='product'")]:
             with sqlite3.connect(self.source) as db:db.execute(statement)

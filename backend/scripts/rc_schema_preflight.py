@@ -22,7 +22,9 @@ from verify_schema_activation import rows_digest
 ROOT = Path(__file__).resolve().parents[2]
 SCHEMA = ROOT / 'backend/prisma/schema.prisma'
 TARGET = ROOT / 'backend/prisma/rc1-target.sql'
-MAX_IQD = 9007199254740991
+# Prisma Int is signed 32-bit even though SQLite accepts larger integers.
+# Verified against the locked client: reading 3,000,000,000 raises P2023.
+MAX_IQD = 2147483647
 
 
 class Blocked(RuntimeError):
@@ -143,6 +145,12 @@ def data_preflight(db):
     def reject(table, condition):
         if db.execute('SELECT 1 FROM '+q(table)+' WHERE '+condition+' LIMIT 1').fetchone():
             raise Blocked('Data invariant failed in '+table+'; values are deliberately not printed')
+    for table,info in tables.items():
+        for column,field in info['fields'].items():
+            if field['type']=='INTEGER':
+                reject(table,q(column)+' IS NOT NULL AND (typeof('+q(column)+") != 'integer' OR "+q(column)+' < -2147483648 OR '+q(column)+' > '+str(MAX_IQD)+')')
+            elif field['type']=='BOOLEAN':
+                reject(table,q(column)+' IS NOT NULL AND (typeof('+q(column)+") != 'integer' OR "+q(column)+' NOT IN (0,1))')
     for table, columns in {'Product': ['price','usdPrice','stock','purchaseCostIqd','costRevision'],
                            'ProductLot': ['stock','purchaseCostIqd','costRevision'],
                            'Order': ['total','subtotal','shippingFee','discountAmount','returnRevision','paymentRevision'],
@@ -260,6 +268,8 @@ def run(source, output=None, uploads=None):
                 raise Blocked('Rehearsal output must be a brand-new directory without symlinks')
             if output.is_relative_to(ROOT) or output.is_relative_to(source.parent):
                 raise Blocked('Backup/restore output must be outside the repository and source folder')
+            if uploads is not None and (output.is_relative_to(uploads) or uploads.is_relative_to(output)):
+                raise Blocked('Backup/restore output must not overlap the source images')
             output.parent.resolve(strict=True)
             inventory = upload_inventory(uploads)
             needed = source.stat().st_size*4 + sum(row[2] for row in inventory)*3 + 100*1024*1024

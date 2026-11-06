@@ -21,7 +21,7 @@ html[data-thanaya-theme="light"] {
  --th-surface:#fff;
  --th-surface2:#e9f6fa;
  --th-border:#c8e4ed;
- --th-muted:#667f8c;
+ --th-muted:#536d7a;
  --th-title:#244656;
  --th-focus:#059bd0;
 }
@@ -156,7 +156,7 @@ html[data-thanaya-theme="dark"] .thanaya-admin-shell table{color:#f1fbff;}
 html[data-thanaya-theme="dark"] .thanaya-admin-shell th{background:#244858!important;color:#d9f2fb!important;}
 html[data-thanaya-theme="dark"] .thanaya-admin-shell td{border-color:#2a5163!important;}
 html[data-thanaya-theme="dark"] .thanaya-admin-shell [class~="bg-paper2/30"]{background:#173646!important;}
-html[data-thanaya-theme="dark"] .thanaya-admin-shell [class~="bg-brand"]{color:#fff;}
+html[data-thanaya-theme="dark"] .thanaya-admin-shell [class~="bg-brand"]{color:#041a24;}
 html[data-thanaya-theme="dark"] dialog:not(.thl-shell dialog){
  color:#eaf7ff;background:#173748;border-color:#416c7b;
 }
@@ -270,7 +270,7 @@ html[data-thanaya-theme="dark"] .thanaya-admin-range button:not([aria-pressed="t
 }
 html[data-thanaya-theme="dark"] .thanaya-admin-range button[aria-pressed="true"] {
   background:#079bcc!important;
-  color:#fff!important;
+  color:#041a24!important;
 }
 html[data-thanaya-theme="dark"] .thanaya-admin-range button:not([aria-pressed="true"]):hover {
   background:#295367!important;
@@ -369,3 +369,30 @@ html[data-thanaya-theme="light"] .thanaya-ticker {
 html[data-thanaya-theme="light"] .thanaya-ticker-icon {
   color: #078eb9;
 }
+
+/* RC1: actual axe samples in both themes exposed weak cyan/white and muted
+   pairs. Keep the brand accent, use a distinct readable foreground token. */
+html[data-thanaya-theme="light"] {
+ --th-link:#00648b;
+ --th-stock-ok:#116747;
+ --th-stock-low:#89520c;
+ --th-stock-out:#9f1239;
+}
+html[data-thanaya-theme="dark"] {
+ --th-link:#82dff5;
+ --th-stock-ok:#89e5bd;
+ --th-stock-low:#ffd18a;
+ --th-stock-out:#ffb4bd;
+}
+html[data-thanaya-theme] :is(.text-brand,.th-link){color:var(--th-link);}
+html[data-thanaya-theme] .th-muted{color:var(--th-muted);}
+html[data-thanaya-theme] .th-stock-ok{color:var(--th-stock-ok);}
+html[data-thanaya-theme] .th-stock-low{color:var(--th-stock-low);}
+html[data-thanaya-theme] .th-stock-out{color:var(--th-stock-out);}
+html[data-thanaya-theme="light"] .site-eyebrow{color:var(--th-link);}
+html[data-thanaya-theme] .site-btn-primary,
+html[data-thanaya-theme] .signature-card-quick:not(:disabled),
+html[data-thanaya-theme] [class~="bg-brand"][class~="text-white"]{color:#041a24;}
+html[data-thanaya-theme] [class~="bg-brand"][class~="hover:bg-brand-dark"]:hover{color:#fff;}
+html[data-thanaya-theme] [class~="bg-brand"][class~="hover:bg-brand-dark"]{transition-property:transform,box-shadow;}
+.thanaya-site-footer [class~="text-white/45"]{color:#aec5d0;}

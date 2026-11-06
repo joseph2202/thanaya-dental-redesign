@@ -49,7 +49,7 @@ export default function CategoryGrid({products,variant='home'}:
       <span className="flex min-w-0 flex-1 flex-col gap-2">
         <span className="text-[11px] font-bold tracking-widest text-brand" dir="ltr">THANAYA / CATEGORY</span>
         <strong className="text-base leading-7 transition-colors group-hover:text-brand sm:text-lg">{category.name}</strong>
-        <span className="text-sm text-[#657b88]">{category.count} {category.count === 1 ? 'منتج' : 'منتجات'} في القسم</span>
+        <span className="text-sm th-muted">{category.count} {category.count === 1 ? 'منتج' : 'منتجات'} في القسم</span>
       </span>
       <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-[#b2dfef] bg-white text-brand transition-colors group-hover:bg-[#e6f7fc]" aria-hidden="true">
         <ArrowUpLeft size={18} />

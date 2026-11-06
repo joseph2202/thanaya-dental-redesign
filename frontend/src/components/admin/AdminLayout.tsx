@@ -114,7 +114,7 @@ export default function AdminLayout({children}:{children:ReactNode}){
     </dialog>
 
     <div className="min-w-0 flex-1">
-      <div className="thanaya-admin-header thanaya-glass-navigation sticky top-0 z-30 border-b border-[#d9e9ef] bg-white/95 px-4 py-3 md:px-7 print:hidden">
+      <header className="thanaya-admin-header thanaya-glass-navigation sticky top-0 z-30 border-b border-[#d9e9ef] bg-white/95 px-4 py-3 md:px-7 print:hidden">
         <div className="flex items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-3">
             <button type="button" onClick={()=>setMenuOpen(true)} aria-label="فتح قائمة الإدارة"
@@ -132,11 +132,11 @@ export default function AdminLayout({children}:{children:ReactNode}){
         <nav aria-label="الوصول السريع" className="mt-3 flex gap-2 overflow-x-auto pb-0.5 lg:hidden">
           {quickItems.map(item=><Link key={item.href} href={item.href}
             aria-current={pathname===item.href?'page':undefined}
-            className={`shrink-0 rounded-full border px-3.5 py-2 text-xs font-bold ${pathname===item.href?'border-brand bg-[#e8f7fc] text-[#047ca7]':'border-[#d0e4ec] bg-white text-[#5b7b88]'}`}>
+            className={`shrink-0 rounded-full border px-3.5 py-2 text-xs font-bold ${pathname===item.href?'border-brand bg-[#e8f7fc] th-link':'border-[#d0e4ec] bg-white text-[#5b7b88]'}`}>
             {item.label}
           </Link>)}
         </nav>
-      </div>
+      </header>
       <main className="mx-auto max-w-[1480px] min-w-0 p-4 md:p-6 print:max-w-none print:p-0">{children}</main>
     </div>
   </div>;

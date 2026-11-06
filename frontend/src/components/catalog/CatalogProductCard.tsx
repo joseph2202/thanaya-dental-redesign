@@ -31,7 +31,7 @@ export default function CatalogProductCard({product}:{product:CatalogCardProduct
    <span className={`pointer-events-none absolute right-2.5 top-2.5 inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[10px] font-black shadow-sm ${hasStock?'border-[#c4eddc] bg-white/95 text-[#137958]':'border-red-200 bg-red-50 text-red-700'}`}>
     <span aria-hidden="true" className={`h-1.5 w-1.5 rounded-full ${hasStock?'bg-emerald-500':'bg-red-500'}`}/>{hasStock?'متوفر':'غير متوفر'}
    </span>
-   {!photo&&<span className="pointer-events-none absolute bottom-3 right-3 max-w-[65%] rounded-full border border-[#d1e4ee] bg-white/85 px-2.5 py-1.5 text-[10px] font-bold text-[#638695]">
+   {!photo&&<span className="pointer-events-none absolute bottom-3 right-3 max-w-[65%] rounded-full border border-[#d1e4ee] bg-white/85 px-2.5 py-1.5 text-[10px] font-bold th-muted">
      لا توجد صورة مرفوعة بعد
    </span>}
    <Link href={url} aria-label={`استكشف ${product.name}`} className="absolute bottom-3 left-3 grid h-9 w-9 place-items-center rounded-full border border-white/80 bg-white/95 text-[#267992] shadow-sm transition hover:bg-[#e7f9ff] focus-visible:outline-brand">
@@ -47,13 +47,13 @@ export default function CatalogProductCard({product}:{product:CatalogCardProduct
    <Link href={url} className="mt-2 line-clamp-2 min-h-[3.3rem] text-sm font-black leading-[1.7] text-[#234454] transition hover:text-[#058ebf] sm:text-[15px]">
     {product.name}
    </Link>
-   {product.brand&&<p className="mt-1 truncate text-[11px] font-medium text-[#6f8994]">{product.brand}</p>}
-   {product.sku&&<p className="mt-1 truncate text-[10px] font-semibold text-[#608392]" dir="ltr" title={product.sku}>SKU: {product.sku}</p>}
+   {product.brand&&<p className="mt-1 truncate text-[11px] font-medium th-muted">{product.brand}</p>}
+   {product.sku&&<p className="mt-1 truncate text-[10px] font-semibold th-muted" dir="ltr" title={product.sku}>SKU: {product.sku}</p>}
    <div className="thanaya-product-price mt-auto border-t border-[#edf3f5] pt-3.5">
-    <p className="text-[10px] font-semibold text-[#8499a3]">السعر / {saleUnit}</p>
+    <p className="text-[10px] font-semibold th-muted">السعر / {saleUnit}</p>
     <div className="mt-0.5 flex flex-wrap items-end gap-1.5">
      <strong className="text-xl font-black tabular-nums tracking-tight text-[#173e50] sm:text-[23px]">{product.price.toLocaleString('en-US')}</strong>
-     <span className="pb-0.5 text-[11px] font-bold text-[#638594]">د.ع</span>
+     <span className="pb-0.5 text-[11px] font-bold th-muted">د.ع</span>
     </div>
     <button type="button" onClick={handleAdd} disabled={!hasStock}
       aria-label={`إضافة ${product.name} للسلة`}

@@ -3,13 +3,20 @@
 ## هدف RC الحالي
 المرجع الإضافي RC_SCOPE.md يثبت النطاق حسب طلب المستخدم الأخير: معاينة حقيقية، تقرير مراجعة المرتجعات، انتقال Schema آمن، فحوص release وتسليم Mac. لا ميزات ثانوية أو توسع مفتوح.
 
-## دفعة RC1-4 — فحوص الجودة قيد التنفيذ
-CI #266 اجتازت كل schema/API والبناء ثم توقفت قبل المتصفح: ubuntu-latest انتقلت إلى26.04 التي لا تدعمها WebKit المقفلة 1.56.1. runner ثبتت إلى ubuntu-24.04 المدعومة، دون تعطيل WebKit أو اختبارات الأعمال. أضيفت تسمية حقول ProductForm وh1 ووصول keyboard للصورة ورحلة إنشاء/تعديل UI بالألف IQD وثبات stock؛ تنتظر CI الجديدة.
-الفرع release/rc1-quality-gates-20261106 مبني على #80/d3fea77، CI #265 ناجح بالكامل، بما فيه preflight/backup/restore ومرجع Prisma وكل الأعمال السابقة. #79/3b51bf3 وCI #264 معتمدان؛ صورة return-review قُرئت (حجر1، تكلفة34,000، تحصيل/رد0). لا عيب تطبيق في #263: driver احتاج فتح details الجديدة بعد retry.
+## دفعة RC1-4 — معالجة نتائج الجودة الفعلية
+Draft PR #81، release/rc1-quality-gates-20261106. آخر أساس شامل معتمد #80/d3fea77 وCI #265، و#79/3b51bf3 وCI #264؛ صور Preview والتقرير قُرئت. آخر head قبل هذا الإصلاح 78093e5 وCI #267 فشلت بوضوح، فلا تعلن RC معتمدة بعد.
 
-إضافة rc-quality-browser.cjs لتشغيل axe على الصفحات الحقيقية في dark/light/mobile وhome desktop، وlab TTFB/FCP/LCP/shift/JS bytes قبل axe، مع WebKit touch 390 رحلة تسجيل/دخول/سلة/COD/reload/logout/إدارة وقائمة native dialog/تقرير. serious/critical والoverflow تفشل وتكتب rc-quality.json مع كل selectors للفحص؛ لا تُستثنى مناطق فاشلة. ليست شهادة WCAG أو قياسات field/INP ولا iPhone حقيقية. Playwright/axe مقفلان بأدوات CI منفصلة بلا تغيير lockfile للتطبيق.
+CI #266 توقفت قبل browser لأن ubuntu-latest الجديدة26.04 لا تدعم WebKit المقفلة1.56.1؛ runner ثبتت إلى ubuntu-24.04 وWebKit ثبتت بنجاح في #267. هذه الجولة اجتازت كل schema/API/build وChrome الأساسية والتقرير و**إنشاء/تعديل المنتج من النموذج**: 10 آلاف →12.5 ألف =12,500، stock2 ثابت.
 
-إصلاحات من فحص المصدر: label/id/name/autocomplete للدخول والتسجيل وrole alert للأخطاء؛ main landmark للرئيسية. تحسين سطر سند المرتجع للهاتف برقم مختصر وحالة عربية، مع المعرفات الكاملة في التفاصيل. بناء الواجهة ناجح قبل تحسين سطر السند الأخير؛ الفحوص الجديدة تنتظر CI بعد الحفظ، ولا تعتبر بوابة الجودة مغلقة قبل قراءة النتيجة وإصلاح stop-ship.
+rc-quality.json من #267 حُمّل وقُرئ: 28 عينة صفحة/ثيم، مشاكل serious كلها color-contrast، بالإضافة إلى moderate region/heading-order. الأصل white على cyan 3.18:1 وmuted خافتة وروابط زرقاء داكنة على dark، وصف مخزون فاتح بخط أبيض. لا selectors مستثناة ولا rules معطلة.
+
+الإصلاح الحالي: foreground داكن واضح على cyan مع بقاء brand، tokens th-link/th-muted وثلاثة ألوان stock حسب الثيم، تصحيح النصوص الضعيفة في catalog/cart/product/dashboard، لون تحذير low-stock، footer، وlandmarks للمعاينة/header وheading hierarchy للمنتجات. labels/id/name/autocomplete لحقول auth/ProductForm، ورفع الصورة native keyboard، محفوظة. بناء Next35 مساراً نجح، وينتظر أثر axe الفعلي في CI التالية.
+
+القياس الأول الحقيقي قبل axe، Chrome390×844 loopback غير مخنوق: TTFB4ms، FCP236ms، observed LCP236ms، shift0.01594، JS429,765 bytes. هذه lab sample لا field p75/INP. أضيفت ميزانيات 1500/2500/3500ms وshift≤0.1 وJS≤600,000 لالتقاط الانحدار.
+
+WebKit الفعلية سجلت/أعادت تحميل الحساب ثم page crashed عند فتح product. السبب لم يثبت؛ أضيف software Mesa وpw:browser crash logs مع بقاء كل خصائص التطبيق واختبارات الرحلة، وتسجيل مرحلة الفشل في JSON. لا تدّع Safari ناجحة قبل نتيجتها؛ ليست iPhone حقيقية. لا تتجاوز crash أو تخفف assertion.
+
+preflight عُززت أثناء مراجعة RC: output لا يتداخل مع صور source، وPrisma Int32/Boolean validity لكل الأعمدة. تجربة فعلية على SQLite صناعية أثبتت أن 3,000,000,000 تقبلها SQLite لكن Prisma المقفلة ترفض قراءتها P2023؛ التحقق يمنعها قبل التفعيل. 10 فحوص جديدة محدثة نجحت. pycache مستبعدة من Git فقط.
 
 ## دفعة RC1-3 — بروفة المخطط المتكاملة
 الفرع release/rc1-schema-rehearsal-20261106 فوق #79/3b51bf3. آخر أساس شامل معتمد #78/d8c0086 وCI #262؛ #79/CI #264 قيد الفحص بعد تصحيح فتح details في driver فقط.

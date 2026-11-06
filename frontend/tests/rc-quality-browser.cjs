@@ -52,6 +52,10 @@ async function qualityReview({browser,base,password,product,directory,shopperPag
     sameOriginScriptEncodedBytes:resources.filter(r=>r.initiatorType==='script'&&r.name.startsWith(location.origin)).reduce((s,r)=>s+r.encodedBodySize,0),
     resourceCount:resources.length};
   });persist();
+  const perf=result.performance;
+  if(!(perf.fcpMs>0&&perf.fcpMs<=2500&&perf.observedLcpMs>0&&perf.observedLcpMs<=3500&&
+    perf.ttfbMs<=1500&&perf.observedLayoutShiftScore<=0.1&&perf.sameOriginScriptEncodedBytes<=600000))
+    failures.push('mobile lab performance budget; see rc-quality.json');
   await scan(page,'home-mobile');
   await page.setViewportSize({width:1440,height:900});await scan(page,'home-desktop');
   await page.setViewportSize({width:390,height:844});
@@ -99,7 +103,10 @@ async function qualityReview({browser,base,password,product,directory,shopperPag
    }
   }
   // Native WebKit (the engine used by Safari), a fresh actual shopping journey.
-  wk=await require('playwright-core').webkit.launch({headless:true});
+  // Headless Linux has no hardware GPU. Keep the actual WebKit engine and all
+  // app styles/features; use Mesa's software renderer and preserve crash logs.
+  wk=await require('playwright-core').webkit.launch({headless:true,env:{...process.env,LIBGL_ALWAYS_SOFTWARE:'1'}});
+  result.webkit={passed:false,stage:'launch',engine:wk.version(),rendering:'headless Linux software Mesa'};persist();
   const context=await wk.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
   const mobile=await context.newPage(),errors=[];mobile.on('pageerror',e=>errors.push(e.message));
   await mobile.goto(base);await mobile.getByRole('note').waitFor();await mobile.locator('article.signature-card:visible').first().waitFor();
@@ -112,6 +119,7 @@ async function qualityReview({browser,base,password,product,directory,shopperPag
   await mobile.getByLabel('كلمة المرور',{exact:true}).fill('WebKitSynthetic#2026');await mobile.getByLabel('تأكيد كلمة المرور',{exact:true}).fill('WebKitSynthetic#2026');
   await mobile.getByRole('button',{name:'إنشاء حساب',exact:true}).click();await mobile.waitForURL('**/account');
   await mobile.reload();await mobile.getByRole('heading',{name:/أهلاً متسوق WebKit صناعي/}).waitFor();
+  result.webkit.stage='registered and reloaded; opening product';persist();
   await mobile.goto(base+'/product/'+product.id);await mobile.getByRole('button',{name:'أضف للسلة',exact:true}).first().click();
   await mobile.getByRole('status').filter({hasText:'تمت الإضافة للسلة'}).waitFor();await mobile.goto(base+'/cart');
   await mobile.getByRole('link',{name:/المتابعة لإتمام الطلب/}).click();

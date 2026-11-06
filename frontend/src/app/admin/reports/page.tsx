@@ -98,11 +98,11 @@ export default function Reports(){
     <section className="rounded-2xl border border-amber-200 bg-white p-5">
      <div className="mb-4 flex items-center gap-2"><AlertTriangle size={20} className="text-amber-700"/><h2 className="text-lg font-black">تنبيه نقص المخزون</h2></div>
      <p className="mb-4 text-xs text-neutral-500">كميات المخزون الحالية، مستقلة عن فترة التقرير.</p>
-     {report.lowStock.length===0?<p className="text-sm text-neutral-500">لا توجد منتجات منخفضة المخزون حالياً.</p>:<div className="space-y-2">{report.lowStock.map(p=><div key={p.id} className="flex justify-between gap-4 rounded-lg bg-amber-50 p-3 text-sm"><span>{p.name}</span><strong className="whitespace-nowrap text-amber-800">{p.stock} قطعة</strong></div>)}</div>}
+     {report.lowStock.length===0?<p className="text-sm text-neutral-500">لا توجد منتجات منخفضة المخزون حالياً.</p>:<div className="space-y-2">{report.lowStock.map(p=><div key={p.id} className="flex justify-between gap-4 rounded-lg bg-amber-50 p-3 text-sm text-amber-950"><span>{p.name}</span><strong className="whitespace-nowrap text-amber-800">{p.stock} قطعة</strong></div>)}</div>}
      <Link className="mt-4 inline-flex items-center gap-1 text-sm font-bold text-brand underline" href="/admin/products">إدارة المخزون <ArrowUpRight size={16}/></Link>
     </section>
    </div>
-   <p className="mt-6 text-xs text-neutral-500">آخر تحديث: {new Date(report.generatedAt).toLocaleString('ar-IQ')}. هامش البضاعة يظهر فقط للطلبات ذات تكلفة موثقة، ولا يعادل صافي الربح أو التحصيل النقدي.</p>
+   <p className="mt-6 text-xs th-muted">آخر تحديث: {new Date(report.generatedAt).toLocaleString('ar-IQ')}. هامش البضاعة يظهر فقط للطلبات ذات تكلفة موثقة، ولا يعادل صافي الربح أو التحصيل النقدي.</p>
   </div>}
   <ReturnReviewPanel key={range} range={range}/>
  </AdminLayout>;
