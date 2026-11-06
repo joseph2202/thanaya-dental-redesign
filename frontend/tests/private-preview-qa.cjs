@@ -153,6 +153,7 @@ async function main(){
   await owner.getByText(order.body.id,{exact:false}).first().waitFor();
   console.log('PASS private return review Chrome: dashboard link, actual received quarantine/cost/zero cash, mobile report, deep-linked ledger, obsolete period and independent error/retry');
   await owner.goto(base+'/admin/products');await owner.getByRole('main').getByText('صنف فحص RC معزول',{exact:true}).filter({visible:true}).waitFor();
+  if(process.env.THANAYA_RC_QUALITY==='1')await require('./rc-quality-browser.cjs').qualityReview({browser,base,password,product:chosen,directory,shopperPage:page,ownerPage:owner});
   assert.deepEqual(errors,[]);await staff.close();await shopper.close();
   console.log('PASS private production preview Chrome: live storefront/admin, desktop/mobile, actual registration/cart/COD order and synthetic financial screenshots');
  }

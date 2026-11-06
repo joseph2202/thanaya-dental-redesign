@@ -45,15 +45,15 @@ export default function RegisterPage() {
           <h1 className="text-3xl font-black mb-4 text-center text-ink">إنشاء حساب</h1>
           
           {error && (
-            <div className="bg-red-50 border-2 border-red-200 rounded-xl p-4 mb-6 text-red-700 text-sm font-bold">
+            <div role="alert" className="bg-red-50 border-2 border-red-200 rounded-xl p-4 mb-6 text-red-700 text-sm font-bold">
               {error}
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form aria-busy={loading} onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block font-bold mb-2 text-sm text-ink">الاسم الكامل</label>
-              <input
+              <label htmlFor="register-name" className="block font-bold mb-2 text-sm text-ink">الاسم الكامل</label>
+              <input id="register-name" name="name" autoComplete="name"
                 type="text"
                 required
                 minLength={3}
@@ -66,8 +66,8 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <label className="block font-bold mb-2 text-sm text-ink">البريد الإلكتروني</label>
-              <input
+              <label htmlFor="register-email" className="block font-bold mb-2 text-sm text-ink">البريد الإلكتروني</label>
+              <input id="register-email" name="email" autoComplete="email"
                 type="email"
                 required
                 value={form.email}
@@ -78,8 +78,8 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <label className="block font-bold mb-2 text-sm text-ink">رقم الهاتف</label>
-              <input
+              <label htmlFor="register-phone" className="block font-bold mb-2 text-sm text-ink">رقم الهاتف</label>
+              <input id="register-phone" name="phone" autoComplete="tel"
                 type="tel"
                 required
                 pattern="07[0-9]{9}"
@@ -92,8 +92,8 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <label className="block font-bold mb-2 text-sm text-ink">كلمة المرور</label>
-              <input
+              <label htmlFor="register-password" className="block font-bold mb-2 text-sm text-ink">كلمة المرور</label>
+              <input id="register-password" name="password" autoComplete="new-password"
                 type="password"
                 required
                 minLength={8}
@@ -106,8 +106,8 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <label className="block font-bold mb-2 text-sm text-ink">تأكيد كلمة المرور</label>
-              <input
+              <label htmlFor="register-confirmPassword" className="block font-bold mb-2 text-sm text-ink">تأكيد كلمة المرور</label>
+              <input id="register-confirmPassword" name="confirmPassword" autoComplete="new-password"
                 type="password"
                 required
                 minLength={8}

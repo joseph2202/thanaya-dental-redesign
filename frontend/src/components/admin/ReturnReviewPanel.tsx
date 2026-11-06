@@ -2,6 +2,7 @@
 import {useEffect,useState} from 'react';
 import Link from 'next/link';
 import {reportsAPI,type ReturnReviewReport} from '@/lib/api';
+import {orderStatusLabels,shortOrderCode} from '@/lib/orderPresentation';
 
 type Range='7'|'30'|'90'|'all';
 const money=(value:number)=>value.toLocaleString('en-US')+' د.ع';
@@ -38,9 +39,12 @@ export default function ReturnReviewPanel({range}:{range:Range}){
    {!current.rows.length?<p className="site-muted py-6 text-sm">لا توجد سندات استلام مرتجعات ضمن الفترة المختارة.</p>:<div className="mt-4 space-y-3">
     {current.rows.map(row=><details key={row.returnId} className="min-w-0 rounded-xl border border-brand/25 p-4">
      <summary className="cursor-pointer break-words text-sm font-bold leading-7">
-      طلب <bdi>{row.orderId}</bdi> — {row.units} قطعة مرتجعة · {date(row.receivedAt)}
+      طلب <bdi>#{shortOrderCode(row.orderId)}</bdi> — {row.units} قطعة مرتجعة
+      <span className="site-muted mt-1 block text-xs font-normal">{date(row.receivedAt)}</span>
      </summary>
-     <p className="site-muted mt-3 break-all text-xs leading-6">سند {row.returnId} · حالة الطلب الحالية: {row.currentOrderStatus}</p>
+     <p className="site-muted mt-3 text-xs leading-6">حالة الطلب الحالية: {orderStatusLabels[row.currentOrderStatus]||'حالة تحتاج مراجعة'}</p>
+     <p className="site-muted mt-1 break-all text-xs leading-6">معرّف الطلب: <bdi>{row.orderId}</bdi></p>
+     <p className="site-muted mt-1 break-all text-xs leading-6">سند: <bdi>{row.returnId}</bdi></p>
      <p className="mt-3 text-sm font-bold">تسوية هذا السند غير موثقة بهذا التقرير</p>
      <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-2">
       {([

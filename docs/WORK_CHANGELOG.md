@@ -1,5 +1,11 @@
 # سجل تنفيذ المواصفات الكاملة
 
+## RC1-4 — بوابات وصولية/WebKit وأداء مقاس — 2026-11-06
+- إضافة فحص axe حقيقي لكل الثيمين وصفحات المتجر/auth/السلة/checkout والإدارة/تقرير المرتجعات، مع errors/overflow gate وartifact JSON لكل selector. قياسات lab قبل axe وWebKit native touch لرحلة COD وصلاحيات/قائمة/تقارير. النتيجة الجديدة تنتظر CI.
+- label/id/name/autocomplete للنماذج الأساسية وrole alert، وmain للرئيسية. سطر المرتجع أوضح بالهاتف ورمز طلب موحد وحالة عربية، بلا تغيير أموال أو API.
+- أدوات QA مقفلة منفصلة عن lockfiles التطبيق، لا تصادق axe على كل WCAG ولا WebKit على جهاز iPhone فعلي أو lab على field CWV/INP.
+- الأساس #80/d3fea77 وCI #265 ناجحان بالكامل؛ #79/CI #264 نجحت وصورة تقريرها قُرئت. لا live DB/نشر/دفع/merge.
+
 ## RC1-3 — انتقال مخطط متكامل بدون live apply — 2026-11-06
 - جرد كامل 34 جدولاً ومرجع SQL من Prisma المقفلة، مع hash schema وفحص semantic مقابل المولد في CI. preflight يرفض drift/قيود غير متوافقة وبيانات stock/money/FK/quantity/roles/states غير متناسقة.
 - backup API تشمل WAL، row digests كاملة، restore DB/images وhashes، وبروفة إضافية على restore فقط. ثبات source DB/WAL/rows/images، جداول جديدة فارغة ولا backfill. verifier مستقل للنسخة المحفوظة يكشف التلف.

@@ -3,6 +3,13 @@
 ## هدف RC الحالي
 المرجع الإضافي RC_SCOPE.md يثبت النطاق حسب طلب المستخدم الأخير: معاينة حقيقية، تقرير مراجعة المرتجعات، انتقال Schema آمن، فحوص release وتسليم Mac. لا ميزات ثانوية أو توسع مفتوح.
 
+## دفعة RC1-4 — فحوص الجودة قيد التنفيذ
+الفرع release/rc1-quality-gates-20261106 مبني على #80/d3fea77، CI #265 ناجح بالكامل، بما فيه preflight/backup/restore ومرجع Prisma وكل الأعمال السابقة. #79/3b51bf3 وCI #264 معتمدان؛ صورة return-review قُرئت (حجر1، تكلفة34,000، تحصيل/رد0). لا عيب تطبيق في #263: driver احتاج فتح details الجديدة بعد retry.
+
+إضافة rc-quality-browser.cjs لتشغيل axe على الصفحات الحقيقية في dark/light/mobile وhome desktop، وlab TTFB/FCP/LCP/shift/JS bytes قبل axe، مع WebKit touch 390 رحلة تسجيل/دخول/سلة/COD/reload/logout/إدارة وقائمة native dialog/تقرير. serious/critical والoverflow تفشل وتكتب rc-quality.json مع كل selectors للفحص؛ لا تُستثنى مناطق فاشلة. ليست شهادة WCAG أو قياسات field/INP ولا iPhone حقيقية. Playwright/axe مقفلان بأدوات CI منفصلة بلا تغيير lockfile للتطبيق.
+
+إصلاحات من فحص المصدر: label/id/name/autocomplete للدخول والتسجيل وrole alert للأخطاء؛ main landmark للرئيسية. تحسين سطر سند المرتجع للهاتف برقم مختصر وحالة عربية، مع المعرفات الكاملة في التفاصيل. بناء الواجهة ناجح قبل تحسين سطر السند الأخير؛ الفحوص الجديدة تنتظر CI بعد الحفظ، ولا تعتبر بوابة الجودة مغلقة قبل قراءة النتيجة وإصلاح stop-ship.
+
 ## دفعة RC1-3 — بروفة المخطط المتكاملة
 الفرع release/rc1-schema-rehearsal-20261106 فوق #79/3b51bf3. آخر أساس شامل معتمد #78/d8c0086 وCI #262؛ #79/CI #264 قيد الفحص بعد تصحيح فتح details في driver فقط.
 
@@ -64,7 +71,7 @@ Node 22؛ RUST_LOG=info في Work. نسخة مستقلة ثم bash scripts/previ
 المشروع غير مكتمل؛ WORK_MISSION.md هو المرجع وWORK_ROADMAP.md مصفوفة المتبقي. لا إدارة أجهزة/revoke-all أو إبطال تلقائي جديد عند تغيير role/password في #76؛ دور DB الفعلي ما زال يضبط الصلاحية. WebKit وتدقيق وصولية شامل وقياسات أداء وتحسين الرئيسية/ماركات/جديد وGlass مختار ما زالت مراحل لاحقة. قياس التباين المنجز يخص صفحة تأكيد الطلب، وليس اعتماداً شاملاً للموقع.
 
 ## المهمة التالية الدقيقة
-1. تحقق من CI الحالية لدفعة RC1-3 و#79/CI #264. اعتمد صورة preview-return-review-mobile بعد تحميلها وقراءتها؛ لا يكفي نجاح API.
+1. افحص CI لدفعة RC1-4. حمّل rc-quality.json (حتى عند الفشل) والصور؛ أصلح كل serious/critical أو overflow، وتحقق من actual WebKit ورحلة COD. #80/CI #265 آخر أساس كامل معتمد. لا تخفّف القواعد لإمرار CI.
 2. جودة RC: شغل WebKit إن توفر، axe للصفحات الرئيسية والنماذج/الإدارة بالثيمين، وقياسات أداء حقيقية. أصلح stop-ship فقط واحفظ commit/Draft PR/Handoff في كل دفعة. لا توسعات ثانوية.
 3. صف قيود القياسات بدقة: headless WebKit ليست iPhone حقيقية، lab metrics ليست بيانات مستخدمين، وaxe لا تغطي كل الوصولية؛ keyboard/contrast الأساسية قائمة. ما يفشل يعالج قبل اعتماد RC.
 4. قبل تسليم Mac حدّث RC_PREVIEW_MAC إلى آخر فرع وSHA/CI معتمدة وأعد تحقق حفظ Git فقط. لا تحتاج DB/.env من المستخدم لتشغيل Preview. قاعدة Mac الحقيقية غير متاحة؛ تعليمات RC_SCHEMA_PLAN تنفذ backup/restore/rehearsal محلياً ويشارك report.json فقط إن أراد.

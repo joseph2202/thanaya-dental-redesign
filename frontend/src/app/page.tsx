@@ -12,6 +12,7 @@ export default function Home() {
   return (
     <>
       <Header />
+      <main>
       <Hero />
       <Ticker />
       <Suspense fallback={<HomeCatalogFallback/>}>
@@ -19,6 +20,7 @@ export default function Home() {
       </Suspense>
       <ShoppingSteps />
       <OfferBanner />
+      </main>
       <Footer compact />
     </>
   );
