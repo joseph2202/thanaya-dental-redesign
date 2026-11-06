@@ -27,7 +27,8 @@
     "test:delivery": "prisma generate && npm run build && node tests/delivery.integration.cjs",
     "test:coupons": "prisma generate && npm run build && node tests/coupons.integration.cjs",
     "db:safe-generate": "prisma generate",
-    "test:catalog": "prisma generate && npm run build && node tests/catalog.integration.cjs"
+    "test:catalog": "prisma generate && npm run build && node tests/catalog.integration.cjs",
+    "test:sessions": "prisma generate && npm run build && node tests/session-revocation.integration.cjs"
   },
   "keywords": [],
   "author": "",

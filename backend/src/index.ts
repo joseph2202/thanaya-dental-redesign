@@ -28,6 +28,7 @@ import fs from 'fs';
 import { randomUUID } from 'node:crypto';
 import { getJwtSecret } from './config/auth';
 import { cookieSessionBridge, cookieAllowedOrigins } from './lib/cookieSession';
+import {rejectRevokedSessions} from './lib/sessionRevocation';
 import { requireAdmin, requireInventory } from './middleware/requireAdmin';
 
 dotenv.config();
@@ -60,7 +61,8 @@ const privateApiPrefixes=[
   '/api/receiving','/api/payables','/api/cash','/api/payment-sandbox'
 ];
 app.use((req, res, next) => {
-  if(privateApiPrefixes.some(prefix=>req.path===prefix||req.path.startsWith(prefix+'/'))){
+  const route=req.path.toLowerCase();
+  if(privateApiPrefixes.some(prefix=>route===prefix||route.startsWith(prefix+'/'))){
     res.setHeader('Cache-Control','no-store');
     res.setHeader('Content-Security-Policy',"frame-ancestors 'none'; object-src 'none'");
   }
@@ -72,6 +74,7 @@ app.use(express.json());
 // Cookie transport is opt-in. Existing Bearer sessions keep working during migration.
 // CSRF checks happen before any authenticated mutation reaches the API routes.
 app.use(cookieSessionBridge(allowedOrigins));
+app.use(rejectRevokedSessions);
 
 // ==========================================
 // إعدادات رفع الصور (Multer)
