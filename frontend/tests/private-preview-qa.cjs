@@ -67,6 +67,22 @@ async function main(){
  const repeat=await customer('/orders','POST',intent);assert.equal(repeat.status,200);assert.equal(repeat.body.id,order.body.id);
  assert.equal((await request('/products/'+chosen.id)).body.availableStock,chosen.availableStock-1);
  assert.equal((await admin('/finance/orders/'+order.body.id)).body.totals.collectedIqd,0);
+ // Receive one real synthetic return through the normal APIs, not report mocks.
+ for(const status of ['confirmed','shipped','delivered']){
+  const changed=await admin('/orders/'+order.body.id+'/status','PATCH',{status,reason:'انتقال صناعي لفحص مراجعة المرتجع'});
+  assert.equal(changed.status,200,JSON.stringify(changed.body));
+ }
+ const sold=await admin('/orders/'+order.body.id);assert.equal(sold.status,200);
+ const returned=await admin('/orders/'+order.body.id+'/returns','POST',{requestId:randomUUID(),reason:'استلام صناعي محجور للفحص فقط',
+  items:[{orderItemId:sold.body.items[0].id,quantity:1,quarantinedQuantity:1}]});
+ assert.equal(returned.status,201,JSON.stringify(returned.body));
+ const review=await admin('/reports/return-review?range=30');assert.equal(review.status,200);assert.equal(review.body.total,1);
+ assert.equal(review.body.rows[0].quarantinedUnits,1);assert.equal(review.body.rows[0].restockedUnits,0);
+ assert.equal(review.body.rows[0].cost.totalHistoricalSaleCostIqd,34000);
+ assert.equal(review.body.rows[0].currentOrderLedger.collectedIqd,0);assert.equal(review.body.rows[0].currentOrderLedger.refundableRemainingIqd,0);
+ assert.equal((await customer('/reports/return-review?range=30')).status,403);
+ assert.equal((await request('/products/'+chosen.id)).body.availableStock,chosen.availableStock-1,'quarantine must not replenish sellable stock');
+ console.log('PASS private return review HTTP: actual receipt, original cost, quarantine, no automatic refund and denied customer report access');
  console.log('PASS private production preview HTTP: owner/customer auth, permissions, product create/edit, server quote, idempotent COD, stock and real seeded reports');
  if(!httpOnly){
   const {chromium}=require('playwright-core');
@@ -103,6 +119,39 @@ async function main(){
   await owner.screenshot({path:path.join(directory,'preview-admin-desktop.png'),animations:'disabled'});
   await owner.setViewportSize({width:390,height:844});assert.equal(await owner.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false);
   await financial.screenshot({path:path.join(directory,'preview-financial-mobile.png'),animations:'disabled',style:'.thanaya-admin-header {visibility:hidden !important}'});
+  await financial.getByRole('link',{name:'مراجعة التسويات المالية للمرتجعات',exact:true}).click();await owner.waitForURL('**/admin/reports#return-review');
+  const returns=owner.getByRole('region',{name:'مراجعة التسويات المالية للمرتجعات',exact:true});
+  await returns.getByText('1 سند استلام ضمن الفترة',{exact:true}).waitFor();
+  await returns.locator('summary').click();await returns.getByText('تسوية هذا السند غير موثقة بهذا التقرير',{exact:true}).waitFor();
+  await returns.getByText('حجر / غير صالحة للبيع',{exact:true}).waitFor();
+  assert.match(await returns.innerText(),/34,000 د.ع/);assert.match(await returns.innerText(),/0 د.ع/);
+  const ledgerLink=returns.getByRole('link',{name:'مراجعة سجل الطلب المالي',exact:true});
+  assert.equal(await ledgerLink.getAttribute('href'),'/admin/finance?orderId='+encodeURIComponent(order.body.id));
+  assert.equal(await owner.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false);
+  await returns.screenshot({path:path.join(directory,'preview-return-review-mobile.png'),animations:'disabled',style:'.thanaya-admin-header {visibility:hidden !important}'});
+  // A delayed obsolete period must not replace the current return/COGS reports.
+  let seenOld;const oldSeen=new Promise(resolve=>{seenOld=resolve});
+  await owner.route('**/api/reports/**',async route=>{
+   if(new URL(route.request().url()).searchParams.get('range')==='7'){
+    const response=await route.fetch();seenOld();await delay(900);await route.fulfill({response}).catch(()=>{});
+   }else await route.continue();
+  });
+  await owner.getByRole('button',{name:'7 أيام',exact:true}).click();await oldSeen;
+  assert.equal(await returns.getByText('1 سند استلام ضمن الفترة',{exact:true}).isVisible(),false);
+  await owner.getByRole('button',{name:'90 يوم',exact:true}).click();
+  await returns.getByText('1 سند استلام ضمن الفترة',{exact:true}).waitFor();await delay(1100);
+  assert.equal(await returns.getByText('1 سند استلام ضمن الفترة',{exact:true}).isVisible(),true);
+  await owner.getByRole('heading',{name:'تكلفة البضاعة وهامش المبيعات الموثّق',exact:true}).waitFor();
+  await owner.unroute('**/api/reports/**');
+  await owner.route('**/api/reports/return-review?*',route=>route.fulfill({status:503,contentType:'application/json',body:JSON.stringify({error:'انقطاع صناعي مؤقت لتقرير المرتجعات'})}));
+  await returns.getByRole('button',{name:'تحديث المرتجعات',exact:true}).click();await returns.getByRole('alert').waitFor();
+  assert.equal(await returns.locator('summary').count(),0);await owner.getByRole('heading',{name:'تكلفة البضاعة وهامش المبيعات الموثّق',exact:true}).waitFor();
+  await owner.unroute('**/api/reports/return-review?*');await returns.getByRole('button',{name:'إعادة تحميل المرتجعات من الصفحة الأولى',exact:true}).click();
+  await returns.getByText('1 سند استلام ضمن الفترة',{exact:true}).waitFor();
+  await returns.locator('summary').click();
+  await ledgerLink.click();await owner.waitForURL('**/admin/finance?orderId=*');
+  await owner.getByText(order.body.id,{exact:false}).first().waitFor();
+  console.log('PASS private return review Chrome: dashboard link, actual received quarantine/cost/zero cash, mobile report, deep-linked ledger, obsolete period and independent error/retry');
   await owner.goto(base+'/admin/products');await owner.getByRole('main').getByText('صنف فحص RC معزول',{exact:true}).filter({visible:true}).waitFor();
   assert.deepEqual(errors,[]);await staff.close();await shopper.close();
   console.log('PASS private production preview Chrome: live storefront/admin, desktop/mobile, actual registration/cart/COD order and synthetic financial screenshots');

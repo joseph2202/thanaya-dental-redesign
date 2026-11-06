@@ -3,14 +3,21 @@
 ## هدف RC الحالي
 المرجع الإضافي RC_SCOPE.md يثبت النطاق حسب طلب المستخدم الأخير: معاينة حقيقية، تقرير مراجعة المرتجعات، انتقال Schema آمن، فحوص release وتسليم Mac. لا ميزات ثانوية أو توسع مفتوح.
 
-## دفعة RC1-1 الحالية — تشغيل Preview خاصة
-محفوظة في Draft PR #78، e0414e2. CI #261 اجتازت كل API والبناء ومعظم Chrome ثم كشفت React hydration #418 بصفحات catalog: شريط preview كان يقرأ runtime flag مختلفاً عن build للـlayout المشتركة بين static/streamed. الإصلاح يجعل الشريط build-time في next.config، مع بقاء preview seed/runtime guard مستقلين. يلزم CI التالية ولا تُعلن الصور جاهزة قبل نجاحها.
+## أحدث حفظ RC1
+- أساس متحقق: Draft PR #78، release/rc1-private-preview-20261106، d8c0086571d6f130c8c5e0a8d0ba611cab749772، CI #262 ناجح بالكامل: https://github.com/joseph2202/thanaya-dental-redesign/actions/runs/42223345924 .
+- نفس launcher الإنتاجي اجتاز Chrome الحقيقي: تسجيل حساب، سلة، COD، إدارة وصور desktop/mobile. الصور الخمس حُمّلت وقُرئت: preview-store-desktop/mobile، preview-order-mobile، preview-admin-desktop، preview-financial-mobile. غياب صور المنتجات الصناعية معلن؛ لا تُخترع صور/ماركات حقيقية. المالية 60,000 تحصيل، 25,000 مصاريف، 348,000 مورد، 145,000 ذمم طابقت fixture.
+- CI #261 كشفت hydration #418 بسبب flag شريط المعاينة runtime المختلف عن build للـlayout المشتركة؛ أُصلحت إلى build-time، ونجحت #262 دون إخفاء pageerror.
+- متصفح Work المنفصل لا يصل إلى loopback حاوية exec؛ ERR_CONNECTION_REFUSED. لا نشر أو Tunnel. طريقة Mac RC_PREVIEW_MAC.md تنشئ نسخة مستقلة وقاعدة مؤقتة؛ Ctrl+C ينظفها.
 
-الفرع release/rc1-private-preview-20261106 مبني على 65f84182145f453fe0338f2fd383eedaf45b9353، PR #77 وCI #260 ناجحان ومتأكد منهما مجدداً؛ لا حفظ أحدث عند الاستئناف.
+## دفعة RC1-2 — مراجعة المرتجعات
+Draft PR #79، d2ac4c3. CI #263 اجتازت API الست والبناء وChrome السابقة، وواجهة التقرير/التأخر/error/retry حتى محاولة الرابط المالي بعد reload. اختبارها نسي فتح details التي تعاد مغلقة بعد retry؛ أضيف فتح summary قبل الضغط على الرابط، بلا تغيير للتطبيق أو تخفيف assertion. يلزم CI التالية.
+الفرع release/rc1-return-review-20261106 فوق d8c0086. GET /api/reports/return-review للـowner/admin من DB فقط، page 20 وحدود صارمة وفترة حسب سند الاستلام. يعرض original cost snapshots/unknown cost، restocked/quarantined، ودفتر الطلب الحالي كاملاً مع تحذير عدم جمعه بين السندات. لا settlement/credit مخترع ولا write أو schema. رابط Dashboard → /admin/reports#return-review ثم دفتر الطلب /admin/finance?orderId=... .
 
-Backend افتراضه loopback، وTHANAYA_PREVIEW_ONLY ترفض binding عاماً. launcher يرفض .env/dev.db الموجودة، وproduction افتراضي، وNode >=22.13، مع --skip-install/--dev/--no-open. لا نشر أو Tunnel. شريط preview يظهر في builds الصناعية فقط.
+تقرير السندات ليس ادعاء إغلاق تسوية: كل سند يحتاج مراجعة، حتى وجود استرداد لا يثبت التسوية الكاملة. سقف refund ليس ديناً؛ الشحن لا يرد تلقائياً والحجر غير قابل للبيع. الطلبات المرتجعة القديمة بلا دليل تُذكر منفصلة لكل الفترات. التكاليف المتباينة بلا تخصيص لا تؤخذ بمتوسط ولا بسعر اليوم.
 
-نفس launcher اختبر production فعلياً محلياً بـnode frontend/tests/private-preview-qa.cjs --http-only: auth/roles/create+edit product/quote/COD idempotency/stock/ledger/reports ثم حذف DB/temp. 3 فحوص binding وsyntax/build نجحت. متصفح Work المنفصل أعاد ERR_CONNECTION_REFUSED للمنافذ المعزولة؛ لا محاولة تجاوز sandbox. driver الجديدة تشغل Chrome في CI مع نفس script وصور متجر/إدارة desktop/mobile وشراء حقيقي على synthetic؛ نتيجتها مطلوبة بعد الحفظ. طريقة Mac القابلة للنسخ في RC_PREVIEW_MAC.md.
+6 مجموعات return-review.integration نجحت على temp SQLite: صلاحيات وخصوصية، تكلفة تاريخية/خصم/سقف، تواريخ، pagination ثابتة، قراءة byte-identical للـDB/WAL، ورفض فساد السجلات. بناء Backend وNext 35 مساراً ناجح. نفس launcher HTTP اختبر سنداً محجوراً حقيقياً من APIs، تكلفة 34,000 وصفر تحصيل/رد وعدم زيادة stock، ومنع الزبون من التقرير. Chrome الجديد للتقرير/ربطه/تأخر الفترة/error/retry ينتظر CI بعد الحفظ.
+
+كما أصلح سباق فترات صفحة التقارير العامة: abort واستبعاد أرقام الفترة السابقة فوراً، ومطابقة overview/costs، وعزل خطأ تصدير Excel عن أرقام التقرير. ReturnReviewPanel مستقلة مع retry وpager وبدون أزرار مالية تنفيذية.
 
 ## آخر أساس محفوظ قبل هذه الدفعة
 - أحدث فرع متكامل: fix/gallery-photo-consistency-20261106، Draft PR #77.
@@ -48,7 +55,8 @@ Node 22؛ RUST_LOG=info في Work. نسخة مستقلة ثم bash scripts/previ
 المشروع غير مكتمل؛ WORK_MISSION.md هو المرجع وWORK_ROADMAP.md مصفوفة المتبقي. لا إدارة أجهزة/revoke-all أو إبطال تلقائي جديد عند تغيير role/password في #76؛ دور DB الفعلي ما زال يضبط الصلاحية. WebKit وتدقيق وصولية شامل وقياسات أداء وتحسين الرئيسية/ماركات/جديد وGlass مختار ما زالت مراحل لاحقة. قياس التباين المنجز يخص صفحة تأكيد الطلب، وليس اعتماداً شاملاً للموقع.
 
 ## المهمة التالية الدقيقة
-1. افحص CI لدفعة RC1-1 وprivate-preview-qa Chrome، وحمّل صور preview-store-desktop/mobile وpreview-admin-desktop/financial-mobile. أصلح ما يظهر قبل إعلانها ناجحة. #77/CI #260 أساس متحقق؛ لا تعاد فحوص قديمة بلا سبب.
-2. أكمل المالية بواجهة مراجعة مرتجعات غير مسواة للـowner/admin فقط: تقرير read-only من OrderReturn/returnLines وpaymentEvents وcostSnapshots، يميز restocked/quarantined والموثق/مجهول التكلفة، مع تاريخ حدث الإرجاع وpagination وحدود وصلاحيات واضحة، ثم اربطه بـFinancialDashboard وتقارير الإدارة. ابدأ بـbackend/src/lib/operationalSummary.ts وpaymentLedger.ts وorderReturnLedger.ts وroutes/reports.ts وdocs/OPERATIONAL_REPORTS.md.
-3. لا تحول refundableCeilingIqd إلى دين/credit معتمد؛ هو سقف رد مسموح وليس إثبات تسوية أو تحصيل. الشحن لا يرد تلقائياً، والحجر لا يعني بضاعة صالحة. احفظ الاستبعاد المعلن من الربح/الذمم حتى وجود أساس تسوية صريح، واختبر الجزئي/الكامل والتالف والخصم والتوقيت والخصوصية على fixtures.
-4. بعد تقرير المراجعة أكمل الرئيسية/المنتجات والبحث وتجربة الهاتف وGlass المحدود، ثم WebKit/الأداء وبقية التدقيق. التكامل التجاري الحقيقي ينتظر credentials/عقد/تصريح؛ لا تنتظر ذلك لإنجاز ما لا يعتمد عليه. كل دفعة commit وDraft PR وHandoff وCI فعلية.
+1. تحقق من CI لفرع RC1-2، خصوصاً private-preview-qa: سند محجور فعلي، رابط dashboard وfinance، تأخر الفترة وخطأ مستقل، وصورة preview-return-review-mobile. أصلح أي فشل قبل الاعتماد.
+2. جهز preflight/backup/restore/rehearsal متكاملة لكل Schema الحالية. البروفات القديمة متفرقة وبعض verify/rehearse القديمة محصورة بجداول return؛ لا تعتمدها وحدها لـRC. قارِن كل جدول/عمود/index/FK بالمخطط الحالي، واحفظ original-row digests، ولا تخترع snapshots أو events تاريخية. اختبر WAL والنسخة والاستعادة ورفض partial/incompatible schemas على صناعي.
+3. وسع جودة الإصدار إلى WebKit إن توفر وaxe وقياسات أداء فعلية، وعالج stop-ship فقط. لا تكرر فحوص ناجحة محلياً بلا تغيير؛ CI المطلوبة تبقى متكاملة.
+4. Mac الحقيقي غير متاح. قدم بروفة local read-only/clone-only وتعليمات واضحة؛ لا تطبق مخططاً أو db push/reset على DB حقيقية. اعتماد تفعيلها يحتاج نتائج نسختها وbackup ثم إذن صريح. الدفع الحقيقي والنشر والmerge غير مأذون بها.
+5. كل دفعة commit وDraft PR متسلسل وHandoff. إغلاق RC وفق RC_SCOPE، لا توسعات ثانوية.

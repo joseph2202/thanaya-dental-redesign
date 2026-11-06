@@ -7,7 +7,7 @@
 
 ```bash
 cd ~/Documents
-git clone --branch release/rc1-private-preview-20261106 https://github.com/joseph2202/thanaya-dental-redesign.git thanaya-rc-preview-20261106
+git clone --branch release/rc1-return-review-20261106 https://github.com/joseph2202/thanaya-dental-redesign.git thanaya-rc-preview-20261106
 cd thanaya-rc-preview-20261106
 bash scripts/preview-local.sh
 ```
@@ -27,6 +27,6 @@ bash scripts/preview-local.sh
 المنافذ محلية داخل بيئة التنفيذ؛ localhost في جهاز يوسف أو متصفح Work ليس عنوان خادم هذه الجلسة. لا ننشر admin أو بياناتها على رابط عام. private-preview-qa.cjs يشغل نفس launcher والخادمين والمتصفح معاً داخل CI ويلتقط صوراً حقيقية؛ ويعمل --http-only محلياً عندما يكون Chrome مقيداً، دون الادعاء باختبار متصفح.
 
 ## الحالة الحالية
-فحص HTTP حقيقي لنسخة production نجح: owner/customer login، منع تعديل السعر للزبون، إنشاء/تعديل منتج، quote من السيرفر، طلب COD مكرر يعيد نفس ID ويخصم قطعة مرة واحدة وتحصيله صفر، ومؤشرات صناعية متطابقة (تحصيل 60,000، مصروف 25,000، مورد 348,000 وذمم 145,000). أثبت التنظيف حذف DB المؤقتة. صور/Chrome الجديدة تنتظر CI لهذه الدفعة.
+فحص HTTP حقيقي لنسخة production نجح: owner/customer login، منع تعديل السعر للزبون، إنشاء/تعديل منتج، quote من السيرفر، طلب COD مكرر يعيد نفس ID ويخصم قطعة مرة واحدة وتحصيله صفر، ومؤشرات صناعية متطابقة (تحصيل 60,000، مصروف 25,000، مورد 348,000 وذمم 145,000). أثبت التنظيف حذف DB المؤقتة. Chrome وصور المتجر/الإدارة والشراء نجحت في #78/CI #262 وقُرئت. الفرع هنا يتضمن تقرير المرتجعات الجديد؛ تحقق من CI الخاصة به قبل اعتباره RC معتمدة.
 
 لا تشغل الفرع على قاعدة متجرك الفعلية قبل إغلاق خطة Schema ونتيجة preflight/backup/rehearsal المحلية ثم موافقتك الصريحة. المعاينة الصناعية تعمل دون انتظار هذا التفعيل.

@@ -2,12 +2,29 @@ import { Router } from 'express';
 import { Prisma, PrismaClient } from '@prisma/client';
 import { requireAdmin } from '../middleware/requireAdmin';
 import {operationalSummary,OperationsError} from '../lib/operationalSummary';
+import {returnReview,ReturnReviewError} from '../lib/returnReview';
+import {PaymentError} from '../lib/paymentLedger';
 
 const router = Router();
 const prisma = new PrismaClient();
 const DAY_MS = 24 * 60 * 60 * 1000;
 const STATES = ['pending', 'confirmed', 'shipped', 'delivered', 'cancelled', 'returned'] as const;
 const BAGHDAD_MS = 3 * 60 * 60 * 1000;
+
+router.get('/return-review',requireAdmin,async(req,res)=>{
+ const range=req.query.range??'30',page=req.query.page??'1';
+ if(typeof range!=='string'||!['7','30','90','all'].includes(range)||typeof page!=='string'||
+   !/^[1-9][0-9]{0,4}$/.test(page)||Object.keys(req.query).some(key=>!['range','page'].includes(key)))
+   return res.status(400).json({error:'فترة مراجعة المرتجعات أو صفحتها غير صالحة.'});
+ try{
+  const result=await prisma.$transaction(tx=>returnReview(tx,range,Number(page),new Date()),{timeout:15000});
+  res.json(result);
+ }catch(error){
+  if(error instanceof ReturnReviewError||error instanceof PaymentError)return res.status(409).json({error:error.message});
+  console.error('return review report unavailable');
+  res.status(503).json({error:'تعذّر استخراج مراجعة المرتجعات؛ أعد المحاولة.'});
+ }
+});
 
 router.get('/operations',requireAdmin,async(req,res)=>{
  const range=req.query.range===undefined?'30':req.query.range;

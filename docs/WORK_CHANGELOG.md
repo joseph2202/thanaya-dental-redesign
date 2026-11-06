@@ -1,7 +1,15 @@
 # سجل تنفيذ المواصفات الكاملة
 
+## RC1-2 — مراجعة التسويات المالية للمرتجعات — 2026-11-06
+- #79/CI #263 اجتازت API والبناء وChrome حتى خطوة finance بعد retry؛ driver احتاج فتح details المحدثة قبل الضغط، فأصلح الاختبار فقط. التحقق التالي مطلوب.
+- تقرير owner/admin read-only لسندات الاستلام الفعلية بتاريخ الحدث وpage 20. تكلفة لقطة البيع الأصلية لكل lot/cohort، مجهولة عند غياب/غموض الدليل؛ عرض الحجر والstock منفصلين عن دفتر المال الحالي.
+- سقف الرد من paymentLedger نفسه بتوزيع IQD/خصم دقيق؛ لا liabilities/credit أو عكس COGS أو ربح/رد شحن تلقائي. السند يحتاج مراجعة، وlegacy returned بلا دليل يظهر منفصلاً. لا schema/كتابة بيانات.
+- Dashboard يربط بالتقرير ثم دفتر الطلب المالي. صفحة التقارير تتجاهل ردود الفترات المتأخرة وتخفي الأرقام القديمة، وخطأ export لا يسقط الأرقام. واجهة مستقلة للتحميل/error/retry/pagination وموبايل.
+- 6 مجموعات API وBackend/Next build وlauncher HTTP production نجحت. receipt محجور عبر API أثبت تكلفة 34,000 وصفر مال/no stock replenishment. Chrome الممتدة وصورة return-review تنتظر CI.
+- الأساس #78/d8c0086 وCI #262 ناجحان، والصور الخمس الحقيقية قُرئت. لم تمس DB Mac أو تُفعّل مدفوعات/نشر/merge.
+
 ## RC1-1 — معاينة إنتاجية مستقلة — 2026-11-06
-- Draft #78؛ CI #261 كشفت hydration #418 بعد نجاح API والبناء وChrome حتى catalog. أصلح preview banner إلى build-time لتطابق static/streamed، مع عدم تخفيف شرط pageerror. CI التالية مطلوبة.
+- معتمدة #78/d8c0086 وCI #262؛ Chrome launcher الفعلية و5 صور desktop/mobile وCOD نجحت وقُرئت. CI #261 كشفت hydration #418 بعد نجاح API والبناء وChrome حتى catalog. أصلح preview banner إلى build-time لتطابق static/streamed، مع عدم تخفيف شرط pageerror. CI التالية مطلوبة.
 - استئناف #77/65f8418 وCI #260، وتثبيت نطاق RC محدود. Backend افتراضه loopback، وPreview تمنع public binding، وlauncher يحمي clone/المنافذ/البيانات مع production افتراضي وتنظيف مؤقت.
 - نفس launcher شُغل واختبر HTTP production محلياً: auth/صلاحيات/إنشاء وتعديل منتج/quote/طلب COD idempotent ومخزون/تحصيل وتقارير صناعية متسقة؛ تنظيف DB نجح. 3 فحوص binding وsyntax/build نجحت.
 - متصفح Work لا يرى منافذ جلسة الأوامر (connection refused). أضيفت رحلة Chrome مع launcher نفسه في CI وصور حقيقية للمتجر/الإدارة والهاتف/desktop؛ تنتظر النتيجة. تعليمات Mac في RC_PREVIEW_MAC.md، بلا DB أصلية أو نشر أو merge.

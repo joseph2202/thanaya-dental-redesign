@@ -300,8 +300,20 @@ export type OperationalSummary={range:string;generatedAt:string;
  netProfitIqd:null;actualCashBalanceIqd:null;
  explanations:{period:string;receivables:string;payables:string;cash:string};
 };
+export type ReturnReviewReport={
+ range:string;page:number;pageSize:number;total:number;totalPages:number;generatedAt:string;
+ legacyWithoutEvidence:number;reviewScope:'received_return_documents';settlementRecorded:false;
+ explanations:{period:string;cost:string;money:string;review:string};
+ rows:{returnId:string;orderId:string;receivedAt:string;currentOrderStatus:string;requiresReview:true;
+  units:number;restockedUnits:number;quarantinedUnits:number;grossSaleValueIqd:number;
+  cost:{documentedPartIqd:number;unknownUnits:number;totalHistoricalSaleCostIqd:number|null};
+  currentOrderLedger:{collectedIqd:number;refundedIqd:number;refundableCeilingIqd:number;refundableRemainingIqd:number;refundAboveMerchandiseCeiling:boolean};
+  lines:{productId:string;productName:string|null;quantity:number;disposition:'restocked'|'quarantined';lotId:string|null;grossSaleValueIqd:number;historicalSaleCostIqd:number|null}[]
+ }[];
+};
 export const reportsAPI={
- overview:(range:'7'|'30'|'90'|'all'):Promise<SalesReport>=>apiRequest('/reports/overview?range='+range),
+ overview:(range:'7'|'30'|'90'|'all',signal?:AbortSignal):Promise<SalesReport>=>apiRequest('/reports/overview?range='+range,{signal}),
+ returnReview:(range:'7'|'30'|'90'|'all',page=1,signal?:AbortSignal):Promise<ReturnReviewReport>=>apiRequest('/reports/return-review?'+new URLSearchParams({range,page:String(page)}),{signal}),
  costs:(range:'7'|'30'|'90'|'all',signal?:AbortSignal):Promise<CostCoverageReport>=>apiRequest('/reports/costs?range='+range,{signal}),
  operations:(range:'7'|'30'|'90'|'all',signal?:AbortSignal):Promise<OperationalSummary>=>apiRequest('/reports/operations?range='+range,{signal})
 };
