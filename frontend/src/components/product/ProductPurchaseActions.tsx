@@ -36,7 +36,7 @@ export default function ProductPurchaseActions({product}:{product:Product & {ava
  <div className="fixed inset-x-0 bottom-0 z-40 border-t border-[#b8dfe9] bg-white/95 px-4 pt-2.5 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-12px_32px_rgba(21,67,91,.13)] backdrop-blur-lg sm:hidden" aria-label="خيارات شراء المنتج">
   <div className="mx-auto max-w-lg">
    <div className="mb-2 flex items-center justify-between gap-3">
-    <span className="text-xs font-bold text-[#68838f]">الإجمالي × {quantity} {saleUnitLabel(product.saleUnit)}</span>
+    <span className="text-xs font-bold th-muted">الإجمالي × {quantity} {saleUnitLabel(product.saleUnit)}</span>
     <strong className="text-lg font-black text-[#1d465a]">{(product.price*(max===0?0:quantity)).toLocaleString("en-US")} د.ع</strong>
    </div>
    <div className="grid grid-cols-2 gap-2">

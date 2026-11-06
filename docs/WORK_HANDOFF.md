@@ -4,6 +4,12 @@
 المرجع الإضافي RC_SCOPE.md يثبت النطاق حسب طلب المستخدم الأخير: معاينة حقيقية، تقرير مراجعة المرتجعات، انتقال Schema آمن، فحوص release وتسليم Mac. لا ميزات ثانوية أو توسع مفتوح.
 
 ## دفعة RC1-4 — معالجة نتائج الجودة الفعلية
+نتيجة #270/#271: Chrome32 عينة بقي فيها contrast واحد في ProductPurchaseActions (4.01:1) وcheckout overflow بالثيمين مع shipping غير محددة. أصلح token النص، وgrid-cols-1/min-w-0 للـcheckout وwrap لزر التأكيد وصفوف المجموع، بلا clipping أو تعديل مبلغ. زيدت عينة320px وتشخيص rectangles وصور rc-checkout-{theme}-{width} (34 عينة قبل WebKit،36 بعد تأكيده). بناء Next35 مساراً ناجح؛ يلزم إثبات القياس الجديد.
+
+الصورة الرسمية #271 عملت دون apt؛ Chromium158 وWebKit27.2. WebKit أكملت التسجيل/reload والسلة وCOD وتأكيد/reload/logout وowner/menu/report دون crash، ثم رسبت assertion errors على native same-origin access-control diagnostics عند hard-navigation/teardown. لم تخفّف الصلاحيات أو CORS أو شرط errors. يُنتظر networkidle والبيانات قبل manual reload/goto، وتستخدم روابط السلة/التقرير الحقيقية. المرجع الأولي لمشكلة المحرك PW43120 يدعم تفسير cancellation، لكن الاختبار التالي يجب أن يثبت خلوها من الأخطاء؛ لا تدّع نجاح WebKit حتى ذلك. JSON تحفظ مرحلة نهاية الرحلة وerrors قبل assertion.
+
+#271 baseline core job + browser job يجب فحصهما معاً؛ browser فشلت لهذه الأسباب، ولو أكملت الوظائف. القياس في نفس artifact: TTFB11/FCP312/observedLCP312ms، shift0.01745، JS429,701bytes. ليست field performance. latest source بعد الحفظ ينتظر CI التالية.
+
 آخر تغيير للـCI: #268 انتهت cancelled بعد20 دقيقة، وسجلاتها أثبتت تنزيل87 حزمة من مرآة azure Ubuntu ببطء شديد، لا مجرد prompt. رُتبت jobs: baseline host/driver1.56.1 كما سبق، وrc-browser-quality مستقلة داخل الصورة الرسمية mcr.microsoft.com/playwright:v1.65.0-noble وdriver1.65.0 مطابق (الإصدار الرسمي متحقق). متصفحات/مكتبات جاهزة، بلا apt عند وجود binary، وChromium bundled fallback. لا runtime/lockfile للتطبيق تغيرا، ولا موقع منشور أو ports عامة. مهلة bootstrap180s تبقى fallback CI-only، مع sudo -E لـinstall-deps ثم download كمستخدم عادي كي لا تضيع noninteractive env أو cache path.
 
 مهم للمتابعة: افحص **كلتا job** في CI الجديدة. artifacts baseline اسمها thanaya-browser-review-N، وأدلة Preview/axe/WebKit الجديدة اسمها **thanaya-rc-browser-review-N**. اقرأ rc-quality.json وchromeFindings حتى لو فشلت WebKit. #270 القديمة تشغّل Chrome أولاً ثم bootstrap bounded؛ نتيجتها لم تصل عند الحفظ. الجولتان269/268 ليستا دليلاً جديداً على التطبيق بعد المرحلة التي وصلتاها.

@@ -56,7 +56,13 @@ async function qualityReview({browser,base,password,product,directory,shopperPag
    const serious=violations.filter(v=>['serious','critical'].includes(v.impact));
    if(serious.length)failures.push(label+'/'+mode+': '+serious.map(v=>v.id+' ('+v.nodes.length+')').join(', '));
    const overflow=await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1);
-   if(overflow)failures.push(label+'/'+mode+': horizontal overflow');
+   if(overflow){
+    failures.push(label+'/'+mode+': horizontal overflow');
+    result.axe.at(-1).overflow=await page.evaluate(()=>Array.from(document.querySelectorAll('body *')).map(el=>{
+     const r=el.getBoundingClientRect();return {tag:el.tagName,class:el.getAttribute('class'),left:r.left,right:r.right,width:r.width};
+    }).filter(r=>r.left < -1 || r.right > innerWidth+1).sort((a,b)=>b.width-a.width).slice(0,15));
+   }
+   if(label.startsWith('checkout-filled'))await page.screenshot({path:path.join(directory,'rc-checkout-'+mode+'-'+page.viewportSize().width+'.png'),animations:'disabled',fullPage:true});
    persist();
   }
  }
@@ -97,6 +103,7 @@ async function qualityReview({browser,base,password,product,directory,shopperPag
   await shopperPage.goto(base+'/cart');await shopperPage.getByRole('link',{name:/المتابعة لإتمام الطلب/}).waitFor();await scan(shopperPage,'cart-filled');
   await shopperPage.getByRole('link',{name:/المتابعة لإتمام الطلب/}).click();await shopperPage.getByRole('combobox',{name:'المحافظة',exact:true}).waitFor();
   await scan(shopperPage,'checkout-filled');
+  await shopperPage.setViewportSize({width:320,height:800});await scan(shopperPage,'checkout-filled-320');
   await ownerPage.setViewportSize({width:390,height:844});
   for(const route of ['/admin','/admin/reports','/admin/products','/admin/finance','/admin/cash']){
    await ownerPage.goto(base+route);await ownerPage.getByRole('heading',{level:1}).waitFor();
@@ -141,40 +148,49 @@ async function qualityReview({browser,base,password,product,directory,shopperPag
   result.webkit={passed:false,stage:'launch',engine:wk.version(),rendering:'headless Linux software Mesa'};persist();
   const context=await wk.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
   const mobile=await context.newPage(),errors=[];mobile.on('pageerror',e=>errors.push(e.message));
-  await mobile.goto(base);await mobile.getByRole('note').waitFor();await mobile.locator('article.signature-card:visible').first().waitFor();
+  // Hard reloads deliberately test persistence. Let the current document's
+  // API work/prefetch finish first, so the test does not create teardown races
+  // reported by WebKit as native access-control page errors (PW #43120).
+  const settled=page=>page.waitForLoadState('networkidle');
+  const go=async(page,url)=>{await settled(page);await page.goto(url);await settled(page)};
+  await go(mobile,base);await mobile.getByRole('note').waitFor();await mobile.locator('article.signature-card:visible').first().waitFor();
   await theme(mobile,'light');assert.equal(await mobile.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false);
   await mobile.screenshot({path:path.join(directory,'rc-webkit-store-mobile.png'),animations:'disabled'});
-  await mobile.goto(base+'/register');
+  await go(mobile,base+'/register');
   await mobile.getByRole('textbox',{name:'الاسم الكامل',exact:true}).fill('متسوق WebKit صناعي');
   await mobile.getByRole('textbox',{name:'البريد الإلكتروني',exact:true}).fill('webkit-'+randomUUID()+'@test.invalid');
   await mobile.getByRole('textbox',{name:'رقم الهاتف',exact:true}).fill('07812345678');
   await mobile.getByLabel('كلمة المرور',{exact:true}).fill('WebKitSynthetic#2026');await mobile.getByLabel('تأكيد كلمة المرور',{exact:true}).fill('WebKitSynthetic#2026');
   await mobile.getByRole('button',{name:'إنشاء حساب',exact:true}).click();await mobile.waitForURL('**/account');
-  await mobile.reload();await mobile.getByRole('heading',{name:/أهلاً متسوق WebKit صناعي/}).waitFor();
+  await mobile.getByRole('heading',{name:/أهلاً متسوق WebKit صناعي/}).waitFor();await settled(mobile);
+  await mobile.reload({waitUntil:'networkidle'});await mobile.getByRole('heading',{name:/أهلاً متسوق WebKit صناعي/}).waitFor();
   result.webkit.stage='registered and reloaded; opening product';persist();
-  await mobile.goto(base+'/product/'+product.id);await mobile.getByRole('button',{name:'أضف للسلة',exact:true}).first().click();
-  await mobile.getByRole('status').filter({hasText:'تمت الإضافة للسلة'}).waitFor();await mobile.goto(base+'/cart');
+  await go(mobile,base+'/product/'+product.id);await mobile.getByRole('button',{name:'أضف للسلة',exact:true}).first().click();
+  await mobile.getByRole('status').filter({hasText:'تمت الإضافة للسلة'}).waitFor();await mobile.getByRole('link',{name:/^السلة، /}).click();
   await mobile.getByRole('link',{name:/المتابعة لإتمام الطلب/}).click();
   await mobile.getByRole('combobox',{name:'المحافظة',exact:true}).selectOption('البصرة');
   await mobile.getByRole('textbox',{name:'العنوان التفصيلي',exact:true}).fill('عنوان WebKit صناعي للفحص فقط');
   await mobile.getByRole('button',{name:'تأكيد الطلب • الدفع عند الاستلام',exact:true}).click();await mobile.waitForURL(/\/order\/confirmation\?id=/);
   await mobile.getByRole('heading',{name:'تم استلام طلبك بنجاح!',exact:true}).waitFor();
   const orderId=new URL(mobile.url()).searchParams.get('id');assert.ok(orderId);
-  await mobile.reload();await mobile.getByRole('heading',{name:'تم استلام طلبك بنجاح!',exact:true}).waitFor();
+  result.webkit.orderCreated=true;result.webkit.stage='COD created; reloading confirmation';persist();
+  await settled(mobile);await mobile.reload({waitUntil:'networkidle'});await mobile.getByRole('heading',{name:'تم استلام طلبك بنجاح!',exact:true}).waitFor();
   await scan(mobile,'webkit-order-confirmation');
-  await mobile.goto(base+'/account');await mobile.setViewportSize({width:1440,height:900});
+  await go(mobile,base+'/account');await mobile.setViewportSize({width:1440,height:900});await settled(mobile);
   await mobile.locator('button.thanaya-header-logout-link').click();await mobile.waitForURL(/\/login(?:\?|$)/);
   assert.equal((await mobile.evaluate(async()=>(await fetch('/api/auth/me')).status)),401);
   const ownerContext=await wk.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
   const admin=await ownerContext.newPage();admin.on('pageerror',e=>errors.push(e.message));
-  await admin.goto(base+'/login');await admin.getByLabel('البريد الإلكتروني',{exact:true}).fill('preview-owner@thanaya.local');
+  await go(admin,base+'/login');await admin.getByLabel('البريد الإلكتروني',{exact:true}).fill('preview-owner@thanaya.local');
   await admin.getByLabel('كلمة المرور',{exact:true}).fill(password);await admin.getByRole('button',{name:'دخول',exact:true}).click();await admin.waitForURL('**/admin');
-  await admin.getByText('التحصيل الموثّق',{exact:true}).waitFor();
+  await admin.getByText('التحصيل الموثّق',{exact:true}).waitFor();await settled(admin);
   await admin.getByRole('button',{name:'فتح قائمة الإدارة',exact:true}).click();const menu=admin.getByRole('dialog',{name:'قائمة إدارة ثنايا',exact:true});
   await menu.waitFor();await admin.keyboard.press('Escape');assert.equal(await menu.isVisible(),false);
-  await admin.goto(base+'/admin/reports#return-review');await admin.getByText('1 سند استلام ضمن الفترة',{exact:true}).waitFor();
+  await admin.getByRole('region',{name:'المؤشرات المالية والتشغيلية',exact:true}).getByRole('link',{name:'مراجعة التسويات المالية للمرتجعات',exact:true}).click();
+  await admin.waitForURL('**/admin/reports#return-review');await admin.getByText('1 سند استلام ضمن الفترة',{exact:true}).waitFor();await settled(admin);
   assert.equal(await admin.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false);
   await admin.screenshot({path:path.join(directory,'rc-webkit-admin-mobile.png'),animations:'disabled'});
+  result.webkit.stage='all functional journeys completed; checking errors';result.webkit.errors=errors.slice();persist();
   assert.deepEqual(errors,[]);await context.close();await ownerContext.close();
   result.webkit={passed:true,engine:wk.version(),viewport:'390x844 touch',orderCreated:true,
    journeys:['register','reload session','cart','COD','confirmation/reload','logout','owner login','admin menu/Escape','return review'],errors};persist();

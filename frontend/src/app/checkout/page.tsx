@@ -203,8 +203,8 @@ export default function CheckoutPage() {
       <main className="site-container py-5 md:py-8">
         <h1 className="text-3xl font-black mb-5 text-ink">إتمام الطلب</h1>
 
-        <div className="grid md:grid-cols-2 gap-5">
-          <form onSubmit={handleSubmit} aria-label="بيانات التوصيل والدفع" className="bg-white border border-[#d4eaf2] rounded-2xl p-4 sm:p-5 space-y-4 h-fit">
+        <div className="grid min-w-0 grid-cols-1 md:grid-cols-2 gap-5">
+          <form onSubmit={handleSubmit} aria-label="بيانات التوصيل والدفع" className="min-w-0 bg-white border border-[#d4eaf2] rounded-2xl p-4 sm:p-5 space-y-4 h-fit">
             <h2 className="text-2xl font-black mb-4 text-ink">بيانات التوصيل</h2>
             {addressesLoading&&<p role="status" className="text-sm text-neutral-600">جاري تحميل عناوينك المحفوظة...</p>}
             {addressesError&&<p className="rounded-xl bg-amber-50 p-3 text-sm text-amber-900">العناوين المحفوظة غير متاحة حالياً؛ تكدر تدخل العنوان يدوياً. {addressesError}</p>}
@@ -294,13 +294,13 @@ export default function CheckoutPage() {
             <button
               type="submit"
               disabled={submitting || items.length === 0 || deliveryLoading || !!deliveryError || !delivery || deliveryUnavailable || quoteLoading || !!quoteError || !quote?.canCheckout || (priceChanged&&!priceAcknowledged)}
-              className="site-btn site-btn-primary site-btn-lg w-full"
+              className="site-btn site-btn-primary site-btn-lg min-w-0 w-full !whitespace-normal"
             >
               {submitting ? 'جاري تأكيد الطلب...' : 'تأكيد الطلب • الدفع عند الاستلام'}
             </button>
           </form>
 
-          <section aria-label="ملخص الطلب" aria-busy={quoteLoading||deliveryLoading} className="site-surface !bg-paper2 p-4 sm:p-5 h-fit">
+          <section aria-label="ملخص الطلب" aria-busy={quoteLoading||deliveryLoading} className="site-surface min-w-0 !bg-paper2 p-4 sm:p-5 h-fit">
             <h2 className="text-2xl font-black mb-4 text-ink">ملخص الطلب</h2>
 
             <div className="space-y-3 mb-6">
@@ -317,16 +317,16 @@ export default function CheckoutPage() {
             </div>
 
             <div className="border-t-2 border-brand/30 pt-4 space-y-2">
-              <div className="flex justify-between">
+              <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-1">
                 <span className="font-bold text-ink">المجموع الفرعي</span>
                 <span className="font-black text-ink">{serverSubtotal.toLocaleString()} د.ع</span>
               </div>
-              <div className="flex justify-between">
+              <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-1">
                 <span className="font-bold text-ink">الشحن</span>
                 <span className="font-black text-brand">{deliveryLoading?'جاري التحميل':deliveryError?'غير متاح للتحقق':delivery?.enabled?(deliveryUnavailable?'غير متاح':fee===0?'مجاني':fee.toLocaleString()+' د.ع'):'يحدد لاحقاً'}</span>
               </div>
               {coupon&&<div className="flex justify-between text-green-700"><span className="font-bold">الخصم ({coupon.code})</span><span className="font-black">-{coupon.discount.toLocaleString()} د.ع</span></div>}
-              <div className="flex justify-between text-xl pt-2 border-t border-brand/20">
+              <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-1 text-xl pt-2 border-t border-brand/20">
                 <span className="font-black text-ink">{quoteLoading||deliveryLoading||quoteError||deliveryError?'المجموع التقديري':delivery?.enabled?'الإجمالي':'المجموع قبل أجور التوصيل'}</span>
                 <span className="font-black text-2xl text-brand">{(serverSubtotal-(coupon?.discount??0)+fee).toLocaleString()} د.ع</span>
               </div>

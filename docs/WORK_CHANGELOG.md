@@ -1,6 +1,9 @@
 # سجل تنفيذ المواصفات الكاملة
 
 ## RC1-4 — بوابات وصولية/WebKit وأداء مقاس — 2026-11-06
+- #270/#271 ضيقت عيوب Chrome إلى نص المنتج المتحرك4.01:1 وcheckout overflow مع شحن غير محدد. أصلح foreground وgrid minmax/wrap دون إخفاء محتوى أو تغيير مبالغ؛ صور/قياس320/390px بالثيمين مضافة (36 عينة مع WebKit).
+- #271 البيئة الجاهزة عملت سريعاً، Chromium158/WebKit27.2 أكملت رحلة الشراء والإدارة دون crash. errors assertion كشفت diagnostics عند تنقلات hard سريعة؛ الفحص ينتظر اكتمال network/بيانات الصفحة قبل reload، مع روابط فعلية وبدون allowlist أو إضعاف CORS/الصلاحيات. يلزم نتيجة الجولة التالية.
+- lab#271: TTFB11/FCP312/observedLCP312ms، shift0.01745، JS429,701bytes. بناء Next35 مساراً ناجح، والجودة لم تعتمد بعد.
 - #268 timeout/cancelled بسبب بطء mirror لتنزيل87 مكتبة. baseline بقيت host/driver1.56، وQA صارت job مستقلة بالصورة الرسمية1.65.0-noble وdriver مطابق (لا تغيير اعتماديات التطبيق)، مع bundled Chromium/WebKit وعدم apt عند وجودها. يجب نجاح job الاثنتين. artifact الجديدة thanaya-rc-browser-review-N.
 - bootstrap fallback بمهلة180s يحتفظ بالـnoninteractive env مع sudo -E للـdeps ثم download عادية. لا تجاوز crash/قواعد، والنشر أو originalDB لم يتغيرا.
 - تجهيز WebKit علّق #268/#269 قبل Chrome؛ انتقل إلى ما بعد حفظ نتائج Chrome، بمهلة180s وbootstrap CI-only غير تفاعلي. يبقى فشله فشلاً واضحاً مع logs، ولا قواعد/رحلات معطلة.
