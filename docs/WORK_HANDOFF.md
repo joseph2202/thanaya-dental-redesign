@@ -10,6 +10,7 @@
 - متصفح Work المنفصل لا يصل إلى loopback حاوية exec؛ ERR_CONNECTION_REFUSED. لا نشر أو Tunnel. طريقة Mac RC_PREVIEW_MAC.md تنشئ نسخة مستقلة وقاعدة مؤقتة؛ Ctrl+C ينظفها.
 
 ## دفعة RC1-2 — مراجعة المرتجعات
+Draft PR #79، d2ac4c3. CI #263 اجتازت API الست والبناء وChrome السابقة، وواجهة التقرير/التأخر/error/retry حتى محاولة الرابط المالي بعد reload. اختبارها نسي فتح details التي تعاد مغلقة بعد retry؛ أضيف فتح summary قبل الضغط على الرابط، بلا تغيير للتطبيق أو تخفيف assertion. يلزم CI التالية.
 الفرع release/rc1-return-review-20261106 فوق d8c0086. GET /api/reports/return-review للـowner/admin من DB فقط، page 20 وحدود صارمة وفترة حسب سند الاستلام. يعرض original cost snapshots/unknown cost، restocked/quarantined، ودفتر الطلب الحالي كاملاً مع تحذير عدم جمعه بين السندات. لا settlement/credit مخترع ولا write أو schema. رابط Dashboard → /admin/reports#return-review ثم دفتر الطلب /admin/finance?orderId=... .
 
 تقرير السندات ليس ادعاء إغلاق تسوية: كل سند يحتاج مراجعة، حتى وجود استرداد لا يثبت التسوية الكاملة. سقف refund ليس ديناً؛ الشحن لا يرد تلقائياً والحجر غير قابل للبيع. الطلبات المرتجعة القديمة بلا دليل تُذكر منفصلة لكل الفترات. التكاليف المتباينة بلا تخصيص لا تؤخذ بمتوسط ولا بسعر اليوم.

@@ -148,6 +148,7 @@ async function main(){
   assert.equal(await returns.locator('summary').count(),0);await owner.getByRole('heading',{name:'تكلفة البضاعة وهامش المبيعات الموثّق',exact:true}).waitFor();
   await owner.unroute('**/api/reports/return-review?*');await returns.getByRole('button',{name:'إعادة تحميل المرتجعات من الصفحة الأولى',exact:true}).click();
   await returns.getByText('1 سند استلام ضمن الفترة',{exact:true}).waitFor();
+  await returns.locator('summary').click();
   await ledgerLink.click();await owner.waitForURL('**/admin/finance?orderId=*');
   await owner.getByText(order.body.id,{exact:false}).first().waitFor();
   console.log('PASS private return review Chrome: dashboard link, actual received quarantine/cost/zero cash, mobile report, deep-linked ledger, obsolete period and independent error/retry');
