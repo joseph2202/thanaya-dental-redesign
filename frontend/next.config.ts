@@ -1,6 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Shared static/streamed layouts must use one build-time preview value.
+  // Reading a runtime flag here caused React hydration mismatches in E2E.
+  env: { THANAYA_PREVIEW_BANNER: process.env.THANAYA_PREVIEW_ONLY === '1' ? '1' : '0' },
   // Defense-in-depth headers for the Next.js storefront, including admin pages.
   // Keep CSP compatible with Next.js dev mode: a strict script nonce policy
   // requires a separate audited migration of inline/runtime scripts.

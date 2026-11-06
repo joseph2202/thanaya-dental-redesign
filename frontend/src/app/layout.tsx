@@ -33,6 +33,9 @@ export default function RootLayout({
         />
       </head>
       <body className="font-sans antialiased bg-paper text-ink relative">
+        {process.env.THANAYA_PREVIEW_BANNER==='1'&&<div role="note" className="relative z-10 border-b border-cyan-700 bg-[#0e4052] px-4 py-2 text-center text-xs font-bold leading-6 text-white">
+          معاينة خاصة — بيانات صناعية فقط، الطلبات والدفع غير حقيقيين.
+        </div>}
         <ThemeInitializer/>
         <BackgroundPattern />
         <div className="relative z-10">
