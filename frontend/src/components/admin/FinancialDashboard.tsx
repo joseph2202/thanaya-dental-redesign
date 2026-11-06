@@ -42,7 +42,7 @@ export default function FinancialDashboard({range,refreshKey}:{range:Range;refre
   {error&&<div role="alert" className="rounded-xl border border-red-500/30 p-4 text-sm leading-7"><p>{error}</p>
    <button type="button" onClick={()=>setRevision(value=>value+1)} className="mt-2 font-bold text-brand underline">إعادة تحميل المؤشرات</button></div>}
   {!loading&&!error&&operation&&cost&&<>
-   <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="الأرقام المالية">
+   <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4" role="group" aria-label="الأرقام المالية">
     <Figure title="التحصيل الموثّق" value={money(operation.period.collectedIqd)} note={'خلال الفترة؛ استردادات مسجلة: '+money(operation.period.refundedIqd)} href="/admin/finance"/>
     <Figure title="المصاريف التشغيلية المسجلة" value={money(operation.period.expenseIqd)} note="المدفوع خلال الفترة، بجميع طرق السداد" href="/admin/cash"/>
     <Figure title="متبقٍ لتحصيل طلبات مسلّمة" value={money(operation.receivables.dueIqd)} note={operation.receivables.orders+' طلباً بلا مرتجع، لكل الفترات'} href="/admin/finance"/>

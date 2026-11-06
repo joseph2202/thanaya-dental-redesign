@@ -119,7 +119,7 @@ function ConfirmationContent() {
       <main className={`${styles.theme} ${styles.page} mx-auto max-w-4xl px-4 py-6 md:py-8`} dir="rtl">
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
           <Link href="/account" className={`${styles.link} inline-flex min-h-11 items-center text-sm font-black`}>← الرجوع إلى حسابي</Link>
-          {order&&<Link href={"/order/invoice?id="+encodeURIComponent(order.id)} target="_blank" rel="noopener noreferrer" className={`${styles.secondaryButton} inline-flex items-center gap-1.5 rounded-full border px-3 text-xs font-black`}><Printer size={15} aria-hidden="true"/> طباعة / حفظ PDF</Link>}
+          {order&&<a href={"/order/invoice?id="+encodeURIComponent(order.id)} target="_blank" rel="noopener noreferrer" className={`${styles.secondaryButton} inline-flex items-center gap-1.5 rounded-full border px-3 text-xs font-black`}><Printer size={15} aria-hidden="true"/> طباعة / حفظ PDF</a>}
           {order&&<button type="button" onClick={refreshStatus} disabled={refreshBusy} className={`${styles.secondaryButton} inline-flex items-center gap-2 rounded-full border px-4 py-2.5 text-sm font-bold disabled:opacity-60`}><RefreshCw size={16} aria-hidden="true" className={refreshBusy?'animate-spin':''}/>{refreshBusy?'جاري التحديث...':'تحديث حالة الطلب'}</button>}
         </div>
         {refreshError&&<p role="alert" className={`${styles.warning} mb-4 rounded-xl p-3 text-sm`}>{refreshError}</p>}

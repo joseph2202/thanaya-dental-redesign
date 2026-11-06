@@ -62,7 +62,10 @@ async function qualityReview({browser,base,password,product,directory,shopperPag
      const r=el.getBoundingClientRect();return {tag:el.tagName,class:el.getAttribute('class'),left:r.left,right:r.right,width:r.width};
     }).filter(r=>r.left < -1 || r.right > innerWidth+1).sort((a,b)=>b.width-a.width).slice(0,15));
    }
-   if(label.startsWith('checkout-filled'))await page.screenshot({path:path.join(directory,'rc-checkout-'+mode+'-'+page.viewportSize().width+'.png'),animations:'disabled',fullPage:true});
+   if(label.startsWith('checkout-filled')){
+    await page.evaluate(()=>window.scrollTo({top:0,behavior:'instant'}));
+    await page.screenshot({path:path.join(directory,'rc-checkout-'+mode+'-'+page.viewportSize().width+'.png'),animations:'disabled',fullPage:true});
+   }
    persist();
   }
  }
@@ -147,7 +150,8 @@ async function qualityReview({browser,base,password,product,directory,shopperPag
   wk=await require('playwright-core').webkit.launch({headless:true,env:{...process.env,LIBGL_ALWAYS_SOFTWARE:'1'}});
   result.webkit={passed:false,stage:'launch',engine:wk.version(),rendering:'headless Linux software Mesa'};persist();
   const context=await wk.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
-  const mobile=await context.newPage(),errors=[];mobile.on('pageerror',e=>errors.push(e.message));
+  const mobile=await context.newPage(),errors=[],invoicePrefetches=[];mobile.on('pageerror',e=>errors.push(e.message));
+  mobile.on('request',request=>{const url=new URL(request.url());if(url.pathname==='/order/invoice'&&url.searchParams.has('_rsc'))invoicePrefetches.push(url.pathname)});
   // Hard reloads deliberately test persistence. Let the current document's
   // API work/prefetch finish first, so the test does not create teardown races
   // reported by WebKit as native access-control page errors (PW #43120).
@@ -176,6 +180,11 @@ async function qualityReview({browser,base,password,product,directory,shopperPag
   result.webkit.orderCreated=true;result.webkit.stage='COD created; reloading confirmation';persist();
   await settled(mobile);await mobile.reload({waitUntil:'networkidle'});await mobile.getByRole('heading',{name:'تم استلام طلبك بنجاح!',exact:true}).waitFor();
   await scan(mobile,'webkit-order-confirmation');
+  const [invoice]=await Promise.all([mobile.waitForEvent('popup'),mobile.getByRole('link',{name:'طباعة / حفظ PDF',exact:true}).click()]);
+  invoice.on('pageerror',e=>errors.push(e.message));await invoice.waitForURL(url=>url.pathname==='/order/invoice'&&url.searchParams.get('id')===orderId,{waitUntil:'networkidle'});
+  assert.equal(new URL(invoice.url()).searchParams.get('id'),orderId);
+  await invoice.getByText('الإجمالي المحفوظ',{exact:true}).waitFor();await invoice.getByText(orderId,{exact:true}).waitFor();
+  await settled(invoice);await invoice.close();assert.deepEqual(invoicePrefetches,[],'new-tab private invoice must not speculatively prefetch RSC');
   await go(mobile,base+'/account');await mobile.setViewportSize({width:1440,height:900});await settled(mobile);
   await mobile.locator('button.thanaya-header-logout-link').click();await mobile.waitForURL(/\/login(?:\?|$)/);
   assert.equal((await mobile.evaluate(async()=>(await fetch('/api/auth/me')).status)),401);
@@ -193,7 +202,7 @@ async function qualityReview({browser,base,password,product,directory,shopperPag
   result.webkit.stage='all functional journeys completed; checking errors';result.webkit.errors=errors.slice();persist();
   assert.deepEqual(errors,[]);await context.close();await ownerContext.close();
   result.webkit={passed:true,engine:wk.version(),viewport:'390x844 touch',orderCreated:true,
-   journeys:['register','reload session','cart','COD','confirmation/reload','logout','owner login','admin menu/Escape','return review'],errors};persist();
+   journeys:['register','reload session','cart','COD','confirmation/reload','invoice new tab','logout','owner login','admin menu/Escape','return review'],errors};persist();
   console.log('PASS RC WebKit: actual mobile registration/session/cart/COD/reload/logout and owner admin/report/menu journey');
   console.log('RC Chromium lab performance:',JSON.stringify(result.performance));
   assert.deepEqual(failures,[],'RC accessibility/layout failures; see rc-quality.json');

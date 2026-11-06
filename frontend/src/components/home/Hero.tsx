@@ -31,7 +31,7 @@ export default function Hero(){
     </div>
    </div>
 
-   <div className="signature-showcase relative hidden min-h-[320px] items-center justify-center lg:flex" aria-label="مسارات التسوق في ثنايا">
+   <div className="signature-showcase relative hidden min-h-[320px] items-center justify-center lg:flex" role="group" aria-label="مسارات التسوق في ثنايا">
     <div aria-hidden="true" className="signature-orbit signature-orbit-outer"/>
     <div aria-hidden="true" className="signature-orbit signature-orbit-inner"/>
     <div aria-hidden="true" className="signature-orbit-center"><ScanLine size={68} strokeWidth={1.25}/></div>

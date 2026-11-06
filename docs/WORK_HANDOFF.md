@@ -4,6 +4,12 @@
 المرجع الإضافي RC_SCOPE.md يثبت النطاق حسب طلب المستخدم الأخير: معاينة حقيقية، تقرير مراجعة المرتجعات، انتقال Schema آمن، فحوص release وتسليم Mac. لا ميزات ثانوية أو توسع مفتوح.
 
 ## دفعة RC1-4 — معالجة نتائج الجودة الفعلية
+نتيجة #272/8162a48: rc-quality.json حُمّل وقُرئ؛ **36 عينة بلا violations إطلاقاً وchromeFindings=[]**، وفحصا320/390px بالثيمين بلا overflow. صورة checkout320 قُرئت وكشفت نص بطاقة الدفع مضغوطاً رغم نجاح القياس؛ أُعيد ترتيبها radio+content بعمودين وأيقونات decorative للشاشات الأوسع، مع ألوان status واضحة. لا تغيير لمبلغ/COD أو تفعيل البطاقة. صور checkout الآن تبدأ من scroll0 كي لا يظهر هيدر sticky في موضع مضلل.
+
+WebKit27.2 أكملت كل الرحلات. بعد networkidle والروابط الفعلية بقي pageerror واحد من RSC prefetch لمسار order/invoice بدون id. رابط الطباعة target=_blank صار a عادية بدل Next Link، فتفتح الوثيقة المطلوبة فقط بلا prefetch خاص غير لازم. أضيف تحقق popup بنفس orderId والإجمالي المحفوظ ومنع أي invoice?_rsc؛ شرط errors=[] محفوظ. هذه معالجة رابط تطبيق وليست allowlist أو تغيير CORS. يلزم نجاح الجولة التالية لهذا المصدر قبل اعتماد WebKit.
+
+تصحيح ملاحظات الفحص اليدوي: role=group لأربعة divs مسماة (hero/range/financial figures/product actions). تبقى gradients/overlap-logo/الأرقام القصيرة ضمن incomplete الآلية، وتراجع من الصور؛ لا نقول إن axe شهادة شاملة. قياس #272: TTFB5/FCP228/LCP228ms، shift0.02223، JS429,697bytes، Chromium158. آخر حفظ بعد هذا يحتاج **نجاح job الاثنتين**؛ بعدها دفعة توثيق تسليم فقط، بلا features أخرى.
+
 نتيجة #270/#271: Chrome32 عينة بقي فيها contrast واحد في ProductPurchaseActions (4.01:1) وcheckout overflow بالثيمين مع shipping غير محددة. أصلح token النص، وgrid-cols-1/min-w-0 للـcheckout وwrap لزر التأكيد وصفوف المجموع، بلا clipping أو تعديل مبلغ. زيدت عينة320px وتشخيص rectangles وصور rc-checkout-{theme}-{width} (34 عينة قبل WebKit،36 بعد تأكيده). بناء Next35 مساراً ناجح؛ يلزم إثبات القياس الجديد.
 
 الصورة الرسمية #271 عملت دون apt؛ Chromium158 وWebKit27.2. WebKit أكملت التسجيل/reload والسلة وCOD وتأكيد/reload/logout وowner/menu/report دون crash، ثم رسبت assertion errors على native same-origin access-control diagnostics عند hard-navigation/teardown. لم تخفّف الصلاحيات أو CORS أو شرط errors. يُنتظر networkidle والبيانات قبل manual reload/goto، وتستخدم روابط السلة/التقرير الحقيقية. المرجع الأولي لمشكلة المحرك PW43120 يدعم تفسير cancellation، لكن الاختبار التالي يجب أن يثبت خلوها من الأخطاء؛ لا تدّع نجاح WebKit حتى ذلك. JSON تحفظ مرحلة نهاية الرحلة وerrors قبل assertion.

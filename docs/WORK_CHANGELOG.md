@@ -1,6 +1,9 @@
 # سجل تنفيذ المواصفات الكاملة
 
 ## RC1-4 — بوابات وصولية/WebKit وأداء مقاس — 2026-11-06
+- #272/8162a48: 36 عينة axe بلا violations، وChrome findings=[] و320/390 بلا overflow؛ الصور قُرئت. بطاقة الدفع320 ظلت مضغوطة بصرياً فأعيدت لعمودين واضحين مع بقاء COD وحدها متاحة؛ screenshot تبدأ scroll0.
+- WebKit27.2 أكملت الرحلات، وبقي native diagnostic واحد من prefetch invoice بلا id. رابط target=_blank صار anchor عادية، مع فحص popup/نفس orderId والإجمالي ومنعRSC prefetch. errors assertion ما زالت صارمة؛ ينتظر إثبات الجولة التالية.
+- role=group لأسماء مجموعات hero/range/financial/product controls. القياسات #272: TTFB5/FCP228/LCP228ms، shift0.02223، JS429,697bytes. لا شهادة WCAG/field أو iPhone فعلية.
 - #270/#271 ضيقت عيوب Chrome إلى نص المنتج المتحرك4.01:1 وcheckout overflow مع شحن غير محدد. أصلح foreground وgrid minmax/wrap دون إخفاء محتوى أو تغيير مبالغ؛ صور/قياس320/390px بالثيمين مضافة (36 عينة مع WebKit).
 - #271 البيئة الجاهزة عملت سريعاً، Chromium158/WebKit27.2 أكملت رحلة الشراء والإدارة دون crash. errors assertion كشفت diagnostics عند تنقلات hard سريعة؛ الفحص ينتظر اكتمال network/بيانات الصفحة قبل reload، مع روابط فعلية وبدون allowlist أو إضعاف CORS/الصلاحيات. يلزم نتيجة الجولة التالية.
 - lab#271: TTFB11/FCP312/observedLCP312ms، shift0.01745، JS429,701bytes. بناء Next35 مساراً ناجح، والجودة لم تعتمد بعد.

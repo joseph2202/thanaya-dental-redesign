@@ -130,7 +130,7 @@ export default function AdminDashboard(){
 
      <div className="flex flex-wrap items-center justify-between gap-3">
        <h2 className="thanaya-admin-overview-heading text-lg font-black text-[#203e4c]">ملخص أداء المتجر <span className="text-xs font-normal th-muted">— الفترة المختارة</span></h2>
-       <div className="thanaya-admin-range inline-flex flex-wrap items-center gap-1 rounded-full border border-[#cfe4ee] bg-white p-1" aria-label="فترة التقرير">
+       <div className="thanaya-admin-range inline-flex flex-wrap items-center gap-1 rounded-full border border-[#cfe4ee] bg-white p-1" role="group" aria-label="فترة التقرير">
          {([['7','7 أيام'],['30','30 يوم'],['90','90 يوم'],['all','الكل']] as const).map(([value,label])=>
            <button key={value} aria-pressed={range===value} disabled={refreshing} onClick={()=>setRange(value)} className={`rounded-full px-3 py-2 text-xs font-bold transition disabled:opacity-60 ${range===value?'bg-brand text-white':'text-[#506f80] hover:bg-[#edf7fb]'}`}>{label}</button>
          )}
