@@ -1,6 +1,7 @@
 # سجل تنفيذ المواصفات الكاملة
 
 ## RC1-4 — بوابات وصولية/WebKit وأداء مقاس — 2026-11-06
+- #266 كشفت عدم دعم WebKit/Playwright المقفلة لـubuntu-latest الجديدة26.04؛ ثبتت runner إلى24.04 المدعومة. أضيفت أسماء ProductForm وh1/رفع صورة عبر keyboard ورحلة create/edit UI والتحويل الصحيح للألف IQD وثبات stock؛ الفحص التالي مطلوب.
 - إضافة فحص axe حقيقي لكل الثيمين وصفحات المتجر/auth/السلة/checkout والإدارة/تقرير المرتجعات، مع errors/overflow gate وartifact JSON لكل selector. قياسات lab قبل axe وWebKit native touch لرحلة COD وصلاحيات/قائمة/تقارير. النتيجة الجديدة تنتظر CI.
 - label/id/name/autocomplete للنماذج الأساسية وrole alert، وmain للرئيسية. سطر المرتجع أوضح بالهاتف ورمز طلب موحد وحالة عربية، بلا تغيير أموال أو API.
 - أدوات QA مقفلة منفصلة عن lockfiles التطبيق، لا تصادق axe على كل WCAG ولا WebKit على جهاز iPhone فعلي أو lab على field CWV/INP.

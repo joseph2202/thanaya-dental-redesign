@@ -74,6 +74,29 @@ async function qualityReview({browser,base,password,product,directory,shopperPag
     await ownerPage.getByRole('region',{name:'مراجعة التسويات المالية للمرتجعات',exact:true}).locator('summary').click();
    }
    await scan(ownerPage,route);
+   if(route==='/admin/products'){
+    await ownerPage.getByRole('button',{name:'+ إضافة منتج',exact:true}).click();
+    const editor=ownerPage.getByRole('form',{name:'إضافة بيانات المنتج',exact:true});await editor.waitFor();
+    await scan(ownerPage,'product-create-form');
+    const name='منتج تحقق واجهة RC '+randomUUID().slice(0,6);
+    await editor.getByLabel('اسم المنتج *',{exact:true}).fill(name);
+    await editor.getByLabel('التصنيف *',{exact:true}).fill(product.category);
+    await editor.getByLabel('السعر بالألف دينار',{exact:true}).fill('10');
+    await editor.getByLabel('الماركة / الشركة المصنعة *',{exact:true}).fill('فحص صناعي');
+    await editor.getByLabel('الكمية الابتدائية (المخزون) *',{exact:true}).fill('2');
+    await editor.getByLabel('وصف المنتج *',{exact:true}).fill('منتج صناعي لاختبار الإنشاء والتعديل من واجهة الإدارة');
+    const [created]=await Promise.all([ownerPage.waitForResponse(r=>r.url()===base+'/api/products'&&r.request().method()==='POST'),editor.getByRole('button',{name:'إضافة المنتج',exact:true}).click()]);
+    assert.equal(created.status(),201);const saved=await created.json();assert.equal(saved.price,10000);
+    const card=ownerPage.getByRole('article').filter({has:ownerPage.getByText(name,{exact:true})});await card.waitFor();
+    await card.getByRole('button',{name:'تعديل',exact:true}).click();
+    const edit=ownerPage.getByRole('form',{name:'تعديل بيانات المنتج',exact:true});await edit.waitFor();
+    await edit.getByLabel('السعر بالألف دينار',{exact:true}).fill('12.5');
+    const [updated]=await Promise.all([ownerPage.waitForResponse(r=>r.url()===base+'/api/products/'+saved.id&&r.request().method()==='PUT'),edit.getByRole('button',{name:'تحديث المنتج',exact:true}).click()]);
+    assert.equal(updated.status(),200);
+    const actual=await (await ownerPage.request.get(base+'/api/products/'+saved.id)).json();assert.equal(actual.price,12500);assert.equal(actual.stock,2);
+    result.productEditor={passed:true,createdPriceIqd:10000,editedPriceIqd:12500,stockUnchangedOnPriceEdit:true};persist();
+    console.log('PASS RC product editor: actual owner create/edit forms, thousands IQD conversion and unchanged initial stock');
+   }
   }
   // Native WebKit (the engine used by Safari), a fresh actual shopping journey.
   wk=await require('playwright-core').webkit.launch({headless:true});

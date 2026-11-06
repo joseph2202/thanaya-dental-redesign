@@ -444,7 +444,7 @@ export default function AdminProducts() {
         )}
       </dialog>
       <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
-        <h2 className="text-3xl font-black text-ink">إدارة المنتجات</h2>
+        <h1 className="text-3xl font-black text-ink">إدارة المنتجات</h1>
         {canEditProducts&&<div className="flex flex-wrap gap-2">
           <button type="button" disabled={exportBusy} onClick={async()=>{setExportBusy(true);setExportError('');try{await exportsAPI.download('inventory')}catch(e){setExportError(e instanceof Error?e.message:'تعذّر التصدير')}finally{setExportBusy(false)}}} className="site-btn site-btn-outline site-btn-sm">
             <FileSpreadsheet size={16}/>{exportBusy?'جاري تجهيز Excel...':'تصدير المخزون Excel'}
@@ -740,10 +740,10 @@ function ProductForm({ product, existingCategories, onSave, onCancel, loading }:
 
       {saveError && <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6 text-red-700 font-bold" role="alert">{saveError}</div>}
 
-      <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-5">
+      <form aria-label={product?'تعديل بيانات المنتج':'إضافة بيانات المنتج'} onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-5">
         {/* رفع الصورة */}
         <div className="md:col-span-2">
-          <label className="block font-bold mb-2 text-sm text-ink">صورة المنتج</label>
+          <label htmlFor="product-image-upload" className="block font-bold mb-2 text-sm text-ink">صورة المنتج</label>
           <div className="flex items-center gap-4">
             {imagePreview && (
               <div className="flex shrink-0 flex-col items-center gap-2">
@@ -761,7 +761,7 @@ function ProductForm({ product, existingCategories, onSave, onCancel, loading }:
                 </button>
               </div>
             )}
-            <label className="flex-1 cursor-pointer">
+            <label className="flex-1 cursor-pointer rounded-xl focus-within:outline-2 focus-within:outline-offset-4 focus-within:outline-brand">
               <div className="border-2 border-dashed border-brand/30 rounded-xl p-6 text-center hover:border-brand transition">
                 {uploading ? (
                   <p className="text-brand font-bold">جاري الرفع...</p>
@@ -773,22 +773,24 @@ function ProductForm({ product, existingCategories, onSave, onCancel, loading }:
                 )}
               </div>
               <input
+                id="product-image-upload"
+                aria-label="صورة المنتج"
                 type="file"
-                accept="image/*"
+                accept="image/jpeg,image/png,image/webp"
                 onChange={handleImageUpload}
-                className="hidden"
+                className="sr-only"
                 disabled={uploading}
               />
             </label>
           </div>
         </div>
 
-        <div className="md:col-span-2 rounded-xl border border-brand/20 p-4"><h4 className="mb-2 font-black">صور إضافية للمنتج (حتى 5)</h4><div className="mb-3 flex flex-wrap gap-3">{extraImages.map((src:string,index:number)=><div className="relative" key={src}><img src={src} alt={'صورة إضافية '+(index+1)} className="h-20 w-20 rounded-lg border object-contain"/><button type="button" aria-label="حذف الصورة الإضافية" onClick={()=>setForm((old:any)=>({...old,gallery:old.gallery.filter((url:string)=>url!==src)}))} className="absolute -left-2 -top-2 rounded-full bg-red-600 px-2 text-white">×</button></div>)}</div><input type="file" accept="image/jpeg,image/png,image/webp" multiple disabled={extraUploading||extraImages.length>=5} onChange={uploadExtra} className="max-w-full text-sm"/><p className="mt-2 text-xs text-neutral-500">ارفع صور المنتج الحقيقية فقط. صورة الغلاف الأساسية تبقى كما هي.</p>{extraUploading&&<p role="status">جاري رفع الصور...</p>}</div>
+        <div className="md:col-span-2 rounded-xl border border-brand/20 p-4"><h4 className="mb-2 font-black">صور إضافية للمنتج (حتى 5)</h4><div className="mb-3 flex flex-wrap gap-3">{extraImages.map((src:string,index:number)=><div className="relative" key={src}><img src={src} alt={'صورة إضافية '+(index+1)} className="h-20 w-20 rounded-lg border object-contain"/><button type="button" aria-label="حذف الصورة الإضافية" onClick={()=>setForm((old:any)=>({...old,gallery:old.gallery.filter((url:string)=>url!==src)}))} className="absolute -left-2 -top-2 rounded-full bg-red-600 px-2 text-white">×</button></div>)}</div><input aria-label="صور إضافية للمنتج" type="file" accept="image/jpeg,image/png,image/webp" multiple disabled={extraUploading||extraImages.length>=5} onChange={uploadExtra} className="max-w-full text-sm"/><p className="mt-2 text-xs text-neutral-500">ارفع صور المنتج الحقيقية فقط. صورة الغلاف الأساسية تبقى كما هي.</p>{extraUploading&&<p role="status">جاري رفع الصور...</p>}</div>
         <div className="md:col-span-2 rounded-xl border border-brand/20 p-4"><div className="mb-3 flex flex-wrap items-center justify-between gap-2"><h4 className="font-black">المواصفات الفنية (حتى 12)</h4><button type="button" disabled={specifications.length>=12} className="site-btn site-btn-outline site-btn-sm" onClick={()=>setForm((old:any)=>({...old,specs:[...(old.specs||[]),{label:'',value:''}]}))}>+ إضافة مواصفة</button></div>{specifications.map((spec,index)=><div key={index} className="mb-3 grid gap-2 sm:grid-cols-[1fr_2fr_auto]"><input aria-label={'اسم المواصفة '+(index+1)} maxLength={80} value={spec.label} placeholder="مثال: الشركة المصنعة" onChange={e=>setForm((old:any)=>({...old,specs:old.specs.map((p:any,i:number)=>i===index?{...p,label:e.target.value}:p)}))} className="site-input min-w-0 px-3"/><input aria-label={'قيمة المواصفة '+(index+1)} maxLength={300} value={spec.value} placeholder="مثال: DentaPro" onChange={e=>setForm((old:any)=>({...old,specs:old.specs.map((p:any,i:number)=>i===index?{...p,value:e.target.value}:p)}))} className="site-input min-w-0 px-3"/><button type="button" onClick={()=>setForm((old:any)=>({...old,specs:old.specs.filter((_:any,i:number)=>i!==index)}))} className="rounded-lg border px-3 text-red-700">حذف</button></div>)}</div>
         {/* اسم المنتج */}
         <div>
-          <label className="block font-bold mb-2 text-sm text-ink">اسم المنتج *</label>
-          <input 
+          <label htmlFor="product-name" className="block font-bold mb-2 text-sm text-ink">اسم المنتج *</label>
+          <input id="product-name" name="name" 
             type="text" 
             placeholder="مثال: طقم أدوات فحص أسنان"
             value={form.name} 
@@ -826,8 +828,8 @@ function ProductForm({ product, existingCategories, onSave, onCancel, loading }:
 
         {/* التصنيف */}
         <div>
-          <label className="block font-bold mb-2 text-sm text-ink">التصنيف *</label>
-          <input 
+          <label htmlFor="product-category" className="block font-bold mb-2 text-sm text-ink">التصنيف *</label>
+          <input id="product-category" name="category" 
             type="text" 
             placeholder="اختَر قسمًا موجودًا أو اكتب قسمًا جديدًا"
             value={form.category} 
@@ -841,8 +843,8 @@ function ProductForm({ product, existingCategories, onSave, onCancel, loading }:
         </div>
 
         <div className="md:col-span-2 rounded-xl border border-brand/20 bg-paper2/30 p-4 space-y-3">
-          <label className="block font-bold text-sm">وحدة إدخال السعر</label>
-          <select value={priceUnit} onChange={e=>{
+          <label htmlFor="product-price-unit" className="block font-bold text-sm">وحدة إدخال السعر</label>
+          <select id="product-price-unit" value={priceUnit} onChange={e=>{
             const unit=e.target.value as 'thousands'|'usd';
             setPriceUnit(unit);
             setPriceText(unit==='thousands'?formatThousandsIqd(resolvedPrice??form.price):exchangeRate?String(Number(((resolvedPrice??form.price)/exchangeRate).toFixed(2))):'');
@@ -866,8 +868,8 @@ function ProductForm({ product, existingCategories, onSave, onCancel, loading }:
 
         {/* الماركة */}
         <div>
-          <label className="block font-bold mb-2 text-sm text-ink">الماركة / الشركة المصنعة *</label>
-          <input 
+          <label htmlFor="product-brand" className="block font-bold mb-2 text-sm text-ink">الماركة / الشركة المصنعة *</label>
+          <input id="product-brand" name="brand" 
             type="text" 
             placeholder="مثال: DentaPro"
             value={form.brand} 
@@ -879,8 +881,8 @@ function ProductForm({ product, existingCategories, onSave, onCancel, loading }:
 
         {/* المخزون */}
         <div>
-          <label className="block font-bold mb-2 text-sm text-ink">{product ? 'المخزون (للعرض فقط)' : 'الكمية الابتدائية (المخزون) *'}</label>
-          <input 
+          <label htmlFor="product-stock" className="block font-bold mb-2 text-sm text-ink">{product ? 'المخزون (للعرض فقط)' : 'الكمية الابتدائية (المخزون) *'}</label>
+          <input id="product-stock" name="stock" 
             type="number" 
             placeholder="مثال: 50"
             value={form.stock ?? ''} 
@@ -895,8 +897,8 @@ function ProductForm({ product, existingCategories, onSave, onCancel, loading }:
 
         {/* الأيقونة */}
         <div>
-          <label className="block font-bold mb-2 text-sm text-ink">اسم الأيقونة (احتياطي)</label>
-          <input 
+          <label htmlFor="product-icon" className="block font-bold mb-2 text-sm text-ink">اسم الأيقونة (احتياطي)</label>
+          <input id="product-icon" name="icon" 
             type="text" 
             placeholder="مثال: Stethoscope, Package, Heart"
             value={form.icon} 
@@ -908,8 +910,8 @@ function ProductForm({ product, existingCategories, onSave, onCancel, loading }:
 
         {/* البادج */}
         <div>
-          <label className="block font-bold mb-2 text-sm text-ink">الشارة (اختياري)</label>
-          <select 
+          <label htmlFor="product-badge" className="block font-bold mb-2 text-sm text-ink">الشارة (اختياري)</label>
+          <select id="product-badge" name="badge" 
             value={form.badge || ''} 
             onChange={(e) => setForm({ ...form, badge: e.target.value })} 
             className="w-full border-2 border-brand/30 rounded-xl px-4 py-3 focus:outline-none focus:border-brand bg-white"
@@ -923,8 +925,8 @@ function ProductForm({ product, existingCategories, onSave, onCancel, loading }:
 
         {/* الوصف */}
         <div className="md:col-span-2">
-          <label className="block font-bold mb-2 text-sm text-ink">وصف المنتج *</label>
-          <textarea 
+          <label htmlFor="product-description" className="block font-bold mb-2 text-sm text-ink">وصف المنتج *</label>
+          <textarea id="product-description" name="description" 
             placeholder="اكتب وصفاً تفصيلياً للمنتج..."
             value={form.description} 
             onChange={(e) => setForm({ ...form, description: e.target.value })} 

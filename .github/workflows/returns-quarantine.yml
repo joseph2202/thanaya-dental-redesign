@@ -14,7 +14,9 @@ permissions:
 
 jobs:
   isolated-returns-and-build:
-    runs-on: ubuntu-latest
+    # Pin the OS with the pinned browser driver; ubuntu-latest moved to 26.04,
+    # which Playwright 1.56.1 does not support for native WebKit.
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
       - name: Checkout branch

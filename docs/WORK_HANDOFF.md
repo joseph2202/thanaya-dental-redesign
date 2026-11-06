@@ -4,6 +4,7 @@
 المرجع الإضافي RC_SCOPE.md يثبت النطاق حسب طلب المستخدم الأخير: معاينة حقيقية، تقرير مراجعة المرتجعات، انتقال Schema آمن، فحوص release وتسليم Mac. لا ميزات ثانوية أو توسع مفتوح.
 
 ## دفعة RC1-4 — فحوص الجودة قيد التنفيذ
+CI #266 اجتازت كل schema/API والبناء ثم توقفت قبل المتصفح: ubuntu-latest انتقلت إلى26.04 التي لا تدعمها WebKit المقفلة 1.56.1. runner ثبتت إلى ubuntu-24.04 المدعومة، دون تعطيل WebKit أو اختبارات الأعمال. أضيفت تسمية حقول ProductForm وh1 ووصول keyboard للصورة ورحلة إنشاء/تعديل UI بالألف IQD وثبات stock؛ تنتظر CI الجديدة.
 الفرع release/rc1-quality-gates-20261106 مبني على #80/d3fea77، CI #265 ناجح بالكامل، بما فيه preflight/backup/restore ومرجع Prisma وكل الأعمال السابقة. #79/3b51bf3 وCI #264 معتمدان؛ صورة return-review قُرئت (حجر1، تكلفة34,000، تحصيل/رد0). لا عيب تطبيق في #263: driver احتاج فتح details الجديدة بعد retry.
 
 إضافة rc-quality-browser.cjs لتشغيل axe على الصفحات الحقيقية في dark/light/mobile وhome desktop، وlab TTFB/FCP/LCP/shift/JS bytes قبل axe، مع WebKit touch 390 رحلة تسجيل/دخول/سلة/COD/reload/logout/إدارة وقائمة native dialog/تقرير. serious/critical والoverflow تفشل وتكتب rc-quality.json مع كل selectors للفحص؛ لا تُستثنى مناطق فاشلة. ليست شهادة WCAG أو قياسات field/INP ولا iPhone حقيقية. Playwright/axe مقفلان بأدوات CI منفصلة بلا تغيير lockfile للتطبيق.
