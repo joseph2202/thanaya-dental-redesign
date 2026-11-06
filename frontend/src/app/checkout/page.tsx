@@ -204,7 +204,7 @@ export default function CheckoutPage() {
         <h1 className="text-3xl font-black mb-5 text-ink">إتمام الطلب</h1>
 
         <div className="grid md:grid-cols-2 gap-5">
-          <form onSubmit={handleSubmit} className="bg-white border border-[#d4eaf2] rounded-2xl p-4 sm:p-5 space-y-4 h-fit">
+          <form onSubmit={handleSubmit} aria-label="بيانات التوصيل والدفع" className="bg-white border border-[#d4eaf2] rounded-2xl p-4 sm:p-5 space-y-4 h-fit">
             <h2 className="text-2xl font-black mb-4 text-ink">بيانات التوصيل</h2>
             {addressesLoading&&<p role="status" className="text-sm text-neutral-600">جاري تحميل عناوينك المحفوظة...</p>}
             {addressesError&&<p className="rounded-xl bg-amber-50 p-3 text-sm text-amber-900">العناوين المحفوظة غير متاحة حالياً؛ تكدر تدخل العنوان يدوياً. {addressesError}</p>}
@@ -218,8 +218,9 @@ export default function CheckoutPage() {
             </div>}
 
             <div>
-              <label className="block font-bold mb-2 text-sm text-ink">الاسم الكامل</label>
+              <label htmlFor="checkout-name" className="block font-bold mb-2 text-sm text-ink">الاسم الكامل</label>
               <input
+                id="checkout-name" autoComplete="shipping name"
                 required
                 type="text"
                 value={form.name}
@@ -230,25 +231,24 @@ export default function CheckoutPage() {
             </div>
 
             <div>
-              <label className="block font-bold mb-2 text-sm text-ink">رقم الهاتف</label>
-              <div className="flex gap-2">
-                <span className="bg-paper2 border border-[#bbdeea] rounded-xl px-4 py-3 font-bold text-ink">+964</span>
+              <label htmlFor="checkout-phone" className="block font-bold mb-2 text-sm text-ink">رقم الهاتف</label>
                 <input
+                  id="checkout-phone" autoComplete="shipping tel-national" inputMode="tel" dir="ltr" aria-describedby="checkout-phone-help"
                   required
                   type="tel"
                   pattern="07[0-9]{9}"
                   value={form.phone}
                   onChange={(e) => {setForm({ ...form, phone: e.target.value });setSavedChoice('')}}
-                  className="flex-1 border border-[#bbdeea] rounded-xl px-4 py-3 font-bold focus:outline-none focus:border-brand"
-                  placeholder="7822088894"
+                  className="min-w-0 w-full border border-[#bbdeea] rounded-xl px-4 py-3 font-bold focus:outline-none focus:border-brand"
+                  placeholder="07822088894"
                 />
-              </div>
-              <p className="text-xs text-neutral-500 mt-1">مثال: 07822088894 أو 07712345678</p>
+              <p id="checkout-phone-help" className="text-xs text-neutral-500 mt-1">اكتب 11 رقماً تبدأ بـ07، مثل 07822088894.</p>
             </div>
 
             <div>
-              <label className="block font-bold mb-2 text-sm text-ink">المحافظة</label>
+              <label htmlFor="checkout-city" className="block font-bold mb-2 text-sm text-ink">المحافظة</label>
               <select
+                id="checkout-city" autoComplete="shipping address-level1"
                 value={form.city}
                 onChange={(e) => {setForm({ ...form, city: e.target.value });setSavedChoice('')}}
                 className="w-full border border-[#bbdeea] rounded-xl px-4 py-3 font-bold focus:outline-none focus:border-brand bg-white"
@@ -260,8 +260,9 @@ export default function CheckoutPage() {
             </div>
 
             <div>
-              <label className="block font-bold mb-2 text-sm text-ink">العنوان التفصيلي</label>
+              <label htmlFor="checkout-address" className="block font-bold mb-2 text-sm text-ink">العنوان التفصيلي</label>
               <textarea
+                id="checkout-address" autoComplete="shipping street-address"
                 required
                 value={form.address}
                 onChange={(e) => {setForm({ ...form, address: e.target.value });setSavedChoice('')}}
@@ -275,9 +276,9 @@ export default function CheckoutPage() {
             {deliveryError&&<p role="alert" className="text-sm font-bold text-red-700">{deliveryError}</p>}
             {deliveryUnavailable&&<p role="alert" className="text-sm font-bold text-red-700">التوصيل غير متاح حالياً إلى {form.city}. اختر محافظة متاحة.</p>}
             <div className="rounded-xl border border-brand/20 bg-paper2 p-4">
-              <h3 className="font-black mb-2">رمز خصم (اختياري)</h3>
+              <label htmlFor="checkout-coupon" className="block font-black mb-2">رمز خصم (اختياري)</label>
               <div className="flex gap-2">
-                <input value={couponInput} onChange={e=>{setCouponInput(e.target.value.toUpperCase());setCoupon(null);setCouponError('')}} placeholder="أدخل رمز الخصم" className="min-w-0 flex-1 rounded-xl border border-brand/30 p-3" maxLength={32} />
+                <input id="checkout-coupon" value={couponInput} onChange={e=>{setCouponInput(e.target.value.toUpperCase());setCoupon(null);setCouponError('')}} placeholder="أدخل رمز الخصم" className="min-w-0 flex-1 rounded-xl border border-brand/30 p-3" maxLength={32} />
                 <button type="button" disabled={couponBusy||!couponInput.trim()} onClick={verifyCoupon} className="site-btn site-btn-outline site-btn-sm">{couponBusy?'جاري...':'تطبيق'}</button>
               </div>
               {couponError&&<p role="alert" className="mt-2 text-sm font-bold text-red-700">{couponError}</p>}
@@ -299,7 +300,7 @@ export default function CheckoutPage() {
             </button>
           </form>
 
-          <div className="site-surface !bg-paper2 p-4 sm:p-5 h-fit">
+          <section aria-label="ملخص الطلب" aria-busy={quoteLoading||deliveryLoading} className="site-surface !bg-paper2 p-4 sm:p-5 h-fit">
             <h2 className="text-2xl font-black mb-4 text-ink">ملخص الطلب</h2>
 
             <div className="space-y-3 mb-6">
@@ -326,11 +327,12 @@ export default function CheckoutPage() {
               </div>
               {coupon&&<div className="flex justify-between text-green-700"><span className="font-bold">الخصم ({coupon.code})</span><span className="font-black">-{coupon.discount.toLocaleString()} د.ع</span></div>}
               <div className="flex justify-between text-xl pt-2 border-t border-brand/20">
-                <span className="font-black text-ink">الإجمالي</span>
+                <span className="font-black text-ink">{quoteLoading||deliveryLoading||quoteError||deliveryError?'المجموع التقديري':delivery?.enabled?'الإجمالي':'المجموع قبل أجور التوصيل'}</span>
                 <span className="font-black text-2xl text-brand">{(serverSubtotal-(coupon?.discount??0)+fee).toLocaleString()} د.ع</span>
               </div>
             </div>
-          </div>
+            {delivery&&!delivery.enabled&&<p className="site-muted mt-4 text-xs leading-7">هذا المبلغ لا يشمل أجور التوصيل؛ يؤكدها المتجر معك قبل الشحن.</p>}
+          </section>
         </div>
       </main>
       <Footer />
