@@ -228,7 +228,9 @@ async function main() {
   assert.equal(logout.headers.getSetCookie().length, 2, 'logout clears both cookie names');
   assert.equal((await jsonRequest(base, '/api/auth/me')).status, 401,
     'browser with cleared cookies has no session');
-  // A stolen stateless JWT is *not* revoked by this logout. Document this caveat.
+  // Replay the copied credential after logout: clearing cookies alone is not enough.
+  assert.equal((await jsonRequest(base,'/api/auth/me',{headers:{Cookie:cookie}})).status,401);
+  assert.equal((await jsonRequest(base,'/api/orders/mine',{headers:{Cookie:cookie}})).status,401);
   console.log('PASS: full-stack Next rewrite, HttpOnly cookie, customer isolation, CSRF, logout');
 
   // Exercise an actual headless Chrome tab with React forms and real cookies.

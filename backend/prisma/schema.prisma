@@ -7,6 +7,16 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// Additive private logout journal. Raw credentials are never stored.
+model RevokedSession {
+  tokenHash String @id
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([expiresAt])
+}
+
 model User {
   id        String   @id @default(cuid())
   name      String

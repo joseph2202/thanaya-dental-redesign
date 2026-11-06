@@ -2,7 +2,9 @@ import { Router, Request, Response } from 'express';
 import { Prisma, PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import {randomUUID} from 'node:crypto';
 import { getJwtSecret } from '../config/auth';
+import {ensureSessionStore,revokeSession,SessionStoreUnavailable} from '../lib/sessionRevocation';
 import {
   cookieAllowedOrigins, trustedCookieOrigin, wantsCookieSession,
   issueCookieSession, clearCookieSession
@@ -29,7 +31,7 @@ function acceptCookieMode(req: Request, res: Response): boolean {
 }
 function respondWithSession(req: Request, res: Response, user: AuthUser) {
   const publicUser = { id: user.id, name: user.name, email: user.email, phone: user.phone, role: user.role };
-  const token = jwt.sign({ userId: user.id, role: user.role }, getJwtSecret(), { algorithm: 'HS256', expiresIn: '7d' });
+  const token = jwt.sign({ userId: user.id, role: user.role }, getJwtSecret(), { algorithm: 'HS256', expiresIn: '7d', jwtid:randomUUID() });
   if (wantsCookieSession(req)) {
     issueCookieSession(res, token);
     return res.json({ user: publicUser }); // No JavaScript-readable bearer token.
@@ -61,6 +63,7 @@ router.post('/register', limitRegistrations, async (req, res) => {
 
   const normalizedEmail = email.trim().toLowerCase();
   try {
+    await ensureSessionStore(); // No partial registration when logout storage is unavailable.
     const existing = await prisma.user.findUnique({ where: { email: normalizedEmail } });
     if (existing) {
       return res.status(400).json({ error: 'البريد مسجل مسبقاً' });
@@ -71,6 +74,7 @@ router.post('/register', limitRegistrations, async (req, res) => {
     });
     return respondWithSession(req, res, user);
   } catch (error) {
+    if(error instanceof SessionStoreUnavailable)return res.status(503).json({error:'خدمة الجلسات غير متاحة حالياً. حاول مرة ثانية بعد قليل.'});
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
       return res.status(400).json({ error: 'البريد مسجل مسبقاً' });
     }
@@ -93,6 +97,7 @@ router.post('/login', limitLoginTraffic, async (req, res) => {
   if (rejectRepeatedLoginFailures(normalizedEmail, res)) return;
 
   try {
+    await ensureSessionStore();
     // First try exact spelling for compatibility with older mixed-case accounts;
     // new registrations always store normalized email addresses.
     const user = await prisma.user.findUnique({ where: { email: trimmedEmail } }) ||
@@ -106,6 +111,7 @@ router.post('/login', limitLoginTraffic, async (req, res) => {
     clearFailedLogins(normalizedEmail);
     return respondWithSession(req, res, user);
   } catch (error) {
+    if(error instanceof SessionStoreUnavailable)return res.status(503).json({error:'خدمة الجلسات غير متاحة حالياً. حاول مرة ثانية بعد قليل.'});
     console.error('auth login failed', error);
     return res.status(500).json({ error: 'خطأ في تسجيل الدخول' });
   }
@@ -138,12 +144,19 @@ router.get('/me', async (req, res) => {
 });
 
 // A write operation: cookie session requests must first pass the global CSRF bridge.
-router.post('/logout', (req, res) => {
+router.post('/logout', async (req, res) => {
   if (!trustedCookieOrigin(req, cookieAllowedOrigins())) {
     return res.status(403).json({ error: 'مصدر طلب الخروج غير مسموح' });
   }
-  clearCookieSession(res);
-  return res.status(204).end();
+  try{
+    const authorization=req.headers.authorization;
+    if(authorization?.startsWith('Bearer '))await revokeSession(authorization.slice(7));
+    clearCookieSession(res);
+    return res.status(204).end();
+  }catch(error){
+    if(error instanceof SessionStoreUnavailable)return res.status(503).json({error:'تعذّر تأكيد تسجيل الخروج. حاول مرة ثانية قبل إغلاق الصفحة.'});
+    return res.status(500).json({error:'تعذّر تسجيل الخروج حالياً.'});
+  }
 });
 
 export default router;
