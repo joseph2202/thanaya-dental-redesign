@@ -1,5 +1,11 @@
 # سجل تنفيذ المواصفات الكاملة
 
+## RC1-3 — انتقال مخطط متكامل بدون live apply — 2026-11-06
+- جرد كامل 34 جدولاً ومرجع SQL من Prisma المقفلة، مع hash schema وفحص semantic مقابل المولد في CI. preflight يرفض drift/قيود غير متوافقة وبيانات stock/money/FK/quantity/roles/states غير متناسقة.
+- backup API تشمل WAL، row digests كاملة، restore DB/images وhashes، وبروفة إضافية على restore فقط. ثبات source DB/WAL/rows/images، جداول جديدة فارغة ولا backfill. verifier مستقل للنسخة المحفوظة يكشف التلف.
+- 10 فحوص legacy/current/WAL/index/read-only/links/constraints/data/tamper/images نجحت ومرجع Prisma مطابق. نتيجة صناعية فعلية محفوظة JSON؛ لا بيانات Mac أو تصريح تفعيل. خطة/جرد/أوامر Mac/بوابة الموافقة في RC_SCHEMA_PLAN.md.
+- workflow تشمل هذه الفحوص وتغييرات launcher. الأساس #79/3b51bf3؛ آخر CI شاملة معتمدة #78/#262، #79/#264 قيد الفحص.
+
 ## RC1-2 — مراجعة التسويات المالية للمرتجعات — 2026-11-06
 - #79/CI #263 اجتازت API والبناء وChrome حتى خطوة finance بعد retry؛ driver احتاج فتح details المحدثة قبل الضغط، فأصلح الاختبار فقط. التحقق التالي مطلوب.
 - تقرير owner/admin read-only لسندات الاستلام الفعلية بتاريخ الحدث وpage 20. تكلفة لقطة البيع الأصلية لكل lot/cohort، مجهولة عند غياب/غموض الدليل؛ عرض الحجر والstock منفصلين عن دفتر المال الحالي.

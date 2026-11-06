@@ -5,6 +5,7 @@ on:
     paths:
       - 'backend/**'
       - 'frontend/**'
+      - 'scripts/preview-local.sh'
       - '.github/workflows/returns-quarantine.yml'
   workflow_dispatch:
 
@@ -55,6 +56,10 @@ jobs:
       - name: Install backend dependencies
         run: npm ci
         working-directory: backend
+      - name: Integrated RC backup, restore, WAL, full schema and invariant preflight
+        run: python3 -m unittest discover -s backend/tests -p 'test_rc_schema_preflight.py' -v
+      - name: Verify full RC SQL reference against locked Prisma generator
+        run: python3 backend/tests/verify_rc_schema_reference.py
       - name: Isolated order and return checks
         run: npm run test:orders
         working-directory: backend

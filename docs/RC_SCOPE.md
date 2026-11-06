@@ -8,7 +8,7 @@
 | Preview مستقلة | تشغيل launcher نفسه، DB صناعية، متجر/إدارة في Chrome، صور desktop/mobile وتعليمات Mac | معتمدة #78/d8c0086 وCI #262، صور desktop/mobile قُرئت |
 | مراجعة المرتجعات المالية | تقرير owner/admin read-only مرتبط بالإدارة؛ تكلفة موثقة/مجهولة وrestocked/quarantined، بلا اختلاق ربح أو credit | RC1-2 مصدر/API/build/HTTP ناجحة، Chrome تنتظر CI |
 | سلامة التجارة | auth/roles/منتج/بحث/سلة/COD/فقدان الرد/تكرار/مخزون/مرتجعات/مال | CI #260 أساس ناجح؛ إعادة التحقق المتكامل عند إدخال النواقص |
-| انتقال Schema | حصر الفجوات، preflight/backup/restore/rehearsal متكاملة على clone، بلا live apply | البروفات الجزئية موجودة؛ التكامل مطلوب |
+| انتقال Schema | حصر الفجوات، preflight/backup/restore/rehearsal متكاملة على clone، بلا live apply | RC1-3: 10 فحوص وجرد 34 جدولاً ومرجع Prisma نجحت محلياً؛ CI مطلوبة؛ بيانات Mac غير متاحة |
 | جودة الإصدار | WebKit إن توفر، وصولية/أداء مقاسان ومعالجة عيوب stop-ship | مطلوب |
 | تسليم قابل للتشغيل | branch/SHA/CI وصور وREADME Mac وخطوات المراجعة والموافقة | لا يغلق قبل الأدلة أعلاه |
 

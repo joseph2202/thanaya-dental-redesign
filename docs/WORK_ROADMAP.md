@@ -3,7 +3,7 @@
 المرجع الرئيسي: WORK_MISSION.md (المواصفات المرفقة، 2026-11-05). البداية المتحققة: PR #59، f84ec5f، CI #235 ناجح. المشروع **غير مكتمل**؛ لا تعاد المراحل المنجزة دون سبب.
 
 ## النطاق الجاري — Release Candidate
-RC1-1 معتمدة: PR #78، d8c0086، CI #262 ناجح؛ صور Preview حقيقية قُرئت. RC1-2 تقرير مراجعة المرتجعات read-only وربط Dashboard/finance مكتمل المصدر مع 6 مجموعات API وبناء وHTTP production؛ ينتظر Chrome/CI. التالي انتقال Schema متكامل ثم WebKit/a11y/performance وإغلاق RC.
+RC1-1 معتمدة #78/d8c0086 وCI #262، وصور Preview حقيقية قُرئت. RC1-2 #79/3b51bf3 وCI #264 قيد الفحص (كل API وواجهة التقرير حتى finance نجحت #263؛ driver details صححت). RC1-3 جرد 34 جدولاً وpreflight/backup/restore/rehearsal متكاملة مع 10 فحوص ومرجع Prisma نجحت محلياً، تنتظر CI. التالي WebKit/a11y/performance وإغلاق RC.
 طلب المستخدم الأخير يقفل التوسع: الأولوية لمعاينة production صناعية، تقرير المرتجعات غير المسواة، preflight/backup/restore/migration rehearsal متكاملة، ثم WebKit/a11y/الأداء وإصلاح العيوب وتسليم Mac. التفاصيل RC_SCOPE.md؛ بقية عناصر المصفوفة مؤجلة بعد RC ما لم تكن شرطاً لسلامته. لا تعلن الإطلاق أو تفعيل DB حقيقية.
 
 ## مصفوفة المتطلبات
