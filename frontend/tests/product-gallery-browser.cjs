@@ -42,13 +42,21 @@ async function productGalleryBrowser(browser,base,fixture){
   await gallery.getByRole('button',{name:'عرض الصورة 1',exact:true}).click();
   await page.setViewportSize({width:390,height:844});
   await page.emulateMedia({reducedMotion:'reduce'});await trigger.click();await modal.waitFor();
-  const bounds=await modal.boundingBox();assert.ok(bounds.x>=0&&bounds.width<=390&&bounds.y>=0&&bounds.height<=844);
-  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false);
-  assert.equal(await modal.evaluate(element=>getComputedStyle(element).animationName),'none');
   if(process.env.THANAYA_QA_SCREENSHOT_DIR){
    await mkdir(process.env.THANAYA_QA_SCREENSHOT_DIR,{recursive:true});
    await modal.screenshot({path:path.join(process.env.THANAYA_QA_SCREENSHOT_DIR,'product-gallery-mobile.png'),animations:'disabled'});
   }
+  for(const width of [390,320]){
+   await page.setViewportSize({width,height:844});
+   const bounds=await modal.boundingBox();assert.ok(bounds.x>=0&&bounds.width<=width&&bounds.y>=0&&bounds.height<=844);
+   const layout=await page.evaluate(()=>({rootWidth:document.documentElement.scrollWidth,width:innerWidth,
+    outside:[...document.querySelectorAll('body *')].map(element=>({tag:element.tagName,className:element.className,
+     rect:element.getBoundingClientRect()})).filter(item=>item.rect.width>0&&(item.rect.left< -1||item.rect.right>innerWidth+1))
+     .slice(0,10).map(item=>({tag:item.tag,className:typeof item.className==='string'?item.className:'svg',left:item.rect.left,right:item.rect.right,width:item.rect.width}))}));
+   assert.ok(layout.rootWidth<=layout.width+1,JSON.stringify(layout));
+  }
+  await page.setViewportSize({width:390,height:844});
+  assert.equal(await modal.evaluate(element=>getComputedStyle(element).animationName),'none');
   await modal.getByRole('button',{name:'إغلاق معرض الصور',exact:true}).click();await modal.waitFor({state:'hidden'});
   assert.equal(await page.evaluate(()=>document.body.style.overflow==='hidden'),false);
   await page.goto(base+'/product/'+fixture.trackedId);

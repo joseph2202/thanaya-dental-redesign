@@ -128,6 +128,8 @@ button, a { -webkit-tap-highlight-color: transparent; }
 
 /* Mobile storefront polish: prevent overflow, preserve touch targets and reduce forced width. */
 @media (max-width: 639px) {
+  .thanaya-site-header a.site-btn-sm { min-width:44px; min-height:44px; padding-inline:8px; }
+  .thanaya-site-header .thanaya-theme-toggle { min-width:44px; min-height:44px; padding:8px; }
   .site-section { padding-block: 1.65rem; }
   .site-heading { font-size: clamp(1.65rem, 7vw, 2.2rem); }
   .site-page-title { font-size: clamp(1.85rem, 8vw, 2.8rem); }
