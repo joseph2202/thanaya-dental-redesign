@@ -3,6 +3,15 @@
 ## هدف RC الحالي
 المرجع الإضافي RC_SCOPE.md يثبت النطاق حسب طلب المستخدم الأخير: معاينة حقيقية، تقرير مراجعة المرتجعات، انتقال Schema آمن، فحوص release وتسليم Mac. لا ميزات ثانوية أو توسع مفتوح.
 
+## دفعة RC1-3 — بروفة المخطط المتكاملة
+الفرع release/rc1-schema-rehearsal-20261106 فوق #79/3b51bf3. آخر أساس شامل معتمد #78/d8c0086 وCI #262؛ #79/CI #264 قيد الفحص بعد تصحيح فتح details في driver فقط.
+
+rc_schema_preflight.py يحصر كل 34 جدولاً/الأعمدة/defaults/PK/FK/indexes مقابل SQL مولدة من Prisma 5.22.0 المقفلة. يقرأ --source mode=ro فقط، ويوقف drift غير إضافي وunknown tables/fields/constraints/triggers وبيانات money/quantity/roles/states/FK/overreturn غير متوافقة. لا drop/rebuild أو تخمين قيم تاريخية. إضافة missing fields/indexes على clone فقط.
+
+--output-dir ينشئ مجلداً خاصاً جديداً خارج repo/source، SQLite backup API تشمل WAL؛ fingerprints لكل صف/حقل أصلي، backup hash، restore hash/قيم وصور متحققة؛ يجرب DDL الإضافية على restored.sqlite فقط. يتحقق من المخطط النهائي الكامل وصفوف الأصل وجداول جديدة فارغة وثبات source DB/WAL/uploads. --verify-backup-dir يراجع الملفات المحفوظة مستقلاً ويكشف تلف backup/restore/images. لا live apply mode.
+
+10 اختبارات متكاملة وverify_rc_schema_reference.py نجحت محلياً. RC_SCHEMA_REHEARSAL_RESULT.json نتيجة صناعية فعلية: 14 جدولاً مفقوداً وpaymentRevision/disposition، حفظ source وكل القيم وrestore والمخطط الكامل، بلا backfill. ليست بيانات Mac. RC_SCHEMA_PLAN.md فيها جرد الأعمدة كلها، خطة migration/rollback وأوامر Mac read-only/clone-only وبوابة إذن التفعيل. CI أضيفت للفحوص ولتغييرات scripts/preview-local.sh.
+
 ## أحدث حفظ RC1
 - أساس متحقق: Draft PR #78، release/rc1-private-preview-20261106، d8c0086571d6f130c8c5e0a8d0ba611cab749772، CI #262 ناجح بالكامل: https://github.com/joseph2202/thanaya-dental-redesign/actions/runs/42223345924 .
 - نفس launcher الإنتاجي اجتاز Chrome الحقيقي: تسجيل حساب، سلة، COD، إدارة وصور desktop/mobile. الصور الخمس حُمّلت وقُرئت: preview-store-desktop/mobile، preview-order-mobile، preview-admin-desktop، preview-financial-mobile. غياب صور المنتجات الصناعية معلن؛ لا تُخترع صور/ماركات حقيقية. المالية 60,000 تحصيل، 25,000 مصاريف، 348,000 مورد، 145,000 ذمم طابقت fixture.
@@ -55,8 +64,8 @@ Node 22؛ RUST_LOG=info في Work. نسخة مستقلة ثم bash scripts/previ
 المشروع غير مكتمل؛ WORK_MISSION.md هو المرجع وWORK_ROADMAP.md مصفوفة المتبقي. لا إدارة أجهزة/revoke-all أو إبطال تلقائي جديد عند تغيير role/password في #76؛ دور DB الفعلي ما زال يضبط الصلاحية. WebKit وتدقيق وصولية شامل وقياسات أداء وتحسين الرئيسية/ماركات/جديد وGlass مختار ما زالت مراحل لاحقة. قياس التباين المنجز يخص صفحة تأكيد الطلب، وليس اعتماداً شاملاً للموقع.
 
 ## المهمة التالية الدقيقة
-1. تحقق من CI لفرع RC1-2، خصوصاً private-preview-qa: سند محجور فعلي، رابط dashboard وfinance، تأخر الفترة وخطأ مستقل، وصورة preview-return-review-mobile. أصلح أي فشل قبل الاعتماد.
-2. جهز preflight/backup/restore/rehearsal متكاملة لكل Schema الحالية. البروفات القديمة متفرقة وبعض verify/rehearse القديمة محصورة بجداول return؛ لا تعتمدها وحدها لـRC. قارِن كل جدول/عمود/index/FK بالمخطط الحالي، واحفظ original-row digests، ولا تخترع snapshots أو events تاريخية. اختبر WAL والنسخة والاستعادة ورفض partial/incompatible schemas على صناعي.
-3. وسع جودة الإصدار إلى WebKit إن توفر وaxe وقياسات أداء فعلية، وعالج stop-ship فقط. لا تكرر فحوص ناجحة محلياً بلا تغيير؛ CI المطلوبة تبقى متكاملة.
-4. Mac الحقيقي غير متاح. قدم بروفة local read-only/clone-only وتعليمات واضحة؛ لا تطبق مخططاً أو db push/reset على DB حقيقية. اعتماد تفعيلها يحتاج نتائج نسختها وbackup ثم إذن صريح. الدفع الحقيقي والنشر والmerge غير مأذون بها.
-5. كل دفعة commit وDraft PR متسلسل وHandoff. إغلاق RC وفق RC_SCOPE، لا توسعات ثانوية.
+1. تحقق من CI الحالية لدفعة RC1-3 و#79/CI #264. اعتمد صورة preview-return-review-mobile بعد تحميلها وقراءتها؛ لا يكفي نجاح API.
+2. جودة RC: شغل WebKit إن توفر، axe للصفحات الرئيسية والنماذج/الإدارة بالثيمين، وقياسات أداء حقيقية. أصلح stop-ship فقط واحفظ commit/Draft PR/Handoff في كل دفعة. لا توسعات ثانوية.
+3. صف قيود القياسات بدقة: headless WebKit ليست iPhone حقيقية، lab metrics ليست بيانات مستخدمين، وaxe لا تغطي كل الوصولية؛ keyboard/contrast الأساسية قائمة. ما يفشل يعالج قبل اعتماد RC.
+4. قبل تسليم Mac حدّث RC_PREVIEW_MAC إلى آخر فرع وSHA/CI معتمدة وأعد تحقق حفظ Git فقط. لا تحتاج DB/.env من المستخدم لتشغيل Preview. قاعدة Mac الحقيقية غير متاحة؛ تعليمات RC_SCHEMA_PLAN تنفذ backup/restore/rehearsal محلياً ويشارك report.json فقط إن أراد.
+5. لا live migration/reset/db push ولا merge/نشر/دفع حقيقي. موافقة التفعيل لا تطلب إلا بعد التقرير المحلي والنسخة المتحققة؛ البروفة الصناعية لا تصادق على الأصل. أغلق RC_SCOPE بالأدلة وحدود التشغيل، لا تعلن المشروع كله مكتملاً دونها.

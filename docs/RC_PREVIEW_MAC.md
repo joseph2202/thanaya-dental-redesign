@@ -7,7 +7,7 @@
 
 ```bash
 cd ~/Documents
-git clone --branch release/rc1-return-review-20261106 https://github.com/joseph2202/thanaya-dental-redesign.git thanaya-rc-preview-20261106
+git clone --branch release/rc1-schema-rehearsal-20261106 https://github.com/joseph2202/thanaya-dental-redesign.git thanaya-rc-preview-20261106
 cd thanaya-rc-preview-20261106
 bash scripts/preview-local.sh
 ```
@@ -30,3 +30,5 @@ bash scripts/preview-local.sh
 فحص HTTP حقيقي لنسخة production نجح: owner/customer login، منع تعديل السعر للزبون، إنشاء/تعديل منتج، quote من السيرفر، طلب COD مكرر يعيد نفس ID ويخصم قطعة مرة واحدة وتحصيله صفر، ومؤشرات صناعية متطابقة (تحصيل 60,000، مصروف 25,000، مورد 348,000 وذمم 145,000). أثبت التنظيف حذف DB المؤقتة. Chrome وصور المتجر/الإدارة والشراء نجحت في #78/CI #262 وقُرئت. الفرع هنا يتضمن تقرير المرتجعات الجديد؛ تحقق من CI الخاصة به قبل اعتباره RC معتمدة.
 
 لا تشغل الفرع على قاعدة متجرك الفعلية قبل إغلاق خطة Schema ونتيجة preflight/backup/rehearsal المحلية ثم موافقتك الصريحة. المعاينة الصناعية تعمل دون انتظار هذا التفعيل.
+
+خطة فحص وتكوين نسخة احتياطية واستعادة وبروفة clone-only للمخطط الكامل في [RC_SCHEMA_PLAN.md](RC_SCHEMA_PLAN.md). لا تفعّلها على قاعدة المتجر؛ أوامرها لا تكتب إلى source.
