@@ -1,26 +1,8 @@
 "use client";
 import {saleUnitLabel} from '@/lib/saleUnits';
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-
-export type Product = {
-  id: string;
-  name: string;
-  description?: string;
-  price: number;
-  usdPrice?: number;
-  category?: string;
-  brand?: string;
-  icon?: string;
-  image?: string | null;
-  badge?: string;
-  stock: number;
-  saleUnit?: string | null;
-};
-
-export type CartItem = {
-  product: Product;
-  quantity: number;
-};
+import { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
+import {decodeSavedCart,productSnapshot,cartLimits,type Product,type CartItem} from '@/lib/cartState';
+export type {Product,CartItem} from '@/lib/cartState';
 
 type CartContextType = {
   items: CartItem[];
@@ -31,6 +13,7 @@ type CartContextType = {
   replaceCart: (entries: CartItem[]) => { success: boolean; message: string };
   totalItems: number;
   totalPrice: number;
+  cartNotice: string;
 };
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -38,52 +21,56 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
   const [hydrated, setHydrated] = useState(false);
+  const currentItems=useRef<CartItem[]>([]);
+  const [recoveryNotice,setRecoveryNotice]=useState('');
+  const [storageNotice,setStorageNotice]=useState('');
+  const storageWarning='المتصفح ما يسمح بحفظ السلة حالياً. تبقى متاحة بهالجلسة؛ راجعها إذا أعدت تحميل الصفحة.';
+  const applyItems=(next:CartItem[])=>{currentItems.current=next;setItems(next);};
 
   useEffect(() => {
-    const saved = localStorage.getItem('thanaya-cart');
-    if (saved) {
-      try {
-        setItems(JSON.parse(saved));
-      } catch (e) {
-        console.error('Failed to parse cart', e);
-      }
-    }
+    try{
+      const decoded=decodeSavedCart(localStorage.getItem('thanaya-cart'));
+      applyItems(decoded.items);
+      if(decoded.recovered)setRecoveryNotice('نظّفنا بيانات غير صالحة من السلة. راجع المنتجات والكميات قبل المتابعة.');
+    }catch{setStorageNotice(storageWarning);}
     setHydrated(true);
   }, []);
 
   useEffect(() => {
-    if (hydrated) localStorage.setItem('thanaya-cart', JSON.stringify(items));
+    if(hydrated){try{localStorage.setItem('thanaya-cart',JSON.stringify(items));}catch{setStorageNotice(storageWarning);}}
   }, [items, hydrated]);
 
   const addToCart = (product: Product, quantity: number = 1): { success: boolean; message: string } => {
-    if (!Number.isSafeInteger(quantity) || quantity < 1 || quantity > 100) {
+    if(!hydrated)return {success:false,message:'انتظر تحميل سلتك ثم حاول مرة ثانية'};
+    const snapshot=productSnapshot(product);
+    if(!snapshot)return {success:false,message:'تفاصيل المنتج غير صالحة. حدّث الصفحة وحاول مرة ثانية'};
+    if (!Number.isSafeInteger(quantity) || quantity < 1 || quantity > cartLimits.quantity) {
       return { success: false, message: 'الكمية يجب أن تكون بين 1 و100' };
     }
-    const current = items.find(item => item.product.id === product.id)?.quantity || 0;
+    const previous=currentItems.current;
+    const current = previous.find(item => item.product.id === product.id)?.quantity || 0;
+    if(!current&&previous.length>=cartLimits.lines)return {success:false,message:'السلة تقبل حتى 50 منتجاً مختلفاً'};
     if (product.stock <= 0) return { success: false, message: 'نفد المخزون' };
     if (current + quantity > product.stock || current + quantity > 100) {
       return { success: false, message: 'الكمية المطلوبة أكثر من المتوفر' };
     }
-    setItems(prev => {
-      const existing = prev.find(item => item.product.id === product.id);
-      if (existing) return prev.map(item => item.product.id === product.id
-        ? { product, quantity: item.quantity + quantity } : item);
-      return [...prev, { product, quantity }];
-    });
+    applyItems(current?previous.map(item=>item.product.id===product.id?{product:snapshot,quantity:item.quantity+quantity}:item)
+      :[...previous,{product:snapshot,quantity}]);
     return { success: true, message: 'تمت الإضافة للسلة' };
   };
 
   const removeFromCart = (productId: string) => {
-    setItems((prev) => prev.filter((item) => item.product.id !== productId));
+    applyItems(currentItems.current.filter(item=>item.product.id!==productId));
   };
 
   const updateQuantity = (productId: string, quantity: number): { success: boolean; message: string } => {
-    if (quantity <= 0) {
+    if(!Number.isSafeInteger(quantity)||quantity<0||quantity>cartLimits.quantity)return {success:false,message:'الكمية يجب أن تكون بين 1 و100'};
+    if (quantity === 0) {
       removeFromCart(productId);
       return { success: true, message: 'تم الحذف' };
     }
 
-    const item = items.find((item) => item.product.id === productId);
+    const item = currentItems.current.find((item) => item.product.id === productId);
     if (!item) {
       return { success: false, message: 'المنتج غير موجود في السلة' };
     }
@@ -92,16 +79,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
       return { success: false, message: `الكمية المطلوبة غير متوفرة (متوفر فقط ${item.product.stock} ${saleUnitLabel(item.product.saleUnit)})` };
     }
 
-    setItems((prev) =>
-      prev.map((item) =>
+    applyItems(currentItems.current.map((item) =>
         item.product.id === productId ? { ...item, quantity } : item
-      )
-    );
+      ));
 
     return { success: true, message: 'تم التحديث' };
   };
 
-  const clearCart = () => setItems([]);
+  const clearCart = () => applyItems([]);
 
   // Used only after refetching the current prices and available stock from the server.
   // Replace all items atomically; unlike repeated addToCart calls, this cannot
@@ -111,9 +96,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
     if (!Array.isArray(entries) || entries.length === 0 || entries.length > 50) {
       return { success: false, message: 'الطلب لا يحتوي منتجات قابلة للإضافة' };
     }
-    const ids = new Set<string>();
+    const ids = new Set<string>(),next:CartItem[]=[];
     for (const entry of entries) {
-      const { product, quantity } = entry;
+      const product=productSnapshot(entry?.product),quantity=entry?.quantity;
       if (!product || typeof product.id !== 'string' || ids.has(product.id) ||
           !Number.isSafeInteger(quantity) || quantity < 1 || quantity > 100 ||
           !Number.isSafeInteger(product.stock) || product.stock < quantity ||
@@ -121,8 +106,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
         return { success: false, message: 'بعض المنتجات أو الكميات لم تعد متوفرة. راجع الطلب.' };
       }
       ids.add(product.id);
+      next.push({product,quantity});
     }
-    setItems(entries);
+    applyItems(next);
     return { success: true, message: 'تم تجهيز السلة، راجع الأسعار والكميات قبل تأكيد طلب جديد' };
   };
 
@@ -143,6 +129,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         replaceCart,
         totalItems,
         totalPrice,
+        cartNotice:[recoveryNotice,storageNotice].filter(Boolean).join(' '),
       }}
     >
       {children}
