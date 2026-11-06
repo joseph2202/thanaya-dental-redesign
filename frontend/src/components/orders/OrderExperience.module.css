@@ -53,6 +53,11 @@
 }
 .page .primaryButton:hover:not(:disabled) { background:#26b0dc; }
 .page .secondaryButton:hover:not(:disabled) { background:var(--order-soft); }
+.page :is(.primaryButton,.secondaryButton) {
+  /* Theme text and its background must switch together, without passing
+     through unreadable interpolated colors during the global button fade. */
+  transition:box-shadow .16s ease,transform .12s ease;
+}
 .page :is(.primaryButton,.secondaryButton):focus-visible { outline:3px solid var(--order-link); outline-offset:4px; }
 .progress { background:var(--order-soft); border-color:var(--order-border); }
 .step { background:var(--order-surface); border-color:var(--order-border); color:var(--order-text); }
