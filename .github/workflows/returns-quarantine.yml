@@ -68,6 +68,9 @@ jobs:
         env:
           NODE_ENV: test
           JWT_SECRET: ci-placeholder-not-used-by-live-store
+      - name: Private loopback server binding checks
+        run: node --test tests/server-binding.test.cjs
+        working-directory: backend
       - name: Durable logout revocation, replay, restart and outage checks
         run: node tests/session-revocation.integration.cjs
         working-directory: backend
@@ -187,6 +190,13 @@ jobs:
         run: npm install --prefix "$RUNNER_TEMP/thanaya-browser-driver" --no-save --package-lock=false --ignore-scripts playwright-core@1.56.1
       - name: Full-stack session and CSRF smoke through Next.js API rewrite
         run: node tests/fullstack-session-proxy.cjs
+        working-directory: frontend
+        env:
+          NODE_ENV: test
+          NODE_PATH: ${{ runner.temp }}/thanaya-browser-driver/node_modules
+          THANAYA_QA_SCREENSHOT_DIR: ${{ runner.temp }}/thanaya-browser-review
+      - name: Real private preview launcher and synthetic storefront/admin browser review
+        run: node tests/private-preview-qa.cjs
         working-directory: frontend
         env:
           NODE_ENV: test

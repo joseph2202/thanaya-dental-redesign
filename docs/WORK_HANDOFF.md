@@ -1,6 +1,16 @@
 # THANAYA — نقطة الاستئناف المعتمدة
 
-## ابدأ من هنا
+## هدف RC الحالي
+المرجع الإضافي RC_SCOPE.md يثبت النطاق حسب طلب المستخدم الأخير: معاينة حقيقية، تقرير مراجعة المرتجعات، انتقال Schema آمن، فحوص release وتسليم Mac. لا ميزات ثانوية أو توسع مفتوح.
+
+## دفعة RC1-1 الحالية — تشغيل Preview خاصة
+الفرع release/rc1-private-preview-20261106 مبني على 65f84182145f453fe0338f2fd383eedaf45b9353، PR #77 وCI #260 ناجحان ومتأكد منهما مجدداً؛ لا حفظ أحدث عند الاستئناف.
+
+Backend افتراضه loopback، وTHANAYA_PREVIEW_ONLY ترفض binding عاماً. launcher يرفض .env/dev.db الموجودة، وproduction افتراضي، وNode >=22.13، مع --skip-install/--dev/--no-open. لا نشر أو Tunnel. شريط preview يظهر في builds الصناعية فقط.
+
+نفس launcher اختبر production فعلياً محلياً بـnode frontend/tests/private-preview-qa.cjs --http-only: auth/roles/create+edit product/quote/COD idempotency/stock/ledger/reports ثم حذف DB/temp. 3 فحوص binding وsyntax/build نجحت. متصفح Work المنفصل أعاد ERR_CONNECTION_REFUSED للمنافذ المعزولة؛ لا محاولة تجاوز sandbox. driver الجديدة تشغل Chrome في CI مع نفس script وصور متجر/إدارة desktop/mobile وشراء حقيقي على synthetic؛ نتيجتها مطلوبة بعد الحفظ. طريقة Mac القابلة للنسخ في RC_PREVIEW_MAC.md.
+
+## آخر أساس محفوظ قبل هذه الدفعة
 - أحدث فرع متكامل: fix/gallery-photo-consistency-20261106، Draft PR #77.
 - آخر commit كود متحقق: a890256a34bd24dffa108353aad8370083872f1c.
 - CI #259 ناجح بالكامل: https://github.com/joseph2202/thanaya-dental-redesign/actions/runs/42141710263 .
@@ -36,7 +46,7 @@ Node 22؛ RUST_LOG=info في Work. نسخة مستقلة ثم bash scripts/previ
 المشروع غير مكتمل؛ WORK_MISSION.md هو المرجع وWORK_ROADMAP.md مصفوفة المتبقي. لا إدارة أجهزة/revoke-all أو إبطال تلقائي جديد عند تغيير role/password في #76؛ دور DB الفعلي ما زال يضبط الصلاحية. WebKit وتدقيق وصولية شامل وقياسات أداء وتحسين الرئيسية/ماركات/جديد وGlass مختار ما زالت مراحل لاحقة. قياس التباين المنجز يخص صفحة تأكيد الطلب، وليس اعتماداً شاملاً للموقع.
 
 ## المهمة التالية الدقيقة
-1. تحقق من HEAD #77 وCI للـcheckpoint إن وجدت؛ المصدر a890256a/CI #259 معتمد. حافظ على كل إصلاحاته ولا تعاود تشخيص CI #229 أو #242 أو المراحل المكتملة من الصفر.
+1. افحص CI لدفعة RC1-1 وprivate-preview-qa Chrome، وحمّل صور preview-store-desktop/mobile وpreview-admin-desktop/financial-mobile. أصلح ما يظهر قبل إعلانها ناجحة. #77/CI #260 أساس متحقق؛ لا تعاد فحوص قديمة بلا سبب.
 2. أكمل المالية بواجهة مراجعة مرتجعات غير مسواة للـowner/admin فقط: تقرير read-only من OrderReturn/returnLines وpaymentEvents وcostSnapshots، يميز restocked/quarantined والموثق/مجهول التكلفة، مع تاريخ حدث الإرجاع وpagination وحدود وصلاحيات واضحة، ثم اربطه بـFinancialDashboard وتقارير الإدارة. ابدأ بـbackend/src/lib/operationalSummary.ts وpaymentLedger.ts وorderReturnLedger.ts وroutes/reports.ts وdocs/OPERATIONAL_REPORTS.md.
 3. لا تحول refundableCeilingIqd إلى دين/credit معتمد؛ هو سقف رد مسموح وليس إثبات تسوية أو تحصيل. الشحن لا يرد تلقائياً، والحجر لا يعني بضاعة صالحة. احفظ الاستبعاد المعلن من الربح/الذمم حتى وجود أساس تسوية صريح، واختبر الجزئي/الكامل والتالف والخصم والتوقيت والخصوصية على fixtures.
 4. بعد تقرير المراجعة أكمل الرئيسية/المنتجات والبحث وتجربة الهاتف وGlass المحدود، ثم WebKit/الأداء وبقية التدقيق. التكامل التجاري الحقيقي ينتظر credentials/عقد/تصريح؛ لا تنتظر ذلك لإنجاز ما لا يعتمد عليه. كل دفعة commit وDraft PR وHandoff وCI فعلية.

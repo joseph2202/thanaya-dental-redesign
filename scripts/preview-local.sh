@@ -4,12 +4,30 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+INSTALL=1
+MODE=production
+OPEN_BROWSER=1
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --skip-install) INSTALL=0 ;;
+    --dev) MODE=development ;;
+    --no-open) OPEN_BROWSER=0 ;;
+    *) echo "Usage: bash scripts/preview-local.sh [--skip-install] [--dev] [--no-open]"; exit 1 ;;
+  esac
+  shift
+done
 if [[ ! -f "$ROOT/backend/prisma/schema.prisma" || ! -f "$ROOT/frontend/package.json" ]]; then
   echo "ERROR: run from the Thanaya preview clone"; exit 1
 fi
-if [[ ! -d "$ROOT/.git" ]]; then
+if [[ ! -e "$ROOT/.git" ]]; then
   echo "ERROR: this script expects a separate clone, not the live store workspace"; exit 1
 fi
+for protected in "$ROOT/backend/.env" "$ROOT/backend/prisma/dev.db"; do
+  if [[ -e "$protected" ]]; then
+    echo "ERROR: use a fresh preview clone without a store .env or dev.db. Nothing was changed."; exit 1
+  fi
+done
+node -e 'const [major,minor]=process.versions.node.split(".").map(Number);if(major<22||(major===22&&minor<13)){console.error("Preview requires Node >=22.13");process.exit(1)}'
 for port in 4108 3108; do
   if command -v lsof >/dev/null && lsof -nP -iTCP:"$port" -sTCP:LISTEN >/dev/null 2>&1; then
     echo "ERROR: localhost:$port is in use. Existing process was not touched."; exit 1
@@ -39,6 +57,7 @@ export THANAYA_UPLOAD_DIR="$PREVIEW_ROOT/uploads"
 export DATABASE_URL="file:$PREVIEW_ROOT/preview.sqlite"
 export JWT_SECRET="$(node -e 'process.stdout.write(require("node:crypto").randomBytes(32).toString("hex"))')"
 export PORT=4108
+export THANAYA_BIND_HOST=127.0.0.1
 export NODE_ENV=development
 # Explicitly trust the *actual* preview frontend origins for cookie login + CSRF.
 # No wildcard, public host or cross-origin credentials. Real store config is untouched.
@@ -47,8 +66,13 @@ export THANAYA_INTERNAL_API_ORIGIN=http://127.0.0.1:4108
 mkdir -p "$THANAYA_UPLOAD_DIR"
 
 echo "Installing isolated preview dependencies (existing real store unchanged)..."
-(cd "$ROOT/backend" && npm ci && npx prisma generate)
-(cd "$ROOT/frontend" && npm ci)
+if [[ "$INSTALL" == 1 ]]; then
+  (cd "$ROOT/backend" && npm ci)
+  (cd "$ROOT/frontend" && npm ci)
+elif [[ ! -x "$ROOT/backend/node_modules/.bin/prisma" || ! -f "$ROOT/frontend/node_modules/next/dist/bin/next" ]]; then
+  echo "ERROR: --skip-install requires previously installed dependencies"; exit 1
+fi
+(cd "$ROOT/backend" && npx prisma generate)
 echo "Creating a brand-new private SQLite database under $PREVIEW_ROOT..."
 (cd "$ROOT/backend" && npx prisma db push --skip-generate && npm run build)
 (cd "$ROOT/backend" && node scripts/seed_isolated_preview.cjs)
@@ -65,13 +89,19 @@ if ! curl --silent --fail --max-time 2 http://127.0.0.1:4108/api/health >/dev/nu
   echo "ERROR: backend never became healthy"; exit 1
 fi
 
-(cd "$ROOT/frontend" && exec node node_modules/next/dist/bin/next dev -H 127.0.0.1 -p 3108) &
+if [[ "$MODE" == production ]]; then
+  (cd "$ROOT/frontend" && NODE_ENV=production npm run build)
+  FRONT_COMMAND=start
+else
+  FRONT_COMMAND=dev
+fi
+(cd "$ROOT/frontend" && NODE_ENV="$MODE" exec node node_modules/next/dist/bin/next "$FRONT_COMMAND" -H 127.0.0.1 -p 3108) &
 FRONT_PID="$!"
 echo "Opening real Thanaya storefront at http://127.0.0.1:3108"
 echo "Owner login: http://127.0.0.1:3108/login"
 echo "Reports: http://127.0.0.1:3108/admin/reports"
 echo "Supplier invoices: http://127.0.0.1:3108/admin/payables"
-if command -v open >/dev/null 2>&1; then
+if [[ "$OPEN_BROWSER" == 1 ]] && command -v open >/dev/null 2>&1; then
   for _ in {1..60}; do
     if curl --silent --fail --max-time 1 http://127.0.0.1:3108/login >/dev/null; then
       open http://127.0.0.1:3108

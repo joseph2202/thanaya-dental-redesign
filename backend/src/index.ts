@@ -27,6 +27,7 @@ import path from 'path';
 import fs from 'fs';
 import { randomUUID } from 'node:crypto';
 import { getJwtSecret } from './config/auth';
+import {serverBinding} from './config/server';
 import { cookieSessionBridge, cookieAllowedOrigins } from './lib/cookieSession';
 import {rejectRevokedSessions} from './lib/sessionRevocation';
 import { requireAdmin, requireInventory } from './middleware/requireAdmin';
@@ -36,7 +37,7 @@ getJwtSecret();
 
 const app = express();
 const prisma = new PrismaClient();
-const PORT = process.env.PORT || 4000;
+const binding=serverBinding();
 
 // All current frontend API calls are same-origin via Next.js rewrites.
 // Never expose a wildcard CORS policy when the preview URL is public.
@@ -202,6 +203,6 @@ app.use(((error: unknown, req: express.Request, res: express.Response, _next: ex
   res.status(500).json({ error: 'تعذّر تنفيذ الطلب حالياً. يرجى المحاولة لاحقاً.' });
 }) as express.ErrorRequestHandler);
 
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
+app.listen(binding.port,binding.host, () => {
+  console.log(`🚀 Server running on http://${binding.host}:${binding.port}`);
 });
