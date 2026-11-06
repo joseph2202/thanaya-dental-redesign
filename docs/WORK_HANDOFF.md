@@ -4,6 +4,8 @@
 المرجع الإضافي RC_SCOPE.md يثبت النطاق حسب طلب المستخدم الأخير: معاينة حقيقية، تقرير مراجعة المرتجعات، انتقال Schema آمن، فحوص release وتسليم Mac. لا ميزات ثانوية أو توسع مفتوح.
 
 ## دفعة RC1-1 الحالية — تشغيل Preview خاصة
+محفوظة في Draft PR #78، e0414e2. CI #261 اجتازت كل API والبناء ومعظم Chrome ثم كشفت React hydration #418 بصفحات catalog: شريط preview كان يقرأ runtime flag مختلفاً عن build للـlayout المشتركة بين static/streamed. الإصلاح يجعل الشريط build-time في next.config، مع بقاء preview seed/runtime guard مستقلين. يلزم CI التالية ولا تُعلن الصور جاهزة قبل نجاحها.
+
 الفرع release/rc1-private-preview-20261106 مبني على 65f84182145f453fe0338f2fd383eedaf45b9353، PR #77 وCI #260 ناجحان ومتأكد منهما مجدداً؛ لا حفظ أحدث عند الاستئناف.
 
 Backend افتراضه loopback، وTHANAYA_PREVIEW_ONLY ترفض binding عاماً. launcher يرفض .env/dev.db الموجودة، وproduction افتراضي، وNode >=22.13، مع --skip-install/--dev/--no-open. لا نشر أو Tunnel. شريط preview يظهر في builds الصناعية فقط.
