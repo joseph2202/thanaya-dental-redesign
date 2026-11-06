@@ -3,7 +3,25 @@ const assert=require('node:assert/strict');
 const {writeFileSync}=require('node:fs');
 const {randomUUID}=require('node:crypto');
 const path=require('node:path');
+const {spawn}=require('node:child_process');
 const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+
+async function prepareWebKit(){
+ // Run after Chrome evidence has been persisted. A stalled external download
+ // must produce a bounded failure with diagnostics, never a silent skip/pass.
+ if(process.env.CI!=='true')throw Error('Automatic WebKit system-dependency installation is restricted to CI');
+ const cli=path.join(path.dirname(require.resolve('playwright-core/package.json')),'cli.js');
+ await new Promise((resolve,reject)=>{
+  let logs='',timedOut=false;
+  const child=spawn(process.execPath,[cli,'install','--with-deps','webkit'],{
+   detached:true,env:{...process.env,DEBIAN_FRONTEND:'noninteractive',NEEDRESTART_MODE:'a'},stdio:['ignore','pipe','pipe']});
+  for(const stream of [child.stdout,child.stderr])stream.on('data',chunk=>{logs=(logs+String(chunk)).slice(-5000)});
+  const timer=setTimeout(()=>{timedOut=true;try{process.kill(-child.pid,'SIGTERM')}catch{child.kill('SIGTERM')}},180000);
+  child.once('error',error=>{clearTimeout(timer);reject(error)});
+  child.once('exit',code=>{clearTimeout(timer);if(code===0&&!timedOut)resolve();else reject(Error('WebKit preparation '+(timedOut?'exceeded 180 seconds':'failed')+'; Chrome findings are saved.\n'+logs))});
+ });
+ console.log('PASS RC WebKit engine preparation (bounded CI installation)');
+}
 
 async function qualityReview({browser,base,password,product,directory,shopperPage,ownerPage}){
  const AxeBuilder=require('@axe-core/playwright').default;
@@ -82,6 +100,8 @@ async function qualityReview({browser,base,password,product,directory,shopperPag
     await ownerPage.getByRole('button',{name:'+ إضافة منتج',exact:true}).click();
     const editor=ownerPage.getByRole('form',{name:'إضافة بيانات المنتج',exact:true});await editor.waitFor();
     await scan(ownerPage,'product-create-form');
+    await scan(ownerPage,'product-create-identity',()=>editor.getByLabel('التصنيف *',{exact:true}).scrollIntoViewIfNeeded());
+    await scan(ownerPage,'product-create-description',()=>editor.getByLabel('وصف المنتج *',{exact:true}).scrollIntoViewIfNeeded());
     const name='منتج تحقق واجهة RC '+randomUUID().slice(0,6);
     await editor.getByLabel('اسم المنتج *',{exact:true}).fill(name);
     await editor.getByLabel('التصنيف *',{exact:true}).fill(product.category);
@@ -102,6 +122,8 @@ async function qualityReview({browser,base,password,product,directory,shopperPag
     console.log('PASS RC product editor: actual owner create/edit forms, thousands IQD conversion and unchanged initial stock');
    }
   }
+  result.chromeFindings=failures.slice();persist();
+  await prepareWebKit();
   // Native WebKit (the engine used by Safari), a fresh actual shopping journey.
   // Headless Linux has no hardware GPU. Keep the actual WebKit engine and all
   // app styles/features; use Mesa's software renderer and preserve crash logs.

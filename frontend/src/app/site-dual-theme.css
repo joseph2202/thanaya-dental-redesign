@@ -388,7 +388,7 @@ html[data-thanaya-theme] :is(.text-brand,.th-link){color:var(--th-link);}
 html[data-thanaya-theme] .th-muted{color:var(--th-muted);}
 html[data-thanaya-theme] .th-stock-ok{color:var(--th-stock-ok);}
 html[data-thanaya-theme] .th-stock-low{color:var(--th-stock-low);}
-html[data-thanaya-theme] .th-stock-out{color:var(--th-stock-out);}
+html[data-thanaya-theme] :is(.th-stock-out,.th-danger){color:var(--th-stock-out);}
 html[data-thanaya-theme="light"] .site-eyebrow{color:var(--th-link);}
 html[data-thanaya-theme] .site-btn-primary,
 html[data-thanaya-theme] .signature-card-quick:not(:disabled),

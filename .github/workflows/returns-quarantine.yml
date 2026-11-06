@@ -200,8 +200,6 @@ jobs:
       - name: Prepare browser E2E driver
         # Keep the already-built app's lockfile dependency tree unchanged.
         run: npm install --prefix "$RUNNER_TEMP/thanaya-browser-driver" --no-save --package-lock=false --ignore-scripts playwright-core@1.56.1 @axe-core/playwright@4.10.2
-      - name: Prepare native WebKit engine and system dependencies for isolated RC review
-        run: node "$RUNNER_TEMP/thanaya-browser-driver/node_modules/playwright-core/cli.js" install --with-deps webkit
       - name: Full-stack session and CSRF smoke through Next.js API rewrite
         run: node tests/fullstack-session-proxy.cjs
         working-directory: frontend

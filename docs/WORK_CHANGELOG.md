@@ -1,6 +1,8 @@
 # سجل تنفيذ المواصفات الكاملة
 
 ## RC1-4 — بوابات وصولية/WebKit وأداء مقاس — 2026-11-06
+- تجهيز WebKit علّق #268/#269 قبل Chrome؛ انتقل إلى ما بعد حفظ نتائج Chrome، بمهلة180s وbootstrap CI-only غير تفاعلي. يبقى فشله فشلاً واضحاً مع logs، ولا قواعد/رحلات معطلة.
+- توسعة إلى32 عينة بوصول scroll لهوية المنتج ووصفه، وإصلاح multiple image labels وroles وsurface/validation للثيمين. بناء Next35 مساراً ناجح؛ Chrome/WebKit الجديدة مطلوبة.
 - سلامة clone DDL: BEGIN IMMEDIATE صريح، لأن context manager في sqlite3 لا تبدأ DDL transaction وحدها. regression late UNIQUE فشلت على parent فعلياً ثم نجحت11 فحصاً بعد الإصلاح، مع rollback CREATE/ALTER وsource ثابت. البروفة الصناعية أعيدت والنتيجة محفوظة؛ لا live apply.
 - #266 كشفت عدم دعم Playwright/WebKit1.56.1 لـubuntu-latest26.04؛ runner24.04 سمحت بالتثبيت. #267 اجتازت schema/API/build وChrome الأساسية والتقرير وcreate/edit المنتج من UI (10,000→12,500 وثبات stock2).
 - axe #267 قاست 28 عينة dark/light/desktop/mobile وكشفت serious contrast: cyan/white وروابط/نصوص muted وحالات stock وتحذير فاتح/نص أبيض. أصلحت أزواج الألوان بتوكنات theme مع حفظ الهوية، وlandmarks/heading hierarchy. لا استثناء selector/rule.

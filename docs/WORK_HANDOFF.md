@@ -4,6 +4,10 @@
 المرجع الإضافي RC_SCOPE.md يثبت النطاق حسب طلب المستخدم الأخير: معاينة حقيقية، تقرير مراجعة المرتجعات، انتقال Schema آمن، فحوص release وتسليم Mac. لا ميزات ثانوية أو توسع مفتوح.
 
 ## دفعة RC1-4 — معالجة نتائج الجودة الفعلية
+تحديث تسلسل QA: #268/#269 علقتا في تجهيز WebKit قبل أي Chrome، لذا أزيلت خطوة التجهيز المبكرة. rc-quality-browser تنجز Chrome/axe والقياسات وتحفظ JSON أولاً ثم تشغل CLI WebKit المقفلة بمهلة180s وDEBIAN_FRONTEND/NEEDRESTART غير تفاعليين. الفشل/المهلة يرسبان الفحص مع tail logs؛ لا skip/pass وهمي. تثبيت system dependencies تلقائياً مسموح داخل CI فقط.
+
+أضيفت عينات scroll لهوية المنتج ووصفه (32 عينة مستهدفة)، وتصحيح multiple labels للرفع، وroles لمجموعتي المنتجات والفلاتر، وسطح identity/validation حسب الثيم. بناء Next35 مساراً وsyntax/diff ناجحة؛ تحتاج CI بعد الحفظ. افحص rc-quality.json حتى عند فشل native bootstrap، ثم عالج أي serious/critical/overflow. لا تدّع WebKit ناجحة بعد.
+
 تحديث سلامة البروفة: أضيف BEGIN IMMEDIATE صريح قبل DDL على clone. اختبار late UNIQUE/SKU أثبت فشلاً فعلياً على HEAD السابقة (CREATE/ALTER بقيت بعد الفشل)، ثم نجحت كل 11 فحصاً بعد الإصلاح: rollback كامل، source byte-identical وغياب تقرير نجاح للمحاولة الفاشلة. نتيجة البروفة الصناعية أعيد توليدها على المصدر الحالي. CI #268 لإصلاح الألوان/renderer ما زالت تعمل؛ CI الجديدة بعد هذا الحفظ مطلوبة ولا تعني تفعيل DB.
 
 Draft PR #81، release/rc1-quality-gates-20261106. آخر أساس شامل معتمد #80/d3fea77 وCI #265، و#79/3b51bf3 وCI #264؛ صور Preview والتقرير قُرئت. آخر head قبل هذا الإصلاح 78093e5 وCI #267 فشلت بوضوح، فلا تعلن RC معتمدة بعد.

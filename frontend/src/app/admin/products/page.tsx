@@ -561,7 +561,7 @@ export default function AdminProducts() {
       </div>}
       {listLoading&&<p role="status" className="mb-4 rounded-xl border border-[#cce5ee] bg-[#eef9fd] p-4 text-sm font-bold text-[#1f718c]">جاري تحميل معلومات المنتجات والمخزون...</p>}
 
-      <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4" aria-label="تصفية المنتجات حسب الحالة">
+      <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4" role="group" aria-label="تصفية المنتجات حسب الحالة">
         {([
           ['all','كل المنتجات'],['low','مخزون قليل'],['out','غير متوفر'],['hidden','مخفي عن الزبائن']
         ] as [InventoryView,string][]).map(([key,label])=>
@@ -583,7 +583,7 @@ export default function AdminProducts() {
         <button type="button" className="mt-3 text-sm font-bold text-brand underline" onClick={()=>{setSearchQuery('');setInventoryView('all')}}>عرض كل المنتجات</button>
       </div>}
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:hidden" aria-label="بطاقات إدارة المنتجات">
+      <div className="grid gap-3 sm:grid-cols-2 lg:hidden" role="region" aria-label="بطاقات إدارة المنتجات">
         {filteredProducts.map(p=>{
           const available=sellableStock(p);
           return <article key={p.id} className="min-w-0 rounded-[22px] border border-[#cce5ee] bg-white p-4 shadow-sm">
@@ -743,7 +743,7 @@ function ProductForm({ product, existingCategories, onSave, onCancel, loading }:
       <form aria-label={product?'تعديل بيانات المنتج':'إضافة بيانات المنتج'} onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-5">
         {/* رفع الصورة */}
         <div className="md:col-span-2">
-          <label htmlFor="product-image-upload" className="block font-bold mb-2 text-sm text-ink">صورة المنتج</label>
+          <p className="block font-bold mb-2 text-sm text-ink">صورة المنتج</p>
           <div className="flex items-center gap-4">
             {imagePreview && (
               <div className="flex shrink-0 flex-col items-center gap-2">
@@ -800,7 +800,7 @@ function ProductForm({ product, existingCategories, onSave, onCancel, loading }:
           />
         </div>
 
-        <div className="md:col-span-2 rounded-xl border border-brand/20 bg-[#f6fbfe] p-4">
+        <div className="md:col-span-2 rounded-xl border border-brand/20 bg-paper2 p-4">
           <h3 className="mb-3 font-black">هوية المنتج ووحدة البيع</h3>
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="block text-sm font-bold">رمز المنتج SKU (اختياري وفريد)
@@ -860,7 +860,7 @@ function ProductForm({ product, existingCategories, onSave, onCancel, loading }:
           </label>
           {priceUnit==='usd'&&<p className={rateValid?'text-sm font-bold text-ink':'text-sm font-bold text-red-700'}>{rateValid?`سعر الصرف المعتمد: 1 دولار = ${exchangeRate.toLocaleString('en-US')} د.ع. الحسبة: ${priceText||'0'} × ${exchangeRate.toLocaleString('en-US')}`:'حدد سعر صرف موجب في إعدادات ثنايا قبل حفظ السعر.'}</p>}
           {priceUnit==='usd'&&rateValid&&exchangeRate!==null&&(exchangeRate<1000||exchangeRate>3000)&&<p className="text-sm text-amber-700">تنبيه: سعر الصرف غير معتاد، راجع الحسبة قبل الحفظ.</p>}
-          <p className={priceValid?'text-sm font-bold text-brand':'text-sm font-bold text-red-700'} role="status">
+          <p className={priceValid?'text-sm font-bold text-brand':'text-sm font-bold th-danger'} role="status">
             {priceValid&&resolvedPrice!==null?'السعر النهائي: '+formatFullIqd(resolvedPrice):'أدخل سعراً صالحاً قبل الحفظ.'}
           </p>
           <p className="text-xs text-neutral-600">السعر ينحفظ بالدينار الكامل. الطلبات القديمة ما تتغير.</p>
