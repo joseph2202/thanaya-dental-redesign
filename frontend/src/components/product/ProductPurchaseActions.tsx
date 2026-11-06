@@ -5,14 +5,15 @@ import {useCart,Product} from '@/context/CartContext';
 import {useAuth} from '@/context/AuthContext';
 import {useRouter} from 'next/navigation';
 import {saleUnitLabel} from '@/lib/saleUnits';
+import {productImages} from '@/lib/productImages';
 
-export default function ProductPurchaseActions({product}:{product:Product & {availableStock?: number}}){
+export default function ProductPurchaseActions({product}:{product:Product & {availableStock?: number;gallery?:string[]}}){
  const {addToCart}=useCart(),{user}=useAuth(),router=useRouter();
  const available=Math.max(0,product.availableStock??product.stock);
  const max=Math.min(100,available);
  const [quantity,setQuantity]=useState(1),[message,setMessage]=useState(''),[error,setError]=useState(false);
  function putInCart(goToCheckout:boolean){
-  const result=addToCart({...product,stock:available},quantity);
+  const result=addToCart({...product,image:productImages(product)[0]??null,stock:available},quantity);
   setMessage(result.message);setError(!result.success);
   if(result.success&&goToCheckout)router.push(user?'/checkout':'/login?redirect=/checkout');
  }

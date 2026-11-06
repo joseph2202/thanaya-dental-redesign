@@ -8,6 +8,7 @@ import ProductGallery from '@/components/product/ProductGallery';
 import CatalogProductCard from '@/components/catalog/CatalogProductCard';
 import {ArrowUpLeft,ChevronLeft,ShieldCheck,PackageCheck,Truck,CheckCircle2,Info,Layers3} from 'lucide-react';
 import {saleUnitLabel} from '@/lib/saleUnits';
+import {productImages} from '@/lib/productImages';
 
 export const instant=false;
 
@@ -53,7 +54,7 @@ export default async function ProductPage({params}:{params:Promise<{id:string}>}
       <span className="rounded-full border border-[#d5ebf3] bg-white/80 px-3 py-1.5 text-[10px] font-bold text-[#60808e]">THANAYA / CATALOG</span>
      </div>
      <ProductGallery key={product.id} name={product.name} image={product.image} icon={product.icon} gallery={product.gallery}/>
-     {!([product.image,...(product.gallery||[])].some((source:unknown)=>typeof source==='string'&&source.trim().length>0))&&<p className="mt-3 flex items-start gap-2 text-[11px] leading-5 text-[#637f8b]"><Info size={14} className="mt-0.5 shrink-0" aria-hidden="true"/> لم تُرفع صورة فوتوغرافية لهذا المنتج بعد؛ الأيقونة توضيحية فقط.</p>}
+     {productImages(product).length===0&&<p className="mt-3 flex items-start gap-2 text-[11px] leading-5 text-[#637f8b]"><Info size={14} className="mt-0.5 shrink-0" aria-hidden="true"/> لم تُرفع صورة فوتوغرافية لهذا المنتج بعد؛ الأيقونة توضيحية فقط.</p>}
     </section>
     <section className="signature-detail-sheet min-w-0 p-5 sm:p-7 lg:sticky lg:top-28">
      <p className="flex flex-wrap items-center gap-2 text-xs font-black text-[#1688ae]"><span>{product.category}</span>{product.brand&&<><span className="text-[#b9d5df]">/</span><span>{product.brand}</span></>}</p>
