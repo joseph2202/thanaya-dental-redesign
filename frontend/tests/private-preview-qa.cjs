@@ -86,8 +86,9 @@ async function main(){
  console.log('PASS private production preview HTTP: owner/customer auth, permissions, product create/edit, server quote, idempotent COD, stock and real seeded reports');
  if(!httpOnly){
   const {chromium}=require('playwright-core');
-  const chrome=['google-chrome-stable','google-chrome','chromium'].map(name=>spawnSync('which',[name],{encoding:'utf8'})).find(r=>r.status===0)?.stdout.trim();
-  assert.ok(chrome,'Chrome must be installed in CI; no browser launch is attempted by --http-only');
+  const systemChrome=['google-chrome-stable','google-chrome','chromium'].map(name=>spawnSync('which',[name],{encoding:'utf8'})).find(r=>r.status===0)?.stdout.trim();
+  const chrome=systemChrome||(existsSync(chromium.executablePath())?chromium.executablePath():null);
+  assert.ok(chrome,'Chrome/Chromium must be installed in CI; no browser launch is attempted by --http-only');
   browser=await chromium.launch({executablePath:chrome,headless:true,args:['--no-sandbox']});
   const directory=process.env.THANAYA_QA_SCREENSHOT_DIR;assert.ok(directory,'Screenshot artifact directory is required');mkdirSync(directory,{recursive:true});
   const shopper=await browser.newContext({viewport:{width:1440,height:900}}),page=await shopper.newPage(),errors=[];
@@ -153,6 +154,7 @@ async function main(){
   await owner.getByText(order.body.id,{exact:false}).first().waitFor();
   console.log('PASS private return review Chrome: dashboard link, actual received quarantine/cost/zero cash, mobile report, deep-linked ledger, obsolete period and independent error/retry');
   await owner.goto(base+'/admin/products');await owner.getByRole('main').getByText('صنف فحص RC معزول',{exact:true}).filter({visible:true}).waitFor();
+  if(process.env.THANAYA_RC_QUALITY==='1')await require('./rc-quality-browser.cjs').qualityReview({browser,base,password,product:chosen,directory,shopperPage:page,ownerPage:owner});
   assert.deepEqual(errors,[]);await staff.close();await shopper.close();
   console.log('PASS private production preview Chrome: live storefront/admin, desktop/mobile, actual registration/cart/COD order and synthetic financial screenshots');
  }

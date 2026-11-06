@@ -102,9 +102,9 @@ export default function CartPage(){
         <ProductMedia name={item.product.name} image={item.product.image} icon={item.product.icon} size={44} className="aspect-square w-full rounded-xl"/>
        </Link>
        <div className="flex min-w-0 flex-col">
-        <span className="text-[10px] font-black text-[#1290b8]">{item.product.category||'مستلزمات طبية'}</span>
+        <span className="text-[10px] font-black th-link">{item.product.category||'مستلزمات طبية'}</span>
         <Link href={`/product/${encodeURIComponent(item.product.id)}`} className="mt-1 line-clamp-2 text-sm font-black leading-6 text-[#244653] hover:text-brand sm:text-base">{item.product.name}</Link>
-        <p className="mt-1 text-[11px] text-[#718e9b]">{item.product.brand||'بدون ماركة محددة'} · {unit}</p>
+        <p className="mt-1 text-[11px] th-muted">{item.product.brand||'بدون ماركة محددة'} · {unit}</p>
         <strong className="mt-2 text-base font-black tabular-nums text-[#1d4b60]">{amount(price)}</strong>
        </div>
        <div className="col-span-2 flex flex-wrap items-center justify-between gap-3 border-t border-[#e9f1f5] pt-3 sm:pt-4">
@@ -136,18 +136,18 @@ export default function CartPage(){
      <span className="site-eyebrow" dir="ltr">ORDER SUMMARY</span>
      <h2 id="cart-summary-title" className="mt-2 text-xl font-black text-[#254756]">ملخص طلبك</h2>
      <div className="mt-5 space-y-4 border-y border-[#e5eef2] py-5 text-sm">
-      <div className="flex justify-between gap-3"><span className="text-[#64818f]">المنتجات ({productsCount})</span><strong className="text-[#284c5b] tabular-nums">{amount(subtotal)}</strong></div>
-      <div className="flex justify-between gap-3"><span className="text-[#64818f]">الخصم</span><span className="text-[12px] font-bold text-[#6d8794]">يُحسب عند إدخال الكوبون</span></div>
-      <div className="flex justify-between gap-3"><span className="flex items-center gap-2 text-[#64818f]"><Truck size={16} aria-hidden="true"/> التوصيل</span><span className="text-[12px] font-bold text-[#6d8794]">حسب المحافظة عند الطلب</span></div>
+      <div className="flex justify-between gap-3"><span className="th-muted">المنتجات ({productsCount})</span><strong className="text-[#284c5b] tabular-nums">{amount(subtotal)}</strong></div>
+      <div className="flex justify-between gap-3"><span className="th-muted">الخصم</span><span className="text-[12px] font-bold th-muted">يُحسب عند إدخال الكوبون</span></div>
+      <div className="flex justify-between gap-3"><span className="flex items-center gap-2 th-muted"><Truck size={16} aria-hidden="true"/> التوصيل</span><span className="text-[12px] font-bold th-muted">حسب المحافظة عند الطلب</span></div>
      </div>
      <div className="mt-5 flex flex-wrap items-end justify-between gap-3">
-      <div><p className="text-xs font-bold text-[#63818e]">مجموع المنتجات</p><p className="mt-1 text-[11px] text-[#88a0aa]">{quote?'محدّث من المتجر':'تقديري لحين التحقق'}</p></div>
+      <div><p className="text-xs font-bold th-muted">مجموع المنتجات</p><p className="mt-1 text-[11px] th-muted">{quote?'محدّث من المتجر':'تقديري لحين التحقق'}</p></div>
       <strong className="text-[clamp(1.5rem,2.6vw,2rem)] font-black tabular-nums text-[#174d65]">{amount(subtotal)}</strong>
      </div>
      {canCheckout?<Link href="/checkout" className="site-btn site-btn-primary mt-6 w-full">المتابعة لإتمام الطلب <ArrowUpLeft size={18}/></Link>:
       <span aria-disabled="true" className="site-btn site-btn-primary mt-6 w-full opacity-55">بانتظار التحقق من السلة</span>}
      <p className="mt-4 flex items-start gap-2 text-[11px] leading-6 text-[#6a8b99]"><ShieldCheck size={17} className="mt-0.5 shrink-0 text-[#098db9]"/> السعر النهائي وأجور التوصيل تتأكد عند إتمام الطلب، قبل اعتماد العملية.</p>
-     <div className="mt-5 grid grid-cols-2 gap-3 border-t border-[#e9f0f3] pt-5 text-[11px] font-bold text-[#678593]">
+     <div className="mt-5 grid grid-cols-2 gap-3 border-t border-[#e9f0f3] pt-5 text-[11px] font-bold th-muted">
       <span className="flex items-center gap-1.5"><LockKeyhole size={15} className="text-[#0a91bd]"/> مراجعة آمنة</span>
       <span className="flex items-center gap-1.5"><PackageCheck size={15} className="text-[#0a91bd]"/> توفر مُتحقق منه</span>
      </div>

@@ -11,7 +11,7 @@ import {saleUnitLabel,saleUnitOptions} from '@/lib/saleUnits';
 
 type InventoryView='all'|'low'|'out'|'hidden';
 const sellableStock=(p:any):number=>Math.max(0,Number(p.lotTracking?(p.availableStock??p.stock):p.stock)||0);
-const availabilityColor=(n:number)=>n===0?'text-red-700':n<=5?'text-amber-700':'text-emerald-700';
+const availabilityColor=(n:number)=>n===0?'th-stock-out':n<=5?'th-stock-low':'th-stock-ok';
 
 export default function AdminProducts() {
   const { user } = useAuth();
@@ -444,7 +444,7 @@ export default function AdminProducts() {
         )}
       </dialog>
       <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
-        <h2 className="text-3xl font-black text-ink">إدارة المنتجات</h2>
+        <h1 className="text-3xl font-black text-ink">إدارة المنتجات</h1>
         {canEditProducts&&<div className="flex flex-wrap gap-2">
           <button type="button" disabled={exportBusy} onClick={async()=>{setExportBusy(true);setExportError('');try{await exportsAPI.download('inventory')}catch(e){setExportError(e instanceof Error?e.message:'تعذّر التصدير')}finally{setExportBusy(false)}}} className="site-btn site-btn-outline site-btn-sm">
             <FileSpreadsheet size={16}/>{exportBusy?'جاري تجهيز Excel...':'تصدير المخزون Excel'}
@@ -561,13 +561,13 @@ export default function AdminProducts() {
       </div>}
       {listLoading&&<p role="status" className="mb-4 rounded-xl border border-[#cce5ee] bg-[#eef9fd] p-4 text-sm font-bold text-[#1f718c]">جاري تحميل معلومات المنتجات والمخزون...</p>}
 
-      <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4" aria-label="تصفية المنتجات حسب الحالة">
+      <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4" role="group" aria-label="تصفية المنتجات حسب الحالة">
         {([
           ['all','كل المنتجات'],['low','مخزون قليل'],['out','غير متوفر'],['hidden','مخفي عن الزبائن']
         ] as [InventoryView,string][]).map(([key,label])=>
           <button key={key} type="button" onClick={()=>setInventoryView(key)} aria-pressed={inventoryView===key}
             className={`rounded-2xl border p-3 text-right transition sm:p-4 ${inventoryView===key?'border-[#5bbbd9] bg-[#eaf8fc]':'border-[#d1e7ee] bg-white hover:border-brand'}`}>
-            <span className="block text-xs font-bold text-[#617b89]">{label}</span>
+            <span className="block text-xs font-bold th-muted">{label}</span>
             <strong className={`mt-2 block text-2xl font-black ${key==='out'?'text-red-700':key==='low'?'text-amber-700':'text-brand'}`}>{inventorySummary[key]}</strong>
           </button>)}
       </div>
@@ -576,14 +576,14 @@ export default function AdminProducts() {
         <input id="admin-product-search" type="search" value={searchQuery}
           onChange={e=>setSearchQuery(e.target.value)} placeholder="ابحث بالاسم، SKU، الماركة أو القسم..."
           className="site-input min-h-11 min-w-0 flex-1 px-4 py-2 text-sm sm:max-w-lg"/>
-        <span role="status" className="text-xs font-bold text-[#647e8a]">{filteredProducts.length} منتج مطابق</span>
+        <span role="status" className="text-xs font-bold th-muted">{filteredProducts.length} منتج مطابق</span>
       </div>
       {!listLoading&&!listError&&filteredProducts.length===0&&<div className="site-surface mb-4 p-8 text-center">
         <p className="font-black text-[#315465]">ماكو منتجات تطابق البحث أو الفلتر.</p>
         <button type="button" className="mt-3 text-sm font-bold text-brand underline" onClick={()=>{setSearchQuery('');setInventoryView('all')}}>عرض كل المنتجات</button>
       </div>}
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:hidden" aria-label="بطاقات إدارة المنتجات">
+      <div className="grid gap-3 sm:grid-cols-2 lg:hidden" role="region" aria-label="بطاقات إدارة المنتجات">
         {filteredProducts.map(p=>{
           const available=sellableStock(p);
           return <article key={p.id} className="min-w-0 rounded-[22px] border border-[#cce5ee] bg-white p-4 shadow-sm">
@@ -592,9 +592,9 @@ export default function AdminProducts() {
                 {p.image?<img src={p.image} alt={p.name} loading="lazy" className="h-full w-full object-contain p-1"/>:<ProductIcon name={p.icon||'Package'} size={32}/>}
               </div>
               <div className="min-w-0 flex-1">
-                <h3 className="break-words text-sm font-black text-[#234757]">{p.name}</h3>
-                <p className="mt-1 break-words text-xs text-[#708793]">{p.brand||'بدون ماركة'} · {p.category||'غير مصنف'}</p>
-                {p.sku&&<p dir="ltr" className="mt-1 break-all text-left text-[11px] text-[#708793]">SKU: {p.sku}</p>}
+                <h2 className="break-words text-sm font-black text-[#234757]">{p.name}</h2>
+                <p className="mt-1 break-words text-xs th-muted">{p.brand||'بدون ماركة'} · {p.category||'غير مصنف'}</p>
+                {p.sku&&<p dir="ltr" className="mt-1 break-all text-left text-[11px] th-muted">SKU: {p.sku}</p>}
               </div>
             </div>
             <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -610,7 +610,7 @@ export default function AdminProducts() {
             <div className="mt-3 flex flex-wrap gap-2">
               <button type="button" onClick={()=>openInventory(p)} className="site-btn site-btn-outline site-btn-sm !px-3">المخزون</button>
               {canEditProducts&&<button type="button" onClick={()=>handleEdit(p)} className="rounded-full border border-[#b2ddeb] bg-[#eaf8fc] px-4 py-2 text-xs font-black text-[#147fa2]">تعديل</button>}
-              {canEditProducts&&<button type="button" disabled={visibilityBusy===p.id} onClick={()=>toggleVisibility(p)} className="rounded-full border border-[#c8e0e9] px-3 py-2 text-xs font-bold text-[#31586a] disabled:opacity-50">{visibilityBusy===p.id?'جاري الحفظ...':p.published===false?'إظهار بالمتجر':'إخفاء من المتجر'}</button>}
+              {canEditProducts&&<button type="button" disabled={visibilityBusy===p.id} onClick={()=>toggleVisibility(p)} className="rounded-full border border-[#c8e0e9] px-3 py-2 text-xs font-bold text-ink disabled:opacity-50">{visibilityBusy===p.id?'جاري الحفظ...':p.published===false?'إظهار بالمتجر':'إخفاء من المتجر'}</button>}
               {canEditProducts&&<button type="button" onClick={()=>handleDelete(p)} className="rounded-full border border-red-100 bg-red-50 px-3 py-2 text-xs font-bold text-red-700">حذف</button>}
             </div>
           </article>;
@@ -730,7 +730,7 @@ function ProductForm({ product, existingCategories, onSave, onCancel, loading }:
 
   return (
     <div className="bg-white border-2 border-brand/20 rounded-2xl p-6 mb-6">
-      <h3 className="font-black text-xl mb-6 text-ink">{product ? '✏️ تعديل منتج' : '➕ إضافة منتج جديد'}</h3>
+      <h2 className="font-black text-xl mb-6 text-ink">{product ? '✏️ تعديل منتج' : '➕ إضافة منتج جديد'}</h2>
       
       {success && (
         <div className="bg-green-50 border-2 border-green-200 rounded-xl p-4 mb-6 text-green-700 font-bold">
@@ -740,10 +740,10 @@ function ProductForm({ product, existingCategories, onSave, onCancel, loading }:
 
       {saveError && <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6 text-red-700 font-bold" role="alert">{saveError}</div>}
 
-      <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-5">
+      <form aria-label={product?'تعديل بيانات المنتج':'إضافة بيانات المنتج'} onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-5">
         {/* رفع الصورة */}
         <div className="md:col-span-2">
-          <label className="block font-bold mb-2 text-sm text-ink">صورة المنتج</label>
+          <p className="block font-bold mb-2 text-sm text-ink">صورة المنتج</p>
           <div className="flex items-center gap-4">
             {imagePreview && (
               <div className="flex shrink-0 flex-col items-center gap-2">
@@ -761,34 +761,36 @@ function ProductForm({ product, existingCategories, onSave, onCancel, loading }:
                 </button>
               </div>
             )}
-            <label className="flex-1 cursor-pointer">
+            <label className="flex-1 cursor-pointer rounded-xl focus-within:outline-2 focus-within:outline-offset-4 focus-within:outline-brand">
               <div className="border-2 border-dashed border-brand/30 rounded-xl p-6 text-center hover:border-brand transition">
                 {uploading ? (
                   <p className="text-brand font-bold">جاري الرفع...</p>
                 ) : (
                   <>
                     <p className="text-neutral-600 mb-2">اضغط لاختيار صورة</p>
-                    <p className="text-xs text-neutral-400">JPG, PNG, WebP (حد أقصى 5MB)</p>
+                    <p className="text-xs th-muted">JPG, PNG, WebP (حد أقصى 5MB)</p>
                   </>
                 )}
               </div>
               <input
+                id="product-image-upload"
+                aria-label="صورة المنتج"
                 type="file"
-                accept="image/*"
+                accept="image/jpeg,image/png,image/webp"
                 onChange={handleImageUpload}
-                className="hidden"
+                className="sr-only"
                 disabled={uploading}
               />
             </label>
           </div>
         </div>
 
-        <div className="md:col-span-2 rounded-xl border border-brand/20 p-4"><h4 className="mb-2 font-black">صور إضافية للمنتج (حتى 5)</h4><div className="mb-3 flex flex-wrap gap-3">{extraImages.map((src:string,index:number)=><div className="relative" key={src}><img src={src} alt={'صورة إضافية '+(index+1)} className="h-20 w-20 rounded-lg border object-contain"/><button type="button" aria-label="حذف الصورة الإضافية" onClick={()=>setForm((old:any)=>({...old,gallery:old.gallery.filter((url:string)=>url!==src)}))} className="absolute -left-2 -top-2 rounded-full bg-red-600 px-2 text-white">×</button></div>)}</div><input type="file" accept="image/jpeg,image/png,image/webp" multiple disabled={extraUploading||extraImages.length>=5} onChange={uploadExtra} className="max-w-full text-sm"/><p className="mt-2 text-xs text-neutral-500">ارفع صور المنتج الحقيقية فقط. صورة الغلاف الأساسية تبقى كما هي.</p>{extraUploading&&<p role="status">جاري رفع الصور...</p>}</div>
-        <div className="md:col-span-2 rounded-xl border border-brand/20 p-4"><div className="mb-3 flex flex-wrap items-center justify-between gap-2"><h4 className="font-black">المواصفات الفنية (حتى 12)</h4><button type="button" disabled={specifications.length>=12} className="site-btn site-btn-outline site-btn-sm" onClick={()=>setForm((old:any)=>({...old,specs:[...(old.specs||[]),{label:'',value:''}]}))}>+ إضافة مواصفة</button></div>{specifications.map((spec,index)=><div key={index} className="mb-3 grid gap-2 sm:grid-cols-[1fr_2fr_auto]"><input aria-label={'اسم المواصفة '+(index+1)} maxLength={80} value={spec.label} placeholder="مثال: الشركة المصنعة" onChange={e=>setForm((old:any)=>({...old,specs:old.specs.map((p:any,i:number)=>i===index?{...p,label:e.target.value}:p)}))} className="site-input min-w-0 px-3"/><input aria-label={'قيمة المواصفة '+(index+1)} maxLength={300} value={spec.value} placeholder="مثال: DentaPro" onChange={e=>setForm((old:any)=>({...old,specs:old.specs.map((p:any,i:number)=>i===index?{...p,value:e.target.value}:p)}))} className="site-input min-w-0 px-3"/><button type="button" onClick={()=>setForm((old:any)=>({...old,specs:old.specs.filter((_:any,i:number)=>i!==index)}))} className="rounded-lg border px-3 text-red-700">حذف</button></div>)}</div>
+        <div className="md:col-span-2 rounded-xl border border-brand/20 p-4"><h3 className="mb-2 font-black">صور إضافية للمنتج (حتى 5)</h3><div className="mb-3 flex flex-wrap gap-3">{extraImages.map((src:string,index:number)=><div className="relative" key={src}><img src={src} alt={'صورة إضافية '+(index+1)} className="h-20 w-20 rounded-lg border object-contain"/><button type="button" aria-label="حذف الصورة الإضافية" onClick={()=>setForm((old:any)=>({...old,gallery:old.gallery.filter((url:string)=>url!==src)}))} className="absolute -left-2 -top-2 rounded-full bg-red-600 px-2 text-white">×</button></div>)}</div><input aria-label="صور إضافية للمنتج" type="file" accept="image/jpeg,image/png,image/webp" multiple disabled={extraUploading||extraImages.length>=5} onChange={uploadExtra} className="max-w-full text-sm"/><p className="mt-2 text-xs text-neutral-500">ارفع صور المنتج الحقيقية فقط. صورة الغلاف الأساسية تبقى كما هي.</p>{extraUploading&&<p role="status">جاري رفع الصور...</p>}</div>
+        <div className="md:col-span-2 rounded-xl border border-brand/20 p-4"><div className="mb-3 flex flex-wrap items-center justify-between gap-2"><h3 className="font-black">المواصفات الفنية (حتى 12)</h3><button type="button" disabled={specifications.length>=12} className="site-btn site-btn-outline site-btn-sm" onClick={()=>setForm((old:any)=>({...old,specs:[...(old.specs||[]),{label:'',value:''}]}))}>+ إضافة مواصفة</button></div>{specifications.map((spec,index)=><div key={index} className="mb-3 grid gap-2 sm:grid-cols-[1fr_2fr_auto]"><input aria-label={'اسم المواصفة '+(index+1)} maxLength={80} value={spec.label} placeholder="مثال: الشركة المصنعة" onChange={e=>setForm((old:any)=>({...old,specs:old.specs.map((p:any,i:number)=>i===index?{...p,label:e.target.value}:p)}))} className="site-input min-w-0 px-3"/><input aria-label={'قيمة المواصفة '+(index+1)} maxLength={300} value={spec.value} placeholder="مثال: DentaPro" onChange={e=>setForm((old:any)=>({...old,specs:old.specs.map((p:any,i:number)=>i===index?{...p,value:e.target.value}:p)}))} className="site-input min-w-0 px-3"/><button type="button" onClick={()=>setForm((old:any)=>({...old,specs:old.specs.filter((_:any,i:number)=>i!==index)}))} className="rounded-lg border px-3 text-red-700">حذف</button></div>)}</div>
         {/* اسم المنتج */}
         <div>
-          <label className="block font-bold mb-2 text-sm text-ink">اسم المنتج *</label>
-          <input 
+          <label htmlFor="product-name" className="block font-bold mb-2 text-sm text-ink">اسم المنتج *</label>
+          <input id="product-name" name="name"
             type="text" 
             placeholder="مثال: طقم أدوات فحص أسنان"
             value={form.name} 
@@ -798,8 +800,8 @@ function ProductForm({ product, existingCategories, onSave, onCancel, loading }:
           />
         </div>
 
-        <div className="md:col-span-2 rounded-xl border border-brand/20 bg-[#f6fbfe] p-4">
-          <h4 className="mb-3 font-black">هوية المنتج ووحدة البيع</h4>
+        <div className="md:col-span-2 rounded-xl border border-brand/20 bg-paper2 p-4">
+          <h3 className="mb-3 font-black">هوية المنتج ووحدة البيع</h3>
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="block text-sm font-bold">رمز المنتج SKU (اختياري وفريد)
               <input type="text" dir="ltr" maxLength={40} value={form.sku||''} onChange={e=>setForm({...form,sku:e.target.value.toUpperCase()})}
@@ -826,8 +828,8 @@ function ProductForm({ product, existingCategories, onSave, onCancel, loading }:
 
         {/* التصنيف */}
         <div>
-          <label className="block font-bold mb-2 text-sm text-ink">التصنيف *</label>
-          <input 
+          <label htmlFor="product-category" className="block font-bold mb-2 text-sm text-ink">التصنيف *</label>
+          <input id="product-category" name="category"
             type="text" 
             placeholder="اختَر قسمًا موجودًا أو اكتب قسمًا جديدًا"
             value={form.category} 
@@ -841,8 +843,8 @@ function ProductForm({ product, existingCategories, onSave, onCancel, loading }:
         </div>
 
         <div className="md:col-span-2 rounded-xl border border-brand/20 bg-paper2/30 p-4 space-y-3">
-          <label className="block font-bold text-sm">وحدة إدخال السعر</label>
-          <select value={priceUnit} onChange={e=>{
+          <label htmlFor="product-price-unit" className="block font-bold text-sm">وحدة إدخال السعر</label>
+          <select id="product-price-unit" value={priceUnit} onChange={e=>{
             const unit=e.target.value as 'thousands'|'usd';
             setPriceUnit(unit);
             setPriceText(unit==='thousands'?formatThousandsIqd(resolvedPrice??form.price):exchangeRate?String(Number(((resolvedPrice??form.price)/exchangeRate).toFixed(2))):'');
@@ -858,7 +860,7 @@ function ProductForm({ product, existingCategories, onSave, onCancel, loading }:
           </label>
           {priceUnit==='usd'&&<p className={rateValid?'text-sm font-bold text-ink':'text-sm font-bold text-red-700'}>{rateValid?`سعر الصرف المعتمد: 1 دولار = ${exchangeRate.toLocaleString('en-US')} د.ع. الحسبة: ${priceText||'0'} × ${exchangeRate.toLocaleString('en-US')}`:'حدد سعر صرف موجب في إعدادات ثنايا قبل حفظ السعر.'}</p>}
           {priceUnit==='usd'&&rateValid&&exchangeRate!==null&&(exchangeRate<1000||exchangeRate>3000)&&<p className="text-sm text-amber-700">تنبيه: سعر الصرف غير معتاد، راجع الحسبة قبل الحفظ.</p>}
-          <p className={priceValid?'text-sm font-bold text-brand':'text-sm font-bold text-red-700'} role="status">
+          <p className={priceValid?'text-sm font-bold text-brand':'text-sm font-bold th-danger'} role="status">
             {priceValid&&resolvedPrice!==null?'السعر النهائي: '+formatFullIqd(resolvedPrice):'أدخل سعراً صالحاً قبل الحفظ.'}
           </p>
           <p className="text-xs text-neutral-600">السعر ينحفظ بالدينار الكامل. الطلبات القديمة ما تتغير.</p>
@@ -866,8 +868,8 @@ function ProductForm({ product, existingCategories, onSave, onCancel, loading }:
 
         {/* الماركة */}
         <div>
-          <label className="block font-bold mb-2 text-sm text-ink">الماركة / الشركة المصنعة *</label>
-          <input 
+          <label htmlFor="product-brand" className="block font-bold mb-2 text-sm text-ink">الماركة / الشركة المصنعة *</label>
+          <input id="product-brand" name="brand"
             type="text" 
             placeholder="مثال: DentaPro"
             value={form.brand} 
@@ -879,8 +881,8 @@ function ProductForm({ product, existingCategories, onSave, onCancel, loading }:
 
         {/* المخزون */}
         <div>
-          <label className="block font-bold mb-2 text-sm text-ink">{product ? 'المخزون (للعرض فقط)' : 'الكمية الابتدائية (المخزون) *'}</label>
-          <input 
+          <label htmlFor="product-stock" className="block font-bold mb-2 text-sm text-ink">{product ? 'المخزون (للعرض فقط)' : 'الكمية الابتدائية (المخزون) *'}</label>
+          <input id="product-stock" name="stock"
             type="number" 
             placeholder="مثال: 50"
             value={form.stock ?? ''} 
@@ -895,8 +897,8 @@ function ProductForm({ product, existingCategories, onSave, onCancel, loading }:
 
         {/* الأيقونة */}
         <div>
-          <label className="block font-bold mb-2 text-sm text-ink">اسم الأيقونة (احتياطي)</label>
-          <input 
+          <label htmlFor="product-icon" className="block font-bold mb-2 text-sm text-ink">اسم الأيقونة (احتياطي)</label>
+          <input id="product-icon" name="icon"
             type="text" 
             placeholder="مثال: Stethoscope, Package, Heart"
             value={form.icon} 
@@ -908,8 +910,8 @@ function ProductForm({ product, existingCategories, onSave, onCancel, loading }:
 
         {/* البادج */}
         <div>
-          <label className="block font-bold mb-2 text-sm text-ink">الشارة (اختياري)</label>
-          <select 
+          <label htmlFor="product-badge" className="block font-bold mb-2 text-sm text-ink">الشارة (اختياري)</label>
+          <select id="product-badge" name="badge"
             value={form.badge || ''} 
             onChange={(e) => setForm({ ...form, badge: e.target.value })} 
             className="w-full border-2 border-brand/30 rounded-xl px-4 py-3 focus:outline-none focus:border-brand bg-white"
@@ -923,8 +925,8 @@ function ProductForm({ product, existingCategories, onSave, onCancel, loading }:
 
         {/* الوصف */}
         <div className="md:col-span-2">
-          <label className="block font-bold mb-2 text-sm text-ink">وصف المنتج *</label>
-          <textarea 
+          <label htmlFor="product-description" className="block font-bold mb-2 text-sm text-ink">وصف المنتج *</label>
+          <textarea id="product-description" name="description"
             placeholder="اكتب وصفاً تفصيلياً للمنتج..."
             value={form.description} 
             onChange={(e) => setForm({ ...form, description: e.target.value })} 

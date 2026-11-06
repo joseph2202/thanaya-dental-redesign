@@ -42,15 +42,15 @@ function LoginContent() {
           <h1 className="text-3xl font-black mb-4 text-center text-ink">تسجيل الدخول</h1>
           
           {error && (
-            <div className="bg-red-50 border-2 border-red-200 rounded-xl p-4 mb-6 text-red-700 text-sm font-bold">
+            <div role="alert" className="bg-red-50 border-2 border-red-200 rounded-xl p-4 mb-6 text-red-700 text-sm font-bold">
               {error}
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form aria-busy={loading} onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block font-bold mb-2 text-sm text-ink">البريد الإلكتروني</label>
-              <input
+              <label htmlFor="login-email" className="block font-bold mb-2 text-sm text-ink">البريد الإلكتروني</label>
+              <input id="login-email" name="email" autoComplete="email"
                 type="email"
                 required
                 value={form.email}
@@ -61,8 +61,8 @@ function LoginContent() {
             </div>
 
             <div>
-              <label className="block font-bold mb-2 text-sm text-ink">كلمة المرور</label>
-              <input
+              <label htmlFor="login-password" className="block font-bold mb-2 text-sm text-ink">كلمة المرور</label>
+              <input id="login-password" name="password" autoComplete="current-password"
                 type="password"
                 required
                 minLength={6}

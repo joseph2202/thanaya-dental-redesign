@@ -7,7 +7,7 @@
 
 ```bash
 cd ~/Documents
-git clone --branch release/rc1-schema-rehearsal-20261106 https://github.com/joseph2202/thanaya-dental-redesign.git thanaya-rc-preview-20261106
+git clone --branch release/rc1-quality-gates-20261106 https://github.com/joseph2202/thanaya-dental-redesign.git thanaya-rc-preview-20261106
 cd thanaya-rc-preview-20261106
 bash scripts/preview-local.sh
 ```

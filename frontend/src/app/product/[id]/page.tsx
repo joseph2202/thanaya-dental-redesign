@@ -57,14 +57,14 @@ export default async function ProductPage({params}:{params:Promise<{id:string}>}
      {productImages(product).length===0&&<p className="mt-3 flex items-start gap-2 text-[11px] leading-5 text-[#637f8b]"><Info size={14} className="mt-0.5 shrink-0" aria-hidden="true"/> لم تُرفع صورة فوتوغرافية لهذا المنتج بعد؛ الأيقونة توضيحية فقط.</p>}
     </section>
     <section className="signature-detail-sheet min-w-0 p-5 sm:p-7 lg:sticky lg:top-28">
-     <p className="flex flex-wrap items-center gap-2 text-xs font-black text-[#1688ae]"><span>{product.category}</span>{product.brand&&<><span className="text-[#b9d5df]">/</span><span>{product.brand}</span></>}</p>
+     <p className="flex flex-wrap items-center gap-2 text-xs font-black th-link"><span>{product.category}</span>{product.brand&&<><span className="text-[#b9d5df]">/</span><span>{product.brand}</span></>}</p>
      <h1 className="mt-3 text-[clamp(1.85rem,3.4vw,3.25rem)] font-black leading-[1.35] tracking-[-.045em] text-[#1f4050]">{product.name}</h1>
      {product.description&&product.description.trim().toLowerCase()!=='nothing'&&
       <p className="mt-3 whitespace-pre-line text-sm leading-8 text-[#647e8b] sm:text-[15px]">{product.description}</p>}
      <div className="mt-5 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-[#d2e7ee] bg-[#f2fafc] p-4 sm:p-5">
-      <div><p className="text-[11px] font-bold text-[#70909e]">السعر / {unit}</p>
+      <div><p className="text-[11px] font-bold th-muted">السعر / {unit}</p>
        <p className="mt-1 flex items-baseline gap-2 text-[#174457]"><strong className="text-[clamp(1.8rem,3.2vw,2.65rem)] font-black tabular-nums tracking-tight">{product.price.toLocaleString('en-US')}</strong><span className="text-sm font-black">د.ع</span></p>
-       {approximateUsd&&<span className="mt-1 block text-[11px] text-[#6f8994]">≈ {approximateUsd} دولار، قيمة تقريبية للعرض فقط</span>}
+       {approximateUsd&&<span className="mt-1 block text-[11px] th-muted">≈ {approximateUsd} دولار، قيمة تقريبية للعرض فقط</span>}
       </div>
       <span className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 text-xs font-black ${available?'border-[#c0e9d7] bg-[#e8f7f0] text-[#137557]':'border-red-200 bg-red-50 text-red-700'}`}>
        <span className={`h-2 w-2 rounded-full ${available?'bg-emerald-500':'bg-red-500'}`}/>{available?`متوفر · ${stock} ${unit}`:'غير متوفر حالياً'}

@@ -21,7 +21,7 @@ export default function ShoppingSteps(){
        return <article key={step.number} className="thanaya-steps-card relative overflow-hidden rounded-[22px] border border-[#c8e4ee] bg-white px-5 py-4 shadow-[0_10px_30px_rgba(32,80,108,.035)] sm:px-6">
          <div className="mb-3 flex items-center justify-between">
            <span className="grid h-12 w-12 place-items-center rounded-2xl bg-[#e5f6fc] text-[#0497c7]"><Icon size={24}/></span>
-           <span className="text-3xl font-black tracking-tight text-[#d7edf5]" dir="ltr">{step.number}</span>
+           <span className="text-3xl font-black tracking-tight th-muted" dir="ltr">{step.number}</span>
          </div>
          <h3 className="text-lg font-black text-[#243d4a]">{step.title}</h3>
          <p className="mt-2 text-sm leading-7 text-[#627b87]">{step.description}</p>

@@ -10,3 +10,6 @@ coverage/
 *.log
 backend/prisma/dev.db
 backend/uploads/
+
+__pycache__/
+*.py[cod]

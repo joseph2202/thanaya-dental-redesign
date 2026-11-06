@@ -3,6 +3,43 @@
 ## هدف RC الحالي
 المرجع الإضافي RC_SCOPE.md يثبت النطاق حسب طلب المستخدم الأخير: معاينة حقيقية، تقرير مراجعة المرتجعات، انتقال Schema آمن، فحوص release وتسليم Mac. لا ميزات ثانوية أو توسع مفتوح.
 
+## دفعة RC1-4 — معالجة نتائج الجودة الفعلية
+نتيجة #272/8162a48: rc-quality.json حُمّل وقُرئ؛ **36 عينة بلا violations إطلاقاً وchromeFindings=[]**، وفحصا320/390px بالثيمين بلا overflow. صورة checkout320 قُرئت وكشفت نص بطاقة الدفع مضغوطاً رغم نجاح القياس؛ أُعيد ترتيبها radio+content بعمودين وأيقونات decorative للشاشات الأوسع، مع ألوان status واضحة. لا تغيير لمبلغ/COD أو تفعيل البطاقة. صور checkout الآن تبدأ من scroll0 كي لا يظهر هيدر sticky في موضع مضلل.
+
+WebKit27.2 أكملت كل الرحلات. بعد networkidle والروابط الفعلية بقي pageerror واحد من RSC prefetch لمسار order/invoice بدون id. رابط الطباعة target=_blank صار a عادية بدل Next Link، فتفتح الوثيقة المطلوبة فقط بلا prefetch خاص غير لازم. أضيف تحقق popup بنفس orderId والإجمالي المحفوظ ومنع أي invoice?_rsc؛ شرط errors=[] محفوظ. هذه معالجة رابط تطبيق وليست allowlist أو تغيير CORS. يلزم نجاح الجولة التالية لهذا المصدر قبل اعتماد WebKit.
+
+تصحيح ملاحظات الفحص اليدوي: role=group لأربعة divs مسماة (hero/range/financial figures/product actions). تبقى gradients/overlap-logo/الأرقام القصيرة ضمن incomplete الآلية، وتراجع من الصور؛ لا نقول إن axe شهادة شاملة. قياس #272: TTFB5/FCP228/LCP228ms، shift0.02223، JS429,697bytes، Chromium158. آخر حفظ بعد هذا يحتاج **نجاح job الاثنتين**؛ بعدها دفعة توثيق تسليم فقط، بلا features أخرى.
+
+نتيجة #270/#271: Chrome32 عينة بقي فيها contrast واحد في ProductPurchaseActions (4.01:1) وcheckout overflow بالثيمين مع shipping غير محددة. أصلح token النص، وgrid-cols-1/min-w-0 للـcheckout وwrap لزر التأكيد وصفوف المجموع، بلا clipping أو تعديل مبلغ. زيدت عينة320px وتشخيص rectangles وصور rc-checkout-{theme}-{width} (34 عينة قبل WebKit،36 بعد تأكيده). بناء Next35 مساراً ناجح؛ يلزم إثبات القياس الجديد.
+
+الصورة الرسمية #271 عملت دون apt؛ Chromium158 وWebKit27.2. WebKit أكملت التسجيل/reload والسلة وCOD وتأكيد/reload/logout وowner/menu/report دون crash، ثم رسبت assertion errors على native same-origin access-control diagnostics عند hard-navigation/teardown. لم تخفّف الصلاحيات أو CORS أو شرط errors. يُنتظر networkidle والبيانات قبل manual reload/goto، وتستخدم روابط السلة/التقرير الحقيقية. المرجع الأولي لمشكلة المحرك PW43120 يدعم تفسير cancellation، لكن الاختبار التالي يجب أن يثبت خلوها من الأخطاء؛ لا تدّع نجاح WebKit حتى ذلك. JSON تحفظ مرحلة نهاية الرحلة وerrors قبل assertion.
+
+#271 baseline core job + browser job يجب فحصهما معاً؛ browser فشلت لهذه الأسباب، ولو أكملت الوظائف. القياس في نفس artifact: TTFB11/FCP312/observedLCP312ms، shift0.01745، JS429,701bytes. ليست field performance. latest source بعد الحفظ ينتظر CI التالية.
+
+آخر تغيير للـCI: #268 انتهت cancelled بعد20 دقيقة، وسجلاتها أثبتت تنزيل87 حزمة من مرآة azure Ubuntu ببطء شديد، لا مجرد prompt. رُتبت jobs: baseline host/driver1.56.1 كما سبق، وrc-browser-quality مستقلة داخل الصورة الرسمية mcr.microsoft.com/playwright:v1.65.0-noble وdriver1.65.0 مطابق (الإصدار الرسمي متحقق). متصفحات/مكتبات جاهزة، بلا apt عند وجود binary، وChromium bundled fallback. لا runtime/lockfile للتطبيق تغيرا، ولا موقع منشور أو ports عامة. مهلة bootstrap180s تبقى fallback CI-only، مع sudo -E لـinstall-deps ثم download كمستخدم عادي كي لا تضيع noninteractive env أو cache path.
+
+مهم للمتابعة: افحص **كلتا job** في CI الجديدة. artifacts baseline اسمها thanaya-browser-review-N، وأدلة Preview/axe/WebKit الجديدة اسمها **thanaya-rc-browser-review-N**. اقرأ rc-quality.json وchromeFindings حتى لو فشلت WebKit. #270 القديمة تشغّل Chrome أولاً ثم bootstrap bounded؛ نتيجتها لم تصل عند الحفظ. الجولتان269/268 ليستا دليلاً جديداً على التطبيق بعد المرحلة التي وصلتاها.
+
+تحديث تسلسل QA: #268/#269 علقتا في تجهيز WebKit قبل أي Chrome، لذا أزيلت خطوة التجهيز المبكرة. rc-quality-browser تنجز Chrome/axe والقياسات وتحفظ JSON أولاً ثم تشغل CLI WebKit المقفلة بمهلة180s وDEBIAN_FRONTEND/NEEDRESTART غير تفاعليين. الفشل/المهلة يرسبان الفحص مع tail logs؛ لا skip/pass وهمي. تثبيت system dependencies تلقائياً مسموح داخل CI فقط.
+
+أضيفت عينات scroll لهوية المنتج ووصفه (32 عينة مستهدفة)، وتصحيح multiple labels للرفع، وroles لمجموعتي المنتجات والفلاتر، وسطح identity/validation حسب الثيم. بناء Next35 مساراً وsyntax/diff ناجحة؛ تحتاج CI بعد الحفظ. افحص rc-quality.json حتى عند فشل native bootstrap، ثم عالج أي serious/critical/overflow. لا تدّع WebKit ناجحة بعد.
+
+تحديث سلامة البروفة: أضيف BEGIN IMMEDIATE صريح قبل DDL على clone. اختبار late UNIQUE/SKU أثبت فشلاً فعلياً على HEAD السابقة (CREATE/ALTER بقيت بعد الفشل)، ثم نجحت كل 11 فحصاً بعد الإصلاح: rollback كامل، source byte-identical وغياب تقرير نجاح للمحاولة الفاشلة. نتيجة البروفة الصناعية أعيد توليدها على المصدر الحالي. CI #268 لإصلاح الألوان/renderer ما زالت تعمل؛ CI الجديدة بعد هذا الحفظ مطلوبة ولا تعني تفعيل DB.
+
+Draft PR #81، release/rc1-quality-gates-20261106. آخر أساس شامل معتمد #80/d3fea77 وCI #265، و#79/3b51bf3 وCI #264؛ صور Preview والتقرير قُرئت. آخر head قبل هذا الإصلاح 78093e5 وCI #267 فشلت بوضوح، فلا تعلن RC معتمدة بعد.
+
+CI #266 توقفت قبل browser لأن ubuntu-latest الجديدة26.04 لا تدعم WebKit المقفلة1.56.1؛ runner ثبتت إلى ubuntu-24.04 وWebKit ثبتت بنجاح في #267. هذه الجولة اجتازت كل schema/API/build وChrome الأساسية والتقرير و**إنشاء/تعديل المنتج من النموذج**: 10 آلاف →12.5 ألف =12,500، stock2 ثابت.
+
+rc-quality.json من #267 حُمّل وقُرئ: 28 عينة صفحة/ثيم، مشاكل serious كلها color-contrast، بالإضافة إلى moderate region/heading-order. الأصل white على cyan 3.18:1 وmuted خافتة وروابط زرقاء داكنة على dark، وصف مخزون فاتح بخط أبيض. لا selectors مستثناة ولا rules معطلة.
+
+الإصلاح الحالي: foreground داكن واضح على cyan مع بقاء brand، tokens th-link/th-muted وثلاثة ألوان stock حسب الثيم، تصحيح النصوص الضعيفة في catalog/cart/product/dashboard، لون تحذير low-stock، footer، وlandmarks للمعاينة/header وheading hierarchy للمنتجات. labels/id/name/autocomplete لحقول auth/ProductForm، ورفع الصورة native keyboard، محفوظة. بناء Next35 مساراً نجح، وينتظر أثر axe الفعلي في CI التالية.
+
+القياس الأول الحقيقي قبل axe، Chrome390×844 loopback غير مخنوق: TTFB4ms، FCP236ms، observed LCP236ms، shift0.01594، JS429,765 bytes. هذه lab sample لا field p75/INP. أضيفت ميزانيات 1500/2500/3500ms وshift≤0.1 وJS≤600,000 لالتقاط الانحدار.
+
+WebKit الفعلية سجلت/أعادت تحميل الحساب ثم page crashed عند فتح product. السبب لم يثبت؛ أضيف software Mesa وpw:browser crash logs مع بقاء كل خصائص التطبيق واختبارات الرحلة، وتسجيل مرحلة الفشل في JSON. لا تدّع Safari ناجحة قبل نتيجتها؛ ليست iPhone حقيقية. لا تتجاوز crash أو تخفف assertion.
+
+preflight عُززت أثناء مراجعة RC: output لا يتداخل مع صور source، وPrisma Int32/Boolean validity لكل الأعمدة. تجربة فعلية على SQLite صناعية أثبتت أن 3,000,000,000 تقبلها SQLite لكن Prisma المقفلة ترفض قراءتها P2023؛ التحقق يمنعها قبل التفعيل. 10 فحوص جديدة محدثة نجحت. pycache مستبعدة من Git فقط.
+
 ## دفعة RC1-3 — بروفة المخطط المتكاملة
 الفرع release/rc1-schema-rehearsal-20261106 فوق #79/3b51bf3. آخر أساس شامل معتمد #78/d8c0086 وCI #262؛ #79/CI #264 قيد الفحص بعد تصحيح فتح details في driver فقط.
 
@@ -64,7 +101,7 @@ Node 22؛ RUST_LOG=info في Work. نسخة مستقلة ثم bash scripts/previ
 المشروع غير مكتمل؛ WORK_MISSION.md هو المرجع وWORK_ROADMAP.md مصفوفة المتبقي. لا إدارة أجهزة/revoke-all أو إبطال تلقائي جديد عند تغيير role/password في #76؛ دور DB الفعلي ما زال يضبط الصلاحية. WebKit وتدقيق وصولية شامل وقياسات أداء وتحسين الرئيسية/ماركات/جديد وGlass مختار ما زالت مراحل لاحقة. قياس التباين المنجز يخص صفحة تأكيد الطلب، وليس اعتماداً شاملاً للموقع.
 
 ## المهمة التالية الدقيقة
-1. تحقق من CI الحالية لدفعة RC1-3 و#79/CI #264. اعتمد صورة preview-return-review-mobile بعد تحميلها وقراءتها؛ لا يكفي نجاح API.
+1. افحص CI لدفعة RC1-4. حمّل rc-quality.json (حتى عند الفشل) والصور؛ أصلح كل serious/critical أو overflow، وتحقق من actual WebKit ورحلة COD. #80/CI #265 آخر أساس كامل معتمد. لا تخفّف القواعد لإمرار CI.
 2. جودة RC: شغل WebKit إن توفر، axe للصفحات الرئيسية والنماذج/الإدارة بالثيمين، وقياسات أداء حقيقية. أصلح stop-ship فقط واحفظ commit/Draft PR/Handoff في كل دفعة. لا توسعات ثانوية.
 3. صف قيود القياسات بدقة: headless WebKit ليست iPhone حقيقية، lab metrics ليست بيانات مستخدمين، وaxe لا تغطي كل الوصولية؛ keyboard/contrast الأساسية قائمة. ما يفشل يعالج قبل اعتماد RC.
 4. قبل تسليم Mac حدّث RC_PREVIEW_MAC إلى آخر فرع وSHA/CI معتمدة وأعد تحقق حفظ Git فقط. لا تحتاج DB/.env من المستخدم لتشغيل Preview. قاعدة Mac الحقيقية غير متاحة؛ تعليمات RC_SCHEMA_PLAN تنفذ backup/restore/rehearsal محلياً ويشارك report.json فقط إن أراد.

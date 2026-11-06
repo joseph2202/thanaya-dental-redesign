@@ -104,5 +104,5 @@
   "legacy_values_preserved": true,
   "final_schema_exact": true,
   "evidence": "Synthetic representative pre-finance/ERP database, including an existing returned item. Not Yousif Mac data.",
-  "local_tests_passed": 10
+  "local_tests_passed": 11
 }

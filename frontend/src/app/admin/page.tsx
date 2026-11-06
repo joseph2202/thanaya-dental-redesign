@@ -44,7 +44,7 @@ function Metric({icon:Icon,title,value,note,href,accent}:{icon:typeof Package;ti
    </div>
    <p className="thanaya-dashboard-metric-label mt-3 text-xs font-bold text-[#65818d]">{title}</p>
    <p className="thanaya-dashboard-metric-value mt-1 break-words text-[clamp(1.3rem,2.6vw,2rem)] font-black tracking-tight text-[#203e4c]" dir="auto">{value}</p>
-   <p className="thanaya-dashboard-metric-note mt-1 text-[11px] leading-5 text-[#7a939e]">{note}</p>
+   <p className="thanaya-dashboard-metric-note mt-1 text-[11px] leading-5 th-muted">{note}</p>
  </Link>;
 }
 
@@ -129,8 +129,8 @@ export default function AdminDashboard(){
      </header>
 
      <div className="flex flex-wrap items-center justify-between gap-3">
-       <h2 className="thanaya-admin-overview-heading text-lg font-black text-[#203e4c]">ملخص أداء المتجر <span className="text-xs font-normal text-[#718d9a]">— الفترة المختارة</span></h2>
-       <div className="thanaya-admin-range inline-flex flex-wrap items-center gap-1 rounded-full border border-[#cfe4ee] bg-white p-1" aria-label="فترة التقرير">
+       <h2 className="thanaya-admin-overview-heading text-lg font-black text-[#203e4c]">ملخص أداء المتجر <span className="text-xs font-normal th-muted">— الفترة المختارة</span></h2>
+       <div className="thanaya-admin-range inline-flex flex-wrap items-center gap-1 rounded-full border border-[#cfe4ee] bg-white p-1" role="group" aria-label="فترة التقرير">
          {([['7','7 أيام'],['30','30 يوم'],['90','90 يوم'],['all','الكل']] as const).map(([value,label])=>
            <button key={value} aria-pressed={range===value} disabled={refreshing} onClick={()=>setRange(value)} className={`rounded-full px-3 py-2 text-xs font-bold transition disabled:opacity-60 ${range===value?'bg-brand text-white':'text-[#506f80] hover:bg-[#edf7fb]'}`}>{label}</button>
          )}
@@ -152,7 +152,7 @@ export default function AdminDashboard(){
        <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1.45fr)_minmax(310px,1fr)] print:grid-cols-2 print:gap-3">
          <section className="min-w-0 rounded-[23px] border border-[#cfe7f0] bg-white p-4 sm:p-5" aria-labelledby="trend-label">
            <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
-             <div><span className="site-eyebrow">SALES SNAPSHOT</span><h2 id="trend-label" className="mt-1 text-lg font-black">حركة الطلبات المُسلّمة</h2><p className="mt-1 text-xs leading-6 text-[#748b97]">حسب تاريخ إنشاء الطلب وبتوقيت العراق. يعرض آخر {report.trendDays} يوماً.</p></div>
+             <div><span className="site-eyebrow">SALES SNAPSHOT</span><h2 id="trend-label" className="mt-1 text-lg font-black">حركة الطلبات المُسلّمة</h2><p className="mt-1 text-xs leading-6 th-muted">حسب تاريخ إنشاء الطلب وبتوقيت العراق. يعرض آخر {report.trendDays} يوماً.</p></div>
              <Link href="/admin/reports" className="inline-flex items-center gap-1.5 text-xs font-black text-brand hover:underline">التقرير الكامل <ArrowUpLeft size={15}/></Link>
            </div>
            {hasSales?<div className="relative">
@@ -161,7 +161,7 @@ export default function AdminDashboard(){
                  <div className={`min-h-[2px] w-full rounded-t bg-[linear-gradient(180deg,#04b4dd,#0484b3)] transition-opacity group-hover:opacity-70 ${day.value===0?'opacity-20':''}`} style={{height:(day.value===0?2:Math.max(5,100*day.value/maxDaily))+'%'}}/>
                </div>)}
              </div>
-             <div dir="ltr" className="mt-2 flex justify-between text-[11px] text-[#7992a1]"><span>{report.trend[0]?.date}</span><span>{report.trend.at(-1)?.date}</span></div>
+             <div dir="ltr" className="mt-2 flex justify-between text-[11px] th-muted"><span>{report.trend[0]?.date}</span><span>{report.trend.at(-1)?.date}</span></div>
            </div>:<div className="grid min-h-44 place-items-center rounded-xl border border-dashed border-[#c5e0ec] bg-[#f6fbfd] p-5 text-center">
              <div><BarChart3 size={30} className="mx-auto text-[#79bcd4]"/><p className="mt-2 text-sm font-bold text-[#36596d]">ماكو طلبات مُسلّمة ضمن أيام الرسم</p><p className="mt-1 text-xs text-[#758f9b]">راح يظهر المخطط تلقائياً بعد تسجيل طلبات مُسلّمة.</p></div>
            </div>}
@@ -182,7 +182,7 @@ export default function AdminDashboard(){
            <div className="mb-4 flex items-center justify-between gap-3"><div><span className="site-eyebrow">LATEST ACTIVITY</span><h2 id="latest-label" className="mt-1 text-lg font-black">آخر الطلبات</h2></div><Link href="/admin/orders" className="text-xs font-black text-brand hover:underline">الكل <ArrowUpLeft size={15} className="inline"/></Link></div>
            {recent.length>0?<div className="divide-y divide-[#e7f1f5]">
              {recent.map(order=>{const state=states.find(s=>s.key===order.status);return <Link href="/admin/orders" key={order.id} className="flex flex-wrap items-center justify-between gap-3 py-3 hover:bg-[#f8fcfd]">
-               <div className="min-w-0"><p className="text-xs font-black text-[#047da9]" dir="ltr">#{shortOrderCode(order.id)}</p><p className="mt-1 max-w-60 truncate text-sm font-bold text-[#284551]">{order.customerName}</p><p className="mt-1 text-[11px] text-[#8699a2]">{new Date(order.createdAt).toLocaleString('ar-IQ',{dateStyle:'short',timeStyle:'short'})}</p></div>
+               <div className="min-w-0"><p className="text-xs font-black th-link" dir="ltr">#{shortOrderCode(order.id)}</p><p className="mt-1 max-w-60 truncate text-sm font-bold text-[#284551]">{order.customerName}</p><p className="mt-1 text-[11px] th-muted">{new Date(order.createdAt).toLocaleString('ar-IQ',{dateStyle:'short',timeStyle:'short'})}</p></div>
                <div className="text-left"><p className="text-sm font-black text-[#284551]">{money(order.total)}</p><span className={`mt-1 inline-block rounded-full px-2.5 py-1 text-[11px] font-bold ${state?.bg??'bg-gray-100 text-gray-700'}`}>{state?.label??order.status}</span></div>
              </Link>})}
            </div>:<p className="rounded-xl bg-[#f2f9fc] p-5 text-center text-sm text-[#607f8e]">ماكو طلبات بعد.</p>}

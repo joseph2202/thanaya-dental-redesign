@@ -126,6 +126,9 @@ class ReleaseSchemaTests(unittest.TestCase):
         with self.assertRaises(rc.Blocked):rc.run(self.source,self.root/'already')
         uploads=self.root/'photos';uploads.mkdir();(uploads/'leak').symlink_to(self.source)
         with self.assertRaises(rc.Blocked):rc.run(self.source,self.root/'safe-output',uploads)
+        (uploads/'leak').unlink()
+        with self.assertRaises(rc.Blocked):rc.run(self.source,uploads/'backup',uploads)
+        self.assertEqual(list(uploads.iterdir()),[],'refused overlap must not create anything in source images')
 
     def test_rejects_unknown_tables_custom_triggers_and_wrong_definition(self):
         self.fixture()
@@ -145,6 +148,8 @@ class ReleaseSchemaTests(unittest.TestCase):
         for statement,undo in [
             ('UPDATE Product SET stock=-1','UPDATE Product SET stock=7'),
             ('UPDATE "Order" SET total=1.5','UPDATE "Order" SET total=10000'),
+            ('UPDATE Product SET price=3000000000','UPDATE Product SET price=5000'),
+            ('UPDATE Product SET published=2','UPDATE Product SET published=1'),
             ('UPDATE OrderReturnLine SET quantity=3','UPDATE OrderReturnLine SET quantity=1'),
             ("UPDATE OrderItem SET productId='missing'","UPDATE OrderItem SET productId='product'")]:
             with sqlite3.connect(self.source) as db:db.execute(statement)
@@ -166,6 +171,25 @@ class ReleaseSchemaTests(unittest.TestCase):
         images=self.root/'photos';images.mkdir();(images/'product.png').write_bytes(b'original-synthetic')
         output=self.root/'verified';rc.run(self.source,output,images)
         (output/'restored-uploads/product.png').write_bytes(b'bad-image')
+        with self.assertRaises(rc.Blocked):rc.verify_backup(output)
+
+    def test_late_unique_failure_rolls_back_entire_clone_ddl(self):
+        self.fixture(legacy=True)
+        with sqlite3.connect(self.source) as db:
+            db.execute('DROP INDEX Product_sku_key')
+            db.execute("UPDATE Product SET sku='DUPLICATE'")
+            db.execute('''INSERT INTO Product(id,name,description,price,usdPrice,category,brand,icon,stock,sku)
+                VALUES ('second','synthetic second','test',5000,0,'test','test','Package',1,'DUPLICATE')''')
+        before=rc.source_bytes(self.source)
+        output=self.root/'failed-rehearsal'
+        with self.assertRaises(sqlite3.IntegrityError):rc.run(self.source,output)
+        self.assertEqual(rc.source_bytes(self.source),before)
+        self.assertFalse((output/'report.json').exists())
+        with sqlite3.connect(output/'restored.sqlite') as db:
+            names=rc.layout(db)
+            self.assertNotIn('RevokedSession',names,'late failed index must roll back earlier CREATE TABLE')
+            self.assertNotIn('paymentRevision',names['Order']['fields'],'earlier ALTER TABLE must also roll back')
+            self.assertEqual(db.execute('SELECT count(*) FROM Product').fetchone()[0],2)
         with self.assertRaises(rc.Blocked):rc.verify_backup(output)
 
 

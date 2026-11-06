@@ -1,5 +1,24 @@
 # سجل تنفيذ المواصفات الكاملة
 
+## RC1-4 — بوابات وصولية/WebKit وأداء مقاس — 2026-11-06
+- #272/8162a48: 36 عينة axe بلا violations، وChrome findings=[] و320/390 بلا overflow؛ الصور قُرئت. بطاقة الدفع320 ظلت مضغوطة بصرياً فأعيدت لعمودين واضحين مع بقاء COD وحدها متاحة؛ screenshot تبدأ scroll0.
+- WebKit27.2 أكملت الرحلات، وبقي native diagnostic واحد من prefetch invoice بلا id. رابط target=_blank صار anchor عادية، مع فحص popup/نفس orderId والإجمالي ومنعRSC prefetch. errors assertion ما زالت صارمة؛ ينتظر إثبات الجولة التالية.
+- role=group لأسماء مجموعات hero/range/financial/product controls. القياسات #272: TTFB5/FCP228/LCP228ms، shift0.02223، JS429,697bytes. لا شهادة WCAG/field أو iPhone فعلية.
+- #270/#271 ضيقت عيوب Chrome إلى نص المنتج المتحرك4.01:1 وcheckout overflow مع شحن غير محدد. أصلح foreground وgrid minmax/wrap دون إخفاء محتوى أو تغيير مبالغ؛ صور/قياس320/390px بالثيمين مضافة (36 عينة مع WebKit).
+- #271 البيئة الجاهزة عملت سريعاً، Chromium158/WebKit27.2 أكملت رحلة الشراء والإدارة دون crash. errors assertion كشفت diagnostics عند تنقلات hard سريعة؛ الفحص ينتظر اكتمال network/بيانات الصفحة قبل reload، مع روابط فعلية وبدون allowlist أو إضعاف CORS/الصلاحيات. يلزم نتيجة الجولة التالية.
+- lab#271: TTFB11/FCP312/observedLCP312ms، shift0.01745، JS429,701bytes. بناء Next35 مساراً ناجح، والجودة لم تعتمد بعد.
+- #268 timeout/cancelled بسبب بطء mirror لتنزيل87 مكتبة. baseline بقيت host/driver1.56، وQA صارت job مستقلة بالصورة الرسمية1.65.0-noble وdriver مطابق (لا تغيير اعتماديات التطبيق)، مع bundled Chromium/WebKit وعدم apt عند وجودها. يجب نجاح job الاثنتين. artifact الجديدة thanaya-rc-browser-review-N.
+- bootstrap fallback بمهلة180s يحتفظ بالـnoninteractive env مع sudo -E للـdeps ثم download عادية. لا تجاوز crash/قواعد، والنشر أو originalDB لم يتغيرا.
+- تجهيز WebKit علّق #268/#269 قبل Chrome؛ انتقل إلى ما بعد حفظ نتائج Chrome، بمهلة180s وbootstrap CI-only غير تفاعلي. يبقى فشله فشلاً واضحاً مع logs، ولا قواعد/رحلات معطلة.
+- توسعة إلى32 عينة بوصول scroll لهوية المنتج ووصفه، وإصلاح multiple image labels وroles وsurface/validation للثيمين. بناء Next35 مساراً ناجح؛ Chrome/WebKit الجديدة مطلوبة.
+- سلامة clone DDL: BEGIN IMMEDIATE صريح، لأن context manager في sqlite3 لا تبدأ DDL transaction وحدها. regression late UNIQUE فشلت على parent فعلياً ثم نجحت11 فحصاً بعد الإصلاح، مع rollback CREATE/ALTER وsource ثابت. البروفة الصناعية أعيدت والنتيجة محفوظة؛ لا live apply.
+- #266 كشفت عدم دعم Playwright/WebKit1.56.1 لـubuntu-latest26.04؛ runner24.04 سمحت بالتثبيت. #267 اجتازت schema/API/build وChrome الأساسية والتقرير وcreate/edit المنتج من UI (10,000→12,500 وثبات stock2).
+- axe #267 قاست 28 عينة dark/light/desktop/mobile وكشفت serious contrast: cyan/white وروابط/نصوص muted وحالات stock وتحذير فاتح/نص أبيض. أصلحت أزواج الألوان بتوكنات theme مع حفظ الهوية، وlandmarks/heading hierarchy. لا استثناء selector/rule.
+- أسماء وautocomplete/alerts لـauth وProductForm، رفع صورة native keyboard وmain للرئيسية. تقرير المرتجع أوضح برمز موحد وحالة عربية؛ لا مال أو API تغيرا.
+- Chrome lab فعلية: TTFB4ms/FCP236ms/observedLCP236ms/shift0.01594/JS429,765 bytes؛ ميزانيات انحدار مضافة. ليست field/INP أو شهادة WCAG.
+- WebKit سجلت/reload ثم تعطلت عند product؛ سبب غير مثبت. software Mesa وcrash logs أضيفا للتشخيص مع كل الاختبارات مفعلة. النتيجة التالية مطلوبة قبل اعتماد الجودة.
+- preflight ترفض تداخل output مع صور الأصل، وتتحقق من Int32/Boolean: oversized3e9 فشلت قراءتها P2023 في تجربة صناعية. 10 فحوص محدثة وبناء Next ناجحان؛ آخر كامل معتمد #80/CI #265. لا live DB أو نشر/دفع/merge.
+
 ## RC1-3 — انتقال مخطط متكامل بدون live apply — 2026-11-06
 - جرد كامل 34 جدولاً ومرجع SQL من Prisma المقفلة، مع hash schema وفحص semantic مقابل المولد في CI. preflight يرفض drift/قيود غير متوافقة وبيانات stock/money/FK/quantity/roles/states غير متناسقة.
 - backup API تشمل WAL، row digests كاملة، restore DB/images وhashes، وبروفة إضافية على restore فقط. ثبات source DB/WAL/rows/images، جداول جديدة فارغة ولا backfill. verifier مستقل للنسخة المحفوظة يكشف التلف.
