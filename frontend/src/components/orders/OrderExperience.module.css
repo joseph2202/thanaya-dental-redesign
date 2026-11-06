@@ -1,0 +1,79 @@
+.theme {
+  --order-surface: var(--th-surface, #fff);
+  --order-soft: var(--th-surface2, #e9f6fa);
+  --order-text: var(--th-title, #244656);
+  --order-muted: #496571;
+  --order-border: #a4c9d6;
+  --order-link: #067299;
+  --order-success: #086849;
+  --order-success-bg: #e2f6ec;
+  --order-warning: #71430b;
+  --order-warning-bg: #fff4d8;
+  --order-error: #a42424;
+  --order-error-bg: #fff1f1;
+  --order-active-bg: #e1f5fc;
+  color: var(--order-text);
+}
+:global(html[data-thanaya-theme="dark"]) .theme {
+  --order-muted: #bfd5df;
+  --order-border: #52798c;
+  --order-link: #8ce4f8;
+  --order-success: #a0e8cc;
+  --order-success-bg: #153e33;
+  --order-warning: #ffe0a4;
+  --order-warning-bg: #49361b;
+  --order-error: #ffd1d1;
+  --order-error-bg: #4c252d;
+  --order-active-bg: #163f51;
+}
+.page { overflow-wrap: anywhere; }
+.panel { background: var(--order-surface); border-color: var(--order-border); }
+.hero { background: var(--order-soft); color: var(--order-text); border-bottom: 1px solid var(--order-border); }
+.title { color: var(--order-text); }
+.muted { color: var(--order-muted); }
+.link { color: var(--order-link); }
+.divider { border-color: var(--order-border); }
+.badge { background: var(--order-surface); color: var(--order-muted); }
+.status { background: var(--order-soft); color: var(--order-text); border-color: var(--order-border); }
+.summary { background: var(--order-soft); color: var(--order-text); }
+.row { display:flex; flex-wrap:wrap; justify-content:space-between; gap:.5rem 1rem; }
+.row dd { margin:0; font-weight:800; }
+.success { color:var(--order-success); }
+.warning { color:var(--order-warning); background:var(--order-warning-bg); border-color:var(--order-border); }
+.error { color:var(--order-error); background:var(--order-error-bg); }
+.reorder { background:var(--order-soft); color:var(--order-text); border-color:var(--order-border); }
+.page .primaryButton {
+  background:#059bd0; color:#092b38; border-color:#047ba8;
+  box-shadow:0 4px 0 #047ba8;
+  min-height:44px; white-space:normal;
+}
+.page .secondaryButton {
+  background:var(--order-surface); color:var(--order-link); border-color:var(--order-border);
+  min-height:44px; white-space:normal;
+}
+.page .primaryButton:hover:not(:disabled) { background:#26b0dc; }
+.page .secondaryButton:hover:not(:disabled) { background:var(--order-soft); }
+.page :is(.primaryButton,.secondaryButton) {
+  /* Theme text and its background must switch together, without passing
+     through unreadable interpolated colors during the global button fade. */
+  transition:box-shadow .16s ease,transform .12s ease;
+}
+.page :is(.primaryButton,.secondaryButton):focus-visible { outline:3px solid var(--order-link); outline-offset:4px; }
+.progress { background:var(--order-soft); border-color:var(--order-border); }
+.step { background:var(--order-surface); border-color:var(--order-border); color:var(--order-text); }
+.stepActive { background:var(--order-active-bg); border-color:var(--order-link); }
+.stepDone { background:var(--order-success-bg); border-color:var(--order-success); }
+.stepIcon { background:var(--order-soft); color:var(--order-muted); }
+.activeIcon { background:#059bd0; color:#092b38; }
+.doneIcon { background:var(--order-success-bg); color:var(--order-success); }
+@media (forced-colors:active) {
+  :global(html[data-thanaya-theme]) .theme {
+    --order-surface:Canvas; --order-soft:Canvas; --order-text:CanvasText;
+    --order-muted:CanvasText; --order-border:CanvasText; --order-link:LinkText;
+    --order-success:CanvasText; --order-success-bg:Canvas;
+    --order-warning:CanvasText; --order-warning-bg:Canvas;
+    --order-error:CanvasText; --order-error-bg:Canvas; --order-active-bg:Canvas;
+  }
+  .page :is(.primaryButton,.secondaryButton) { background:ButtonFace; color:ButtonText; border-color:ButtonText; box-shadow:none; }
+  .stepActive { outline:2px solid Highlight; }
+}

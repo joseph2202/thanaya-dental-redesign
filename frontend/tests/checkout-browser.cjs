@@ -90,6 +90,7 @@ async function checkoutBrowser(browser,base,{ownerEmail,ownerPassword,receivingF
   assert.equal(await page.evaluate(()=>sessionStorage.getItem('thanaya-checkout-attempt')),null);
   assert.deepEqual(await page.evaluate(()=>JSON.parse(localStorage.getItem('thanaya-cart'))),[]);
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false);
+  await require('./order-experience-browser.cjs').orderExperienceBrowser(page);
   if(process.env.THANAYA_QA_SCREENSHOT_DIR){
    await mkdir(process.env.THANAYA_QA_SCREENSHOT_DIR,{recursive:true});
    await page.screenshot({path:path.join(process.env.THANAYA_QA_SCREENSHOT_DIR,'checkout-confirmation-mobile.png'),animations:'disabled',fullPage:true});
