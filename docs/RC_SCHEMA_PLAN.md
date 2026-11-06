@@ -26,7 +26,7 @@
 2. يذكر missing tables/columns/indexes. لا drop/rebuild، ولا تعديل type/default/nullability أو FK أو required field بلا قيمة تاريخية. جدول/عمود/index مخصص أو trigger/view غير معروف يوقف العملية للمراجعة؛ لا يتخطاه تلقائياً.
 3. يفحص توافق كل INTEGER مع Prisma Int32 (وليس حدود SQLite الأوسع)، وBOOLEAN0/1، ومبالغ وكميات صحيحة غير سالبة، صلاحيات وحالات معروفة، معادلة inventory movements، حدود الكميات المرتجعة والتحصيل/الرد. owner غير وحيد يطلب مراجعة بلا إنشاء حساب. هذا ليس مطابقة مالية مع المصرف أو جرد صندوق.
 4. الخيار --output-dir ينشئ مجلداً خاصاً جديداً خارج المستودع ومجلد DB، ودون تداخل مع uploads المصدر. SQLite backup API تشمل WAL الملتزمة. كل جدول قائم يقارن بعدد وصفوف digest، وليس counts وحدها. لا تطبع قيم/كلمات مرور/أرقام زبائن.
-5. يستعيد backup إلى restored.sqlite وصوراً منفصلة، يتحقق من hash والصفوف/integrity/FK، ثم يشغل **DDL الإضافية على هذه النسخة المستعادة فقط**. يتحقق من المخطط الكامل وكل القيم الأصلية والجداول الجديدة الفارغة. لا events أو snapshots أو أسعار مخترعة.
+5. يستعيد backup إلى restored.sqlite وصوراً منفصلة، يتحقق من hash والصفوف/integrity/FK، ثم يشغل **DDL الإضافية على هذه النسخة المستعادة فقط** في BEGIN IMMEDIATE صريحة؛ فشل unique index متأخر يتراجع بكل CREATE/ALTER. يتحقق من المخطط الكامل وكل القيم الأصلية والجداول الجديدة الفارغة. لا events أو snapshots أو أسعار مخترعة.
 6. يتحقق مجدداً من backup والـmanifest المستقلتين والصور المستعادة، ومن ثبات DB/WAL/rows/uploads المصدر. تغيير أثناء العمل يفشل؛ توقف الخدمات وأعده إلى output جديد. الملف report.json ملخص schema/counts فقط؛ DB والصور/manifest تبقى خاصة على جهازك.
 
 إن انتهت محاولة بفشل، لا تعتبر مجلدها نسخة معتمدة ولا تعاود الكتابة داخله؛ احتفظ به للفحص واستخدم اسماً جديداً بعد تصحيح السبب. فقدان index تضاف بروفته، أما قيد غير متوافق فيحتاج migration مصممة للمخطط الفعلي بعد مراجعته.
@@ -64,7 +64,7 @@ python3 "$THANAYA_RC_DIR/backend/scripts/rc_schema_preflight.py" \
 
 ## النتيجة المنفذة في Work
 
-RC_SCHEMA_REHEARSAL_RESULT.json ناتجة فعلياً من قاعدة صناعية تمثل مرحلة قبل المالية/ERP/history/revocations، وفيها طلب وبند ومرتجع حقيقيان. البروفة حمت القيم، أضافت المخطط على restore فقط، أبقت الجداول الجديدة فارغة، وحافظت على DB/WAL المصدر. 10 اختبارات نجحت: legacy/current، WAL، index، read-only، source/output/links، unknown schema، money/stock/FK/overreturn، تلف backup/restore/images. verify_rc_schema_reference.py نجحت مقابل Prisma المقفلة. ليست نتيجة تشغيل على Mac أو تصريح Migration.
+RC_SCHEMA_REHEARSAL_RESULT.json ناتجة فعلياً من قاعدة صناعية تمثل مرحلة قبل المالية/ERP/history/revocations، وفيها طلب وبند ومرتجع حقيقيان. البروفة حمت القيم، أضافت المخطط على restore فقط، أبقت الجداول الجديدة فارغة، وحافظت على DB/WAL المصدر. 11 اختباراً نجح: legacy/current، WAL، index، read-only، source/output/links، unknown schema، money/stock/FK/overreturn، تلف backup/restore/images. verify_rc_schema_reference.py نجحت مقابل Prisma المقفلة. ليست نتيجة تشغيل على Mac أو تصريح Migration.
 
 ## الجرد الكامل للمخطط المرجعي
 

@@ -173,5 +173,24 @@ class ReleaseSchemaTests(unittest.TestCase):
         (output/'restored-uploads/product.png').write_bytes(b'bad-image')
         with self.assertRaises(rc.Blocked):rc.verify_backup(output)
 
+    def test_late_unique_failure_rolls_back_entire_clone_ddl(self):
+        self.fixture(legacy=True)
+        with sqlite3.connect(self.source) as db:
+            db.execute('DROP INDEX Product_sku_key')
+            db.execute("UPDATE Product SET sku='DUPLICATE'")
+            db.execute('''INSERT INTO Product(id,name,description,price,usdPrice,category,brand,icon,stock,sku)
+                VALUES ('second','synthetic second','test',5000,0,'test','test','Package',1,'DUPLICATE')''')
+        before=rc.source_bytes(self.source)
+        output=self.root/'failed-rehearsal'
+        with self.assertRaises(sqlite3.IntegrityError):rc.run(self.source,output)
+        self.assertEqual(rc.source_bytes(self.source),before)
+        self.assertFalse((output/'report.json').exists())
+        with sqlite3.connect(output/'restored.sqlite') as db:
+            names=rc.layout(db)
+            self.assertNotIn('RevokedSession',names,'late failed index must roll back earlier CREATE TABLE')
+            self.assertNotIn('paymentRevision',names['Order']['fields'],'earlier ALTER TABLE must also roll back')
+            self.assertEqual(db.execute('SELECT count(*) FROM Product').fetchone()[0],2)
+        with self.assertRaises(rc.Blocked):rc.verify_backup(output)
+
 
 if __name__=='__main__':unittest.main()

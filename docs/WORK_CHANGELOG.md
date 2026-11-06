@@ -1,6 +1,7 @@
 # سجل تنفيذ المواصفات الكاملة
 
 ## RC1-4 — بوابات وصولية/WebKit وأداء مقاس — 2026-11-06
+- سلامة clone DDL: BEGIN IMMEDIATE صريح، لأن context manager في sqlite3 لا تبدأ DDL transaction وحدها. regression late UNIQUE فشلت على parent فعلياً ثم نجحت11 فحصاً بعد الإصلاح، مع rollback CREATE/ALTER وsource ثابت. البروفة الصناعية أعيدت والنتيجة محفوظة؛ لا live apply.
 - #266 كشفت عدم دعم Playwright/WebKit1.56.1 لـubuntu-latest26.04؛ runner24.04 سمحت بالتثبيت. #267 اجتازت schema/API/build وChrome الأساسية والتقرير وcreate/edit المنتج من UI (10,000→12,500 وثبات stock2).
 - axe #267 قاست 28 عينة dark/light/desktop/mobile وكشفت serious contrast: cyan/white وروابط/نصوص muted وحالات stock وتحذير فاتح/نص أبيض. أصلحت أزواج الألوان بتوكنات theme مع حفظ الهوية، وlandmarks/heading hierarchy. لا استثناء selector/rule.
 - أسماء وautocomplete/alerts لـauth وProductForm، رفع صورة native keyboard وmain للرئيسية. تقرير المرتجع أوضح برمز موحد وحالة عربية؛ لا مال أو API تغيرا.

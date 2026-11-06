@@ -309,6 +309,9 @@ def run(source, output=None, uploads=None):
                 if fingerprints(clone,current) != before:
                     raise Blocked('Restored original rows differ')
                 clone.execute('PRAGMA foreign_keys=ON')
+                # sqlite3's context manager does not begin a transaction for
+                # DDL by itself. A late UNIQUE failure must roll back all DDL.
+                clone.execute('BEGIN IMMEDIATE')
                 with clone:
                     for statement in changes['statements']:
                         clone.execute(statement)
