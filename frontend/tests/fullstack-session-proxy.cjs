@@ -122,13 +122,19 @@ async function main() {
     const regular = await prismaClient.product.create({ data: {
       name: 'Browser Receipt Plain Product',
       description: 'disposable browser fixture', price: 40000, usdPrice: 1,
-      category: 'Dental', brand: 'CI', icon: 'Package', stock: 3
+      category: 'Dental', brand: 'CI', icon: 'Package', stock: 3,
+      sku:'CI-SKU-440',image:'/logo-icon.png',
+      gallery:JSON.stringify(['/logo.png','/uploads/intentionally-missing-gallery.png'])
     } });
     const tracked = await prismaClient.product.create({ data: {
       name: 'Browser Receipt Tracked Product',
       description: 'disposable browser fixture', price: 90000, usdPrice: 1,
       category: 'Dental', brand: 'CI', icon: 'Package', stock: 0, lotTracking: true
     } });
+    const galleryOnly=await prismaClient.product.create({data:{
+      name:'Browser Gallery Only Product',description:'disposable gallery fixture',price:10000,usdPrice:1,
+      category:'Dental',brand:'CI',icon:'Package',stock:0,image:null,gallery:JSON.stringify(['/logo.png'])
+    }});
     const purchase = await prismaClient.purchaseOrder.create({ data: {
       requestId: randomUUID(), supplierId: supplier.id, createdById: owner.id,
       status: 'ordered',
@@ -138,7 +144,7 @@ async function main() {
       ] }
     } });
     receivingFixture = {
-      purchaseId: purchase.id, plainId: regular.id, trackedId: tracked.id
+      purchaseId: purchase.id, plainId: regular.id, trackedId: tracked.id,galleryOnlyId:galleryOnly.id
     };
   } finally {
     await prismaClient.$disconnect();

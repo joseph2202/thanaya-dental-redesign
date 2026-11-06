@@ -68,12 +68,12 @@ export default function Header() {
         }
       }}>
       <div className="site-container">
-        <div className="flex min-h-[64px] items-center gap-3 py-1.5 xl:gap-5">
+        <div className="flex min-h-[64px] items-center gap-2 py-1.5 sm:gap-3 xl:gap-5">
           <Link href="/" aria-label="ثنايا — الصفحة الرئيسية" className="flex shrink-0 items-center gap-2">
-            <Image src="/logo-icon.png" width={42} height={42} priority alt="" className="h-11 w-11 object-contain" />
+            <Image src="/logo-icon.png" width={42} height={42} priority alt="" className="h-10 w-10 object-contain sm:h-11 sm:w-11" />
             <span className="leading-tight">
               <strong className="thanaya-brand-title block text-[25px] font-black text-[#2E2E2D]">ثنايا</strong>
-              <small className="block text-[8px] font-black tracking-[.15em] text-[#059BD0]" dir="ltr">THANAYA MEDICAL</small>
+              <small className="hidden text-[8px] font-black tracking-[.15em] text-[#059BD0] sm:block" dir="ltr">THANAYA MEDICAL</small>
             </span>
           </Link>
 
@@ -91,7 +91,7 @@ export default function Header() {
             })}
           </nav>
 
-          <div className="mr-auto flex shrink-0 items-center gap-1.5 sm:gap-2.5">
+          <div className="mr-auto flex shrink-0 items-center gap-1 sm:gap-2.5">
             <ThemeToggle compact/>
             {user ? (
               <>
@@ -108,8 +108,8 @@ export default function Header() {
                 </button>
               </>
             ) : (
-              <Link href="/login" className="site-btn site-btn-outline site-btn-sm gap-1.5">
-                <UserRound size={16} /> دخول
+              <Link href="/login" aria-label="تسجيل الدخول" title="تسجيل الدخول" className="site-btn site-btn-outline site-btn-sm gap-1.5">
+                <UserRound size={16} aria-hidden="true"/> <span className="hidden sm:inline">دخول</span>
               </Link>
             )}
 
@@ -120,7 +120,7 @@ export default function Header() {
             <button
               ref={menuButtonRef}
               type="button"
-              className="grid h-10 w-10 place-items-center rounded-full border border-[#d5e8ef] text-ink xl:hidden"
+              className="grid h-11 w-11 place-items-center rounded-full border border-[#d5e8ef] text-ink xl:hidden"
               aria-expanded={menuOpen}
               aria-controls="mobile-navigation"
               aria-label={menuOpen ? "إغلاق القائمة" : "فتح القائمة"}

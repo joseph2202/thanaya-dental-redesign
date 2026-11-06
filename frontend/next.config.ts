@@ -41,6 +41,9 @@ const nextConfig: NextConfig = {
   turbopack: {
     rules: {
       "*.css": {
+        // Renaming a module to *.css discards its scoped class exports.
+        // Let Next handle CSS Modules natively; keep Tailwind for global CSS.
+        condition: { not: { path: "*.module.css" } },
         loaders: ["@tailwindcss/turbopack"],
         as: "*.css",
       },
