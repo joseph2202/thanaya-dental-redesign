@@ -5,8 +5,8 @@
 ## بوابات قبول RC1
 | البوابة | دليل الإغلاق المطلوب | الحالة عند بدء RC1 |
 | --- | --- | --- |
-| Preview مستقلة | تشغيل launcher نفسه، DB صناعية، متجر/إدارة في Chrome، صور desktop/mobile وتعليمات Mac | HTTP production نجح محلياً؛ صور/Chrome تنتظر CI |
-| مراجعة المرتجعات المالية | تقرير owner/admin read-only مرتبط بالإدارة؛ تكلفة موثقة/مجهولة وrestocked/quarantined، بلا اختلاق ربح أو credit | مطلوب |
+| Preview مستقلة | تشغيل launcher نفسه، DB صناعية، متجر/إدارة في Chrome، صور desktop/mobile وتعليمات Mac | معتمدة #78/d8c0086 وCI #262، صور desktop/mobile قُرئت |
+| مراجعة المرتجعات المالية | تقرير owner/admin read-only مرتبط بالإدارة؛ تكلفة موثقة/مجهولة وrestocked/quarantined، بلا اختلاق ربح أو credit | RC1-2 مصدر/API/build/HTTP ناجحة، Chrome تنتظر CI |
 | سلامة التجارة | auth/roles/منتج/بحث/سلة/COD/فقدان الرد/تكرار/مخزون/مرتجعات/مال | CI #260 أساس ناجح؛ إعادة التحقق المتكامل عند إدخال النواقص |
 | انتقال Schema | حصر الفجوات، preflight/backup/restore/rehearsal متكاملة على clone، بلا live apply | البروفات الجزئية موجودة؛ التكامل مطلوب |
 | جودة الإصدار | WebKit إن توفر، وصولية/أداء مقاسان ومعالجة عيوب stop-ship | مطلوب |

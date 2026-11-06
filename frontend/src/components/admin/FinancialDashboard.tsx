@@ -71,7 +71,7 @@ export default function FinancialDashboard({range,refreshKey}:{range:Range;refre
    <section aria-label="مهام المتابعة المالية" className="site-surface rounded-2xl border border-brand/20 p-4 text-sm leading-7">
     <h3 className="font-black">يحتاج متابعة</h3>
     <p className="mt-2">للموردين {operation.payables.overdueInvoices} فاتورة متأخرة بمجموع {money(operation.payables.overdueIqd)}. <Link href="/admin/payables" className="font-bold text-brand underline">راجع استحقاقاتها</Link></p>
-    {operation.receivables.excludedReturnOrders>0&&<p className="mt-2">استُبعدت {operation.receivables.excludedReturnOrders} طلبات مسلّمة ذات مرتجع من الذمم غير المسواة. <Link href="/admin/orders" className="font-bold text-brand underline">راجع المرتجع والتحصيل</Link></p>}
+    <p className="mt-2">استُبعدت {operation.receivables.excludedReturnOrders} طلبات مسلّمة ذات مرتجع من الذمم، و{operation.receivables.returnedOrders} طلبات بحالة مرتجع. <Link href="/admin/reports#return-review" className="font-bold text-brand underline">مراجعة التسويات المالية للمرتجعات</Link></p>
     <details className="mt-3"><summary className="cursor-pointer font-bold text-brand">كيف تُحسب الذمم؟</summary>
      <p className="site-muted mt-2 text-xs leading-7">{operation.explanations.receivables} {operation.explanations.payables}</p></details>
    </section>

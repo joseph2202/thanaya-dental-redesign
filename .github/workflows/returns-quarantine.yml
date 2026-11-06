@@ -157,6 +157,11 @@ jobs:
         working-directory: backend
         env:
           NODE_ENV: test
+      - name: Read-only return review, historical cost, refund ceilings and pagination
+        run: node tests/return-review.integration.cjs
+        working-directory: backend
+        env:
+          NODE_ENV: test
       - name: Public catalog search, filter boundaries and cost privacy
         run: node tests/catalog.integration.cjs
         working-directory: backend

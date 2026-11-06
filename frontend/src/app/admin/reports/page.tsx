@@ -1,7 +1,8 @@
 "use client";
-import {useCallback,useEffect,useState} from 'react';
+import {useEffect,useState} from 'react';
 import Link from 'next/link';
 import AdminLayout from '@/components/admin/AdminLayout';
+import ReturnReviewPanel from '@/components/admin/ReturnReviewPanel';
 import {reportsAPI,exportsAPI,SalesReport,CostCoverageReport} from '@/lib/api';
 import {ArrowUpRight,Package,ShoppingCart,TrendingUp,AlertTriangle,FileSpreadsheet} from 'lucide-react';
 
@@ -17,24 +18,33 @@ function Metric({label,value,note}:{label:string;value:string;note?:string}){
 }
 export default function Reports(){
  const [range,setRange]=useState<'7'|'30'|'90'|'all'>('30'),[report,setReport]=useState<SalesReport|null>(null),[busy,setBusy]=useState(true),[error,setError]=useState('');
- const [exportBusy,setExportBusy]=useState(false);
+ const [exportBusy,setExportBusy]=useState(false),[exportError,setExportError]=useState(''),[revision,setRevision]=useState(0);
  const [costs,setCosts]=useState<CostCoverageReport|null>(null);
- const load=useCallback(async()=>{setBusy(true);setError('');try{const [sales,cost]=await Promise.all([reportsAPI.overview(range),reportsAPI.costs(range)]);setReport(sales);setCosts(cost)}catch(e){setError(e instanceof Error?e.message:'تعذر تحميل التقرير')}finally{setBusy(false)}},[range]);
- useEffect(()=>{load()},[load]);
- const stats=report?.stats;
+ useEffect(()=>{
+  const controller=new AbortController();setBusy(true);setError('');setReport(null);setCosts(null);
+  void Promise.all([reportsAPI.overview(range,controller.signal),reportsAPI.costs(range,controller.signal)]).then(([sales,cost])=>{
+   if(sales.range!==range||cost.range!==range)throw Error('تعذرت مطابقة فترة التقارير؛ أعد التحديث.');
+   if(!controller.signal.aborted){setReport(sales);setCosts(cost);}
+  }).catch(e=>{if(!controller.signal.aborted)setError(e instanceof Error?e.message:'تعذر تحميل التقرير');})
+   .finally(()=>{if(!controller.signal.aborted)setBusy(false);});
+  return()=>controller.abort();
+ },[range,revision]);
+ const current=report?.range===range&&costs?.range===range&&!busy&&!error;
+ const stats=current?report.stats:null;
  const maxValue=Math.max(1,...(report?.trend.map(x=>x.value)??[0]));
  return <AdminLayout>
   <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
    <div><h1 className="text-3xl font-black text-ink">تقارير المبيعات والمخزون</h1><p className="mt-2 text-sm text-neutral-600">أرقام من قاعدة البيانات، حسب حالة الطلب الفعلية.</p></div>
    <div className="flex flex-wrap gap-2">
-     <button type="button" disabled={exportBusy} onClick={async()=>{setExportBusy(true);setError('');try{await exportsAPI.download('orders',range)}catch(e){setError(e instanceof Error?e.message:'تعذّر تصدير Excel')}finally{setExportBusy(false)}}} className="site-btn site-btn-outline site-btn-sm"><FileSpreadsheet size={16}/>{exportBusy?'جاري التحضير...':'تصدير الطلبات Excel'}</button>
-     <button disabled={busy} onClick={load} className="site-btn site-btn-outline site-btn-sm">تحديث البيانات</button>
+     <button type="button" disabled={exportBusy} onClick={async()=>{setExportBusy(true);setExportError('');try{await exportsAPI.download('orders',range)}catch(e){setExportError(e instanceof Error?e.message:'تعذّر تصدير Excel')}finally{setExportBusy(false)}}} className="site-btn site-btn-outline site-btn-sm"><FileSpreadsheet size={16}/>{exportBusy?'جاري التحضير...':'تصدير الطلبات Excel'}</button>
+     <button disabled={busy} onClick={()=>setRevision(n=>n+1)} className="site-btn site-btn-outline site-btn-sm">تحديث البيانات</button>
    </div>
   </div>
   <div className="mb-6 flex flex-wrap gap-2">{periods.map(([key,label])=><button key={key} onClick={()=>setRange(key as '7'|'30'|'90'|'all')} aria-pressed={range===key} className={`rounded-full border px-4 py-2 text-sm font-bold ${range===key?'border-brand bg-brand text-white':'border-brand/20 bg-white text-ink'}`}>{label}</button>)}</div>
   {error&&<p role="alert" className="mb-5 rounded-xl bg-red-50 p-4 font-bold text-red-700">{error}</p>}
-  {busy&&!report&&<p className="py-12 text-neutral-600">جاري تحميل التقارير...</p>}
-  {report&&stats&&<div className={busy?'opacity-60':'opacity-100'}>
+  {exportError&&<p role="alert" className="mb-5 rounded-xl bg-red-50 p-4 font-bold text-red-700">{exportError}</p>}
+  {busy&&<p role="status" className="py-12 text-neutral-600">جاري تحميل التقارير...</p>}
+  {current&&report&&stats&&<div>
    <div className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
     <Metric label="قيمة الطلبات المُسلّمة" value={money(stats.deliveredValue)} note="قيمة الطلبات حالتها مسلّم، ليست صافي ربح أو إثبات تحصيل"/>
     <Metric label="الطلبات المُسلّمة" value={stats.deliveredOrders.toLocaleString()} note="ضمن الفترة المختارة"/>
@@ -94,5 +104,6 @@ export default function Reports(){
    </div>
    <p className="mt-6 text-xs text-neutral-500">آخر تحديث: {new Date(report.generatedAt).toLocaleString('ar-IQ')}. هامش البضاعة يظهر فقط للطلبات ذات تكلفة موثقة، ولا يعادل صافي الربح أو التحصيل النقدي.</p>
   </div>}
+  <ReturnReviewPanel key={range} range={range}/>
  </AdminLayout>;
 }
