@@ -161,6 +161,9 @@ jobs:
       - name: Browser-token storage and cookie transport regression guard
         run: node tests/auth-cookie-transport.cjs
         working-directory: frontend
+      - name: Saved basket recovery and arithmetic boundaries
+        run: node --experimental-strip-types --test tests/cart-state.test.cjs
+        working-directory: frontend
       - name: Production frontend build
         run: npm run build
         working-directory: frontend

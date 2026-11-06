@@ -14,7 +14,7 @@ import EmptyCartPicks from '@/components/cart/EmptyCartPicks';
 const amount=(value:number)=>value.toLocaleString('en-US')+' د.ع';
 
 export default function CartPage(){
- const {items,removeFromCart,updateQuantity,totalPrice,clearCart}=useCart();
+ const {items,removeFromCart,updateQuantity,totalPrice,clearCart,cartNotice}=useCart();
  const [message,setMessage]=useState('');
  const [confirmClear,setConfirmClear]=useState(false);
  const [quote,setQuote]=useState<CartQuote|null>(null);
@@ -55,6 +55,7 @@ export default function CartPage(){
 
  if(items.length===0)return <><Header/>
   <main className="site-container site-main py-10 sm:py-12">
+   {cartNotice&&<p role="status" className="site-surface mb-5 p-4 text-sm font-bold leading-7">{cartNotice}</p>}
    <div className="signature-detail-sheet mx-auto w-full max-w-[580px] px-5 py-10 text-center sm:px-12">
     <div className="mx-auto grid h-20 w-20 place-items-center rounded-[27px] bg-[#e7f7fc] text-brand"><ShoppingBag size={38} strokeWidth={1.5}/></div>
     <span className="site-eyebrow mt-6 block" dir="ltr">YOUR THANAYA CART</span>
@@ -75,6 +76,7 @@ export default function CartPage(){
    confirmLabel="إفراغ السلة" destructive
    onConfirm={()=>{setConfirmClear(false);clearCart()}} onClose={()=>setConfirmClear(false)}/>
   <main className="site-container site-main pb-10 pt-6 md:pt-8">
+   {cartNotice&&<p role="status" className="site-surface mb-5 p-4 text-sm font-bold leading-7">{cartNotice}</p>}
    <nav aria-label="مسار الصفحة" className="mb-5 flex items-center gap-2 text-xs font-semibold text-[#6e8e9d]">
     <Link href="/" className="hover:text-brand">الرئيسية</Link><ArrowRight size={13}/><span className="font-black text-[#254656]">سلة التسوق</span>
    </nav>

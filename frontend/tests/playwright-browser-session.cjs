@@ -486,6 +486,7 @@ async function playwrightBrowserSession(base, { ownerEmail, ownerPassword, recei
     await require('./product-gallery-browser.cjs').productGalleryBrowser(browser,base,receivingFixture);
     await require('./catalog-browser.cjs').catalogBrowser(browser,base);
     await require('./checkout-browser.cjs').checkoutBrowser(browser,base,{ownerEmail,ownerPassword,receivingFixture});
+    await require('./cart-recovery-browser.cjs').cartRecoveryBrowser(browser,base,receivingFixture);
     await staff.close();
     if (failures.length) console.log('Browser nonfatal page errors count:', failures.length);
   } finally {
