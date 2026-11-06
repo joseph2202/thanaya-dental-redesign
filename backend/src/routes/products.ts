@@ -117,22 +117,42 @@ function respondError(res: import('express').Response, error: unknown) {
 
 router.get('/', async (req, res) => {
   try {
-    const { category, brand, sort, minPrice, maxPrice, search } = req.query;
+    // Query parameters can be arrays. Reject ambiguous filters before any
+    // coercion or silently broadening the requested results.
+    const single = (key: string, limit: number) => {
+      const value = req.query[key];
+      if (value === undefined) return '';
+      return textField(value, 'فلتر ' + key, limit, false);
+    };
+    const category=single('category',90), brand=single('brand',120);
+    const search=single('search',100), sort=single('sort',20);
+    const minPrice=single('minPrice',20), maxPrice=single('maxPrice',20);
+    if (sort && !['price-asc','price-desc','name'].includes(sort)) {
+      throw new InputError(400, 'ترتيب المنتجات غير صالح');
+    }
     const where: Prisma.ProductWhereInput = { published: true };
-    if (typeof category === 'string' && category.trim()) where.category = category.trim();
-    if (typeof brand === 'string' && brand.trim()) where.brand = brand.trim();
+    if (category) where.category = category;
+    if (brand) where.brand = brand;
     const price: Prisma.IntFilter = {};
-    if (minPrice !== undefined) price.gte = parseMoney(Number(minPrice), 'الحد الأدنى');
-    if (maxPrice !== undefined) price.lte = parseMoney(Number(maxPrice), 'الحد الأعلى');
+    const priceValue = (value: string, label: string) => {
+      if (!/^[0-9]+$/.test(value)) throw new InputError(400, label + ' يجب أن يكون عدداً صحيحاً بالدينار العراقي');
+      return parseMoney(Number(value), label);
+    };
+    if (minPrice) price.gte = priceValue(minPrice, 'الحد الأدنى');
+    if (maxPrice) price.lte = priceValue(maxPrice, 'الحد الأعلى');
+    if (typeof price.gte==='number' && typeof price.lte==='number' && price.gte>price.lte) {
+      throw new InputError(400, 'الحد الأدنى للسعر أكبر من الحد الأعلى');
+    }
     if (Object.keys(price).length) where.price = price;
-    if (typeof search === 'string' && search.trim()) {
-      const term = textField(search, 'البحث', 100);
-      where.OR = [{name:{contains:term}},{description:{contains:term}},{brand:{contains:term}},{sku:{contains:term}},{model:{contains:term}}];
+    if (search) {
+      where.OR = [{name:{contains:search}},{description:{contains:search}},{brand:{contains:search}},
+        {sku:{contains:search}},{model:{contains:search}},{category:{contains:search}}];
     }
     const orders: Record<string, Prisma.ProductOrderByWithRelationInput> = {
       'price-asc': {price:'asc'}, 'price-desc':{price:'desc'}, name:{name:'asc'}
     };
-    res.json((await prisma.product.findMany({ where, include:{lots:{select:{stock:true,expiryDate:true}}}, orderBy: typeof sort === 'string' && orders[sort] ? orders[sort] : {createdAt:'desc'} })).map(publicProduct));
+    res.json((await prisma.product.findMany({ where, include:{lots:{select:{stock:true,expiryDate:true}}},
+      orderBy:[sort ? orders[sort] : {createdAt:'desc'},{id:'asc'}] })).map(publicProduct));
   } catch (error) { respondError(res, error); }
 });
 

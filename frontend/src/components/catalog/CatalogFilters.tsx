@@ -2,22 +2,16 @@
 import {useState} from 'react';
 import {useRouter} from 'next/navigation';
 import {Search,SlidersHorizontal,X} from 'lucide-react';
-type FormValues={search:string;category:string;brand:string;sort:string;minPrice:string;maxPrice:string;inStock:boolean};
+import {parseCatalogQuery,type CatalogFilterValues as FormValues} from '@/lib/catalogQuery';
 export default function CatalogFilters({initial,categories,brands}:{initial:FormValues;categories:[string,number][];brands:string[]}){
  const router=useRouter();
  const [form,setForm]=useState(initial),[error,setError]=useState(''),[expanded,setExpanded]=useState(false);
  const update=(key:Exclude<keyof FormValues,'inStock'>,value:string)=>setForm(f=>({...f,[key]:value}));
  function submit(event:React.FormEvent){
   event.preventDefault();setError('');
-  const min=form.minPrice.trim(),max=form.maxPrice.trim();
-  const valid=(n:string)=>!n||(/^\d+$/.test(n)&&Number.isSafeInteger(Number(n))&&Number(n)<=1000000000);
-  if(!valid(min)||!valid(max)){setError('السعر لازم يكون رقماً صحيحاً بالدينار العراقي');setExpanded(true);return;}
-  if(min&&max&&Number(min)>Number(max)){setError('الحد الأدنى للسعر أكبر من الحد الأعلى');setExpanded(true);return;}
-  const query=new URLSearchParams();
-  for(const key of ['search','category','brand','sort','minPrice','maxPrice'] as const){
-   const value=form[key].trim();
-   if(value)query.set(key,value);
-  }
+  const parsed=parseCatalogQuery({...form,inStock:form.inStock?'1':''});
+  if(!parsed.ok){setError(parsed.error);setExpanded(true);return;}
+  const query=new URLSearchParams(parsed.api);
   if(form.inStock)query.set('inStock','1');
   router.push('/products'+(query.size?'?'+query.toString():''));
  }
@@ -36,7 +30,7 @@ export default function CatalogFilters({initial,categories,brands}:{initial:Form
     </button>
    </div>
    <div id="catalog-filter-fields" className={expanded?'mt-4 space-y-4':'mt-4 hidden space-y-4 lg:block'}>
-   <label className="mb-2 block text-xs font-bold text-neutral-600" htmlFor="catalog-query">ابحث بالاسم أو الماركة</label>
+   <label className="mb-2 block text-xs font-bold text-neutral-600" htmlFor="catalog-query">ابحث بالاسم، القسم، الماركة أو SKU</label>
    <div className="relative"><input id="catalog-query" name="search" maxLength={100} value={form.search} onChange={e=>update('search',e.target.value)} placeholder="مثلاً: أدوات الأسنان" className={input+' pl-10'}/><Search size={17} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-brand"/></div>
    <label className="mt-4 flex cursor-pointer items-center gap-3 rounded-xl border border-[#cce7f1] bg-[#f5fbfe] px-3 py-3 text-sm font-bold text-[#2e5264]"><input type="checkbox" checked={form.inStock} onChange={e=>setForm(f=>({...f,inStock:e.target.checked}))} className="h-4 w-4 accent-[#059BD0]" />المتوفر حالياً فقط</label>
    <div className="mt-4 space-y-4">
