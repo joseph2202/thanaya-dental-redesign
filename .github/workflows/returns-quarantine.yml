@@ -147,6 +147,11 @@ jobs:
         working-directory: backend
         env:
           NODE_ENV: test
+      - name: Public catalog search, filter boundaries and cost privacy
+        run: node tests/catalog.integration.cjs
+        working-directory: backend
+        env:
+          NODE_ENV: test
       - name: Install frontend dependencies
         run: npm ci
         working-directory: frontend

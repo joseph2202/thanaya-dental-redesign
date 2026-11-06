@@ -24,7 +24,7 @@ export default async function SearchPage({searchParams}:{searchParams:Promise<Se
  const heading=tooLong?'كلمة البحث طويلة جداً':failed?'تعذّر الاتصال بالمتجر حالياً':
   !query?'ابحث عن منتجك':results.length===0?'ما لقينا منتجات تطابق بحثك':'';
  const details=tooLong?'استخدم حتى 100 حرف بالبحث.':failed?'جرّب البحث مرة ثانية بعد قليل.':
-  !query?'تگدر تبحث بالاسم، الماركة، الموديل أو رمز المنتج SKU.':'جرّب اسم المنتج أو رمز SKU أو كلمة أقصر.';
+  !query?'تگدر تبحث بالاسم، القسم، الماركة، الموديل أو رمز المنتج SKU.':'جرّب اسم المنتج أو رمز SKU أو كلمة أقصر.';
 
  return <><Header/>
   <main className="site-container site-main py-5 md:py-8">
