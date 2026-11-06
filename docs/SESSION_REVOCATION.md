@@ -23,7 +23,7 @@ backend/scripts/rehearse_session_revocation.py يقبل --source صريحة، ي
 - غياب الجدول يفشل 503 بلا cookies أو حساب جزئي، ثم تعافٍ بعد استعادته.
 - تنظيف hashes منتهية وعدم اختلاق مال/مخزون.
 
-نجحت auth.integration.cjs وroles.integration.cjs وبناء Backend بعد التغيير. Next fullstack smoke صار يعيد إرسال Cookie المنسوخة بعد logout ويتوقع 401 عبر rewrite، بدلاً من الاكتفاء بإثبات إزالة Cookie من المتصفح. النتيجة الكاملة تنتظر CI لهذه الدفعة؛ لا ادعاء نجاح المتصفح قبلها.
+نجحت auth.integration.cjs وroles.integration.cjs وبناء Backend بعد التغيير. Next fullstack smoke صار يعيد إرسال Cookie المنسوخة بعد logout ويتوقع 401 عبر rewrite، بدلاً من الاكتفاء بإثبات إزالة Cookie من المتصفح. CI #258 ناجح بالكامل على c6bc70e6 (PR #76): checks الجديدة وNext copied-cookie replay وجميع فحوص ERP/المال/المتصفح السابقة نجحت. لا تفعيل للمخطط الحقيقي.
 
 ## المتبقي
 لا تعرض هذه الدفعة قائمة أجهزة/جلسات ولا زر خروج من كل الأجهزة، ولا سياسة تلقائية جديدة عند تغيير password/role. تغيير الدور يظل يطبق صلاحيات DB الحالية (اختبار role القديم محفوظ). هذه توسعات لاحقة، إضافة إلى guarded activation وWebKit/التشغيل. عند الرجوع لكود أقدم لا يعرف السجل يلزم تقييم تدوير مفتاح التوقيع حتى لا تتجاهل النسخة القديمة إبطالات محفوظة؛ لا تنفذ rollback أو تدوير أسرار حقيقية هنا.

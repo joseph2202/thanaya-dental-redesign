@@ -1,15 +1,22 @@
 # THANAYA — نقطة الاستئناف المعتمدة
 
 ## آخر أساس كامل ومتحقق
-- Draft PR #75، fix/cart-persistence-recovery-20261106.
-- Commit: f83342d0a8319571c7039c4e0363f57b0ded0155.
-- CI #257 ناجح بالكامل: https://github.com/joseph2202/thanaya-dental-redesign/actions/runs/42139492110 .
-- يشمل كل #60–#69 و#71–#74. #70 مغلق superseded، وفرعه محفوظ بلا merge/حذف. المالية وERP والشراء والمعرض/البحث والسلة السابقة محفوظة؛ لا إعادة تحليل من main.
+- Draft PR #76، feature/server-session-revocation-20261106.
+- Commit: c6bc70e668d51d9fd2aa1b61ebdd3fcad501b798.
+- CI #258 ناجح بالكامل: https://github.com/joseph2202/thanaya-dental-redesign/actions/runs/42141160716 .
+- يشمل #60–#69 و#71–#75؛ #70 مغلق superseded وفرعه محفوظ بلا merge/حذف. إبطال الجلسة وإعادة Cookie المنسوخة عبر Next نجحا مع جميع فحوص ERP/المالية/الشراء/البحث/السلة/التباين السابقة. المخطط الجديد غير مفعل على قاعدة حقيقية.
 
-## الدفعة 20 الحالية — إبطال جلسة الخروج على السيرفر
+## الدفعة 21 الحالية — اتساق الصورة عبر البطاقة والشراء
+الفرع fix/gallery-photo-consistency-20261106 مبني على آخر حفظ للدفعة 20: c6bc70e668d51d9fd2aa1b61ebdd3fcad501b798، Draft PR #76، CI #258 ناجح بالكامل كما أعلاه.
+
+كانت صفحة التفاصيل تدعم gallery-only من #69، لكن CatalogProductCard تعرض أيقونة ورسالة «لا توجد صورة» عند image=null. productImages مشترك يرتب الصورة الأساسية ثم المعرض ويزيل الفراغ/التكرار ويطبع روابط uploads القديمة. البطاقة والمعرض ورسالة غياب الصور تستخدم المصدر نفسه، وصورة snapshot للسلة من البطاقة أو ProductPurchaseActions تأتي منه. لا تغيير للمخزون/السعر/الفلاتر/شروط الشراء أو أي schema جديدة هنا.
+
+بناء Next (35 مساراً) وsyntax/diff ناجحة. امتداد Chrome الحالي يتأكد أن بطاقة gallery-only تحمل فعلياً logo.png (naturalWidth>0) بلا رسالة كاذبة، مع بقاء زرها معطلاً لأن fixture غير متوفرة. فحوص المعرض والبحث والشراء والسلة السابقة باقية. ينتظر CI بعد الحفظ؛ لا ادعاء نجاحه قبل النتيجة.
+
+## حالة الدفعة 20 المحفوظة — إبطال جلسة الخروج على السيرفر
 الفرع feature/server-session-revocation-20261106 مبني على #75 أعلاه. جدول RevokedSession إضافي يحفظ hash فقط. تسجيل الخروج يحفظ الإبطال قبل مسح cookies؛ middleware بعد CSRF يرفض إعادة Cookie/Bearer عبر كل API، بلا cache سلبية، ويستمر بعد restart. jti عشوائية تجعل الجلسات المستقلة مختلفة. الأصول الموثوقة وCSRF ودور User الفعلي باقية. خادم journal الغائب/المتعطل يفشل 503، ولا يصدر cookies أو يخلق حساباً جزئياً. المسارات case-insensitive/trailing slash لا تتجاوز الحارس أو no-store.
 
-اختبار التكامل الجديد أثبت الفشل على الكود القديم (200 بعد الخروج بدلاً من 401)، ثم نجحت 6 مجموعات تشمل إعادة استخدام التوكن، جهازاً آخر وrestart وCookie/CSRF، القديم بلا jti/exp والمستقبلي nbf، journal down/recovery والتنظيف. بني Backend ونجحت auth/roles baseline، و8 فحوص بروفة clone-only تحافظ على المصدر وWAL. Fullstack Next smoke يعيد إرسال Cookie المنسوخة بعد logout ويتوقع 401. CI لهذه الدفعة لم تعتمد بعد وقت الحفظ؛ افحص HEAD الفعلي للـDraft PR قبل إعلان النتيجة. docs/SESSION_REVOCATION.md المرجع.
+اختبار التكامل الجديد أثبت الفشل على الكود القديم (200 بعد الخروج بدلاً من 401)، ثم نجحت 6 مجموعات تشمل إعادة استخدام التوكن، جهازاً آخر وrestart وCookie/CSRF، القديم بلا jti/exp والمستقبلي nbf، journal down/recovery والتنظيف. بني Backend ونجحت auth/roles baseline، و8 فحوص بروفة clone-only تحافظ على المصدر وWAL. Fullstack Next smoke يعيد إرسال Cookie المنسوخة بعد logout ويتوقع 401. CI #258 اعتمد هذه الدفعة بالكامل على c6bc70e6؛ لا تعاد محلياً دون سبب. docs/SESSION_REVOCATION.md المرجع.
 
 ## المخطط والسلامة — مطلوب قبل أي تشغيل حقيقي
 RevokedSession جديد، لكنه اختبر فقط في temp SQLite. لا apply/activation mode في rehearsal، ولا db push/reset/Migration على Mac. الجدول الصحيح شرط تشغيل تسجيل الدخول على DB قديمة؛ الغياب يعيد 503. مسار تفعيل محمي بbackup متحقق وتصريح تشغيل ما زال يلزم، إضافة إلى OrderStatusEvent وERP05/06. لا .env أو dev.db أو قاعدة/ملفات زبائن حقيقية هنا. لا نشر أو merge أو دفع حقيقي. لا تدوير JWT_SECRET أو تغيير بيانات اعتماد فعلية.
@@ -26,6 +33,6 @@ RevokedSession جديد، لكنه اختبر فقط في temp SQLite. لا appl
 Node 22؛ RUST_LOG=info في Work. bash scripts/preview-local.sh ينشئ واجهة 3108 وAPI 4108 وقاعدة/مالكاً صناعيين ومفتاح محاكي مؤقتاً؛ Ctrl+C ينظفها. المحاكي يحتاج Node >=22.13. Chrome المحلي مقيد، فلا يحاول تجاوزه. CI ينشئ SQLite مؤقتة ويشغل Chrome والصور تحفظ 7 أيام. auth/roles أعيدتا لأن بوابة مصادقة جديدة تؤثر عليهما؛ لا تكرار ثقيل للفحوص المكتملة محلياً بلا سبب.
 
 ## ما لم يكتمل والمهمة التالية
-1. افحص CI على HEAD دفعة 20، وأصلح أي فشل auth/Next/finance/preview حسب الدليل. لا تضع fallback يسمح بجلسة عند تعطل journal. احفظ النتيجة وحدث PR/هذه النقطة.
+1. الأب #76/CI #258 ناجح؛ افحص CI على HEAD دفعة 21. أصلح أي فشل auth/Next/finance/preview/gallery حسب الدليل، بلا fallback عند تعطل journal أو تخفيف صورة/توفّر. احفظ النتيجة وحدث PR/هذه النقطة.
 2. إبطال جلسات الخروج لا يعني خروجاً من كل الأجهزة أو قائمة جلسات/تغيير role/password تلقائي؛ هذه توسعات لاحقة موثقة. تفعيل schema الحقيقي معلق.
 3. أكمل تسوية تكلفة المرتجعات والذمم بعد إرجاع جزئي بمرجع أحداث واضح، ثم توسيع سجل ERP، وWebKit/a11y/الأداء وتحسين الرئيسية/المنتجات وGlass المحدود حسب WORK_MISSION وWORK_ROADMAP. لا تعرض ربحاً صافياً أو رصيد صندوق بلا أدلة. الدفع الحقيقي ينتظر credentials/عقد/تصريح؛ أكمل ما لا يعتمد عليه.

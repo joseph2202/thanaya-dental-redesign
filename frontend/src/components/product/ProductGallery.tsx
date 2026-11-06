@@ -3,10 +3,10 @@ import {useEffect,useId,useRef,useState} from 'react';
 import {ChevronLeft,ChevronRight,Maximize2,Minus,Plus,X} from 'lucide-react';
 import ProductMedia from '@/components/ui/ProductMedia';
 import styles from './ProductGallery.module.css';
+import {productImages} from '@/lib/productImages';
 
 export default function ProductGallery({name,image,icon,gallery}:{name:string;image?:string|null;icon?:string;gallery?:string[]}){
- const images=[...new Set([image,...(gallery||[])].filter((value):value is string=>typeof value==='string'&&value.length>0)
-  .map(src=>src.replace(/https?:\/\/(?:localhost|127\.0\.0\.1):4000\/uploads\//gi,'/uploads/')))];
+ const images=productImages({image,gallery});
  const [active,setActive]=useState(0),[open,setOpen]=useState(false),[zoomed,setZoomed]=useState(false);
  const [unavailable,setUnavailable]=useState<Record<string,boolean>>({});
  const dialog=useRef<HTMLDialogElement>(null),trigger=useRef<HTMLButtonElement>(null),closeButton=useRef<HTMLButtonElement>(null);

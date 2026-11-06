@@ -69,6 +69,13 @@ async function productGalleryBrowser(browser,base,fixture){
   await only.getByRole('button',{name:'تكبير صور المنتج',exact:true}).click();await modal.waitFor();
   await modal.getByRole('img',{name:'Browser Gallery Only Product، صورة 1',exact:true}).waitFor();
   await page.keyboard.press('Escape');await modal.waitFor({state:'hidden'});
+  await page.goto(base+'/search?q='+encodeURIComponent('Browser Gallery Only Product'));
+  const galleryCard=page.locator('article.signature-card:visible').filter({hasText:'Browser Gallery Only Product'});
+  const galleryPhoto=galleryCard.getByRole('img',{name:'Browser Gallery Only Product',exact:true});
+  await galleryPhoto.waitFor();await page.waitForFunction(()=>[...document.images].some(img=>img.alt==='Browser Gallery Only Product'&&img.complete&&img.naturalWidth>0));
+  assert.equal(await galleryPhoto.getAttribute('src'),'/logo.png');
+  assert.equal(await galleryCard.getByText('لا توجد صورة مرفوعة بعد',{exact:true}).count(),0);
+  assert.equal(await galleryCard.getByRole('button',{name:'إضافة Browser Gallery Only Product للسلة',exact:true}).isDisabled(),true);
   await page.goto(base+'/search?q=CI-SKU-440');
   const found=page.locator('article.signature-card').filter({hasText:name});
   await found.getByText('SKU: CI-SKU-440',{exact:true}).waitFor();
